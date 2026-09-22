@@ -20,7 +20,7 @@ const PILE_ROTATE = [-10, -3, 3, 10]
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, grade, undo, canUndo, learnMore, reload } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, reload } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
 
@@ -164,6 +164,7 @@ export default function App() {
     <div className="flex h-full flex-col bg-white">
       <TopBar
         queue={queue}
+        learned={learned}
         canUndo={canUndo}
         filtersOpen={filtersOpen}
         filtersActive={filtersActive}
@@ -188,7 +189,7 @@ export default function App() {
                 onToggleMap={() => setShowMap((v) => !v)}
               />
             )}
-            {ready && queue && !card && <Done key="done" queue={queue} onLearnMore={() => learnMore(20)} />}
+            {ready && queue && !card && <Done key="done" queue={queue} learned={learned} onLearnMore={() => learnMore(20)} />}
           </AnimatePresence>
         </div>
         <div className="w-[min(560px,100%)]">

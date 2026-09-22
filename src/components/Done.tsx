@@ -2,9 +2,9 @@ import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { formatInterval, type Queue } from '../lib/scheduler'
 
-type Props = { queue: Queue; onLearnMore: () => void }
+type Props = { queue: Queue; learned: number; onLearnMore: () => void }
 
-export function Done({ queue, onLearnMore }: Props) {
+export function Done({ queue, learned, onLearnMore }: Props) {
   const [, setNow] = useState(Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 10_000)
@@ -27,6 +27,7 @@ export function Done({ queue, onLearnMore }: Props) {
       <div className="text-[14px] text-ink-3">
         {queue.done} card{queue.done === 1 ? '' : 's'} answered
         {queue.nextLearningAt && waitMs > 0 ? ` · next card in ${formatInterval(waitMs)}` : ''}
+        {` · ${learned} learned in total`}
       </div>
       {queue.remainingNew > 0 && (
         <button

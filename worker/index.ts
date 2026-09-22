@@ -1,5 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
-// Atlas API: Google sign-in and last-write-wins sync of card states, daily counters and the review log.
+// Atlas API: Google sign-in and sync. Cards are last-write-wins, the review log is append-only (undo deletes),
+// and day rows only carry `extraNew`, merged by max. Every row records `synced` (server receipt time) so a pull
+// with `since` catches rows that were written offline and pushed late.
 
 export interface Env {
   DB: D1Database
@@ -11,6 +13,7 @@ export interface Env {
 type Row = { id: string; data: unknown; updated: number }
 type DayRowIn = { day: string; data: unknown; updated: number }
 type RevlogIn = { cardId: string; review: number; data: unknown }
+type RevlogKey = { cardId: string; review: number }
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } })
@@ -68,30 +71,37 @@ async function googleSignIn(env: Env, req: Request) {
 }
 
 async function pull(env: Env, uid: string, since: number) {
-  const [cards, days] = await Promise.all([
-    env.DB.prepare('SELECT id, data, updated FROM cards WHERE user_id = ?1 AND updated > ?2').bind(uid, since).all<{ id: string; data: string; updated: number }>(),
-    env.DB.prepare('SELECT day, data, updated FROM days WHERE user_id = ?1 AND updated > ?2').bind(uid, since).all<{ day: string; data: string; updated: number }>(),
+  const now = Date.now()
+  const [cards, days, revlog] = await Promise.all([
+    env.DB.prepare('SELECT id, data, updated FROM cards WHERE user_id = ?1 AND synced > ?2').bind(uid, since).all<{ id: string; data: string; updated: number }>(),
+    env.DB.prepare('SELECT day, data, updated FROM days WHERE user_id = ?1 AND synced > ?2').bind(uid, since).all<{ day: string; data: string; updated: number }>(),
+    env.DB.prepare('SELECT card_id, review, data FROM revlog WHERE user_id = ?1 AND synced > ?2').bind(uid, since).all<{ card_id: string; review: number; data: string }>(),
   ])
   return json({
-    now: Date.now(),
+    now,
     cards: cards.results.map((r) => ({ id: r.id, data: JSON.parse(r.data), updated: r.updated })),
     days: days.results.map((r) => ({ day: r.day, data: JSON.parse(r.data), updated: r.updated })),
+    revlog: revlog.results.map((r) => ({ cardId: r.card_id, review: r.review, data: JSON.parse(r.data) })),
   })
 }
 
 async function push(env: Env, uid: string, req: Request) {
-  const body = (await req.json()) as { cards?: Row[]; days?: DayRowIn[]; revlog?: RevlogIn[] }
+  const body = (await req.json()) as { cards?: Row[]; days?: DayRowIn[]; revlog?: RevlogIn[]; deleted?: RevlogKey[] }
+  const now = Date.now()
   const stmts: D1PreparedStatement[] = []
   const upCard = env.DB.prepare(
-    'INSERT INTO cards (user_id, id, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(user_id, id) DO UPDATE SET data = excluded.data, updated = excluded.updated WHERE excluded.updated > cards.updated',
+    'INSERT INTO cards (user_id, id, data, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id, id) DO UPDATE SET data = excluded.data, updated = excluded.updated, synced = excluded.synced WHERE excluded.updated > cards.updated',
   )
+  // Day rows: keep the larger `extraNew` from either side; the other counters are derived from the log on each device.
   const upDay = env.DB.prepare(
-    'INSERT INTO days (user_id, day, data, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(user_id, day) DO UPDATE SET data = excluded.data, updated = excluded.updated WHERE excluded.updated > days.updated',
+    "INSERT INTO days (user_id, day, data, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id, day) DO UPDATE SET data = json_set(excluded.data, '$.extraNew', max(coalesce(json_extract(excluded.data, '$.extraNew'), 0), coalesce(json_extract(days.data, '$.extraNew'), 0))), updated = max(excluded.updated, days.updated), synced = excluded.synced",
   )
-  const upLog = env.DB.prepare('INSERT OR IGNORE INTO revlog (user_id, card_id, review, data) VALUES (?1, ?2, ?3, ?4)')
-  for (const c of body.cards ?? []) stmts.push(upCard.bind(uid, c.id, JSON.stringify(c.data), c.updated))
-  for (const d of body.days ?? []) stmts.push(upDay.bind(uid, d.day, JSON.stringify(d.data), d.updated))
-  for (const r of body.revlog ?? []) stmts.push(upLog.bind(uid, r.cardId, r.review, JSON.stringify(r.data)))
+  const upLog = env.DB.prepare('INSERT OR IGNORE INTO revlog (user_id, card_id, review, data, synced) VALUES (?1, ?2, ?3, ?4, ?5)')
+  const delLog = env.DB.prepare('DELETE FROM revlog WHERE user_id = ?1 AND card_id = ?2 AND review = ?3')
+  for (const c of body.cards ?? []) stmts.push(upCard.bind(uid, c.id, JSON.stringify(c.data), c.updated, now))
+  for (const d of body.days ?? []) stmts.push(upDay.bind(uid, d.day, JSON.stringify(d.data), d.updated, now))
+  for (const r of body.revlog ?? []) stmts.push(upLog.bind(uid, r.cardId, r.review, JSON.stringify(r.data), now))
+  for (const k of body.deleted ?? []) stmts.push(delLog.bind(uid, k.cardId, k.review))
   // D1 batches are limited in size; chunk them.
   for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100))
   return json({ ok: true, count: stmts.length })

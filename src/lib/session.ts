@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
-import { ALL_CARDS, type DeckCard } from './deck'
-import { becomesLeech, buildQueue, dayKey, emptyDay, freshRow, scheduler, type Queue } from './scheduler'
+import { ALL_CARDS, CARD_BY_ID, type DeckCard } from './deck'
+import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, scheduler, type Queue } from './scheduler'
 import { useSettings } from './settings'
-import { schedulePush } from './sync'
+import { recordUndo, schedulePush } from './sync'
 
-type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string }
+type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string; review: Date }
 
 export function useSession() {
   const settings = useSettings()
@@ -17,10 +17,27 @@ export function useSession() {
   /** Card pinned to the front of the queue after an undo. */
   const pinned = useRef<string | null>(null)
 
+  /**
+   * Today's counters come from the review log, not the stored day row, so progress made on two devices
+   * (or before signing in) adds up instead of one copy replacing the other. The row only keeps `extraNew`.
+   */
   const loadDay = useCallback(async (now: Date) => {
     const key = dayKey(now)
-    const existing = await db.days.get(key)
-    const d = existing ?? emptyDay(key)
+    const stored = await db.days.get(key)
+    const d = emptyDay(key)
+    d.extraNew = stored?.extraNew ?? 0
+    d.updated = stored?.updated ?? 0
+    const logs = await db.revlog.where('review').aboveOrEqual(new Date(+dayEnd(now) - 86_400_000)).toArray()
+    const seen = new Set<string>()
+    for (const l of logs) {
+      if (dayKey(new Date(l.review)) !== key) continue
+      if (l.state === State.New) d.newCount++
+      else if (l.state === State.Review) d.reviewCount++
+      if (l.rating >= 1 && l.rating <= 4) d.grades[l.rating - 1]++
+      const note = CARD_BY_ID.get(l.cardId)?.note.id
+      if (note) seen.add(note)
+    }
+    d.seenNotes = [...seen]
     setDay(d)
     return d
   }, [])
@@ -72,6 +89,14 @@ export function useSession() {
     [queue],
   )
 
+  /** Cards answered at least once, ever. */
+  const learned = useMemo(() => {
+    let n = 0
+    for (const r of rows.current.values()) if (r.state !== State.New) n++
+    return n
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue])
+
   const grade = useCallback(
     async (card: DeckCard, g: Grade) => {
       if (!day) return
@@ -99,7 +124,7 @@ export function useSession() {
         await db.days.put(nd)
         return (await db.revlog.add({ ...log, cardId: card.id })) as number
       })
-      setUndo({ row: before, day: d, logId, cardId: card.id })
+      setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review })
       schedulePush()
     },
     [day, loadDay],
@@ -122,6 +147,7 @@ export function useSession() {
       await db.days.put(day)
       await db.revlog.delete(undo.logId)
     })
+    recordUndo(undo.cardId, undo.review)
     schedulePush()
   }, [undo])
 
@@ -148,5 +174,5 @@ export function useSession() {
     setTick((t) => t + 1)
   }, [loadDay])
 
-  return { ready: !!day, queue, day, currentRow, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload }
 }

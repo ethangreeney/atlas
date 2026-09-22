@@ -4,6 +4,7 @@ import { Account } from './Account'
 
 type Props = {
   queue: Queue | null
+  learned: number
   canUndo: boolean
   filtersOpen: boolean
   filtersActive: boolean
@@ -43,11 +44,18 @@ const IconButton = ({
   </button>
 )
 
-export function TopBar({ queue, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced }: Props) {
+export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced }: Props) {
   const c = queue?.counts
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between px-4 sm:px-6">
-      <div className="text-[15px] font-semibold tracking-[-0.02em] text-ink">Atlas</div>
+      <div className="flex items-baseline gap-3">
+        <span className="text-[15px] font-semibold tracking-[-0.02em] text-ink">Atlas</span>
+        {learned > 0 && (
+          <span className="hidden text-[12px] text-ink-3 sm:inline" title="Cards you have answered at least once">
+            <span className="tabular-nums">{learned}</span> learned
+          </span>
+        )}
+      </div>
       <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-3 sm:gap-4">
         {c && (
           <>

@@ -1,3 +1,4 @@
+import { ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
 import { motion, type Variants } from 'motion/react'
 import { State } from 'ts-fsrs'
 import { mediaUrl, type DeckCard } from '../lib/deck'
@@ -103,12 +104,14 @@ function Front({ card }: { card: DeckCard }) {
   }
 }
 
-function Back({ card }: { card: DeckCard }) {
+function Back({ card, showMap }: { card: DeckCard; showMap: boolean }) {
   const n = card.note
+  const map = showMap && n.map && card.type !== 'map' ? <Map file={n.map} size="sm" /> : null
   switch (card.type) {
     case 'capital':
       return (
         <>
+          {map}
           <Small>{n.country}</Small>
           <Big>{n.capital}</Big>
           <Info>{n.capitalInfo}</Info>
@@ -117,6 +120,7 @@ function Back({ card }: { card: DeckCard }) {
     case 'country':
       return (
         <>
+          {map}
           <Small>{n.capital}</Small>
           <Big>{n.country}</Big>
           <Info>{n.countryInfo}</Info>
@@ -125,7 +129,7 @@ function Back({ card }: { card: DeckCard }) {
     case 'flag':
       return (
         <>
-          <Flag file={n.flagBack ?? n.flag!} size="sm" />
+          {map ?? <Flag file={n.flagBack ?? n.flag!} size="sm" />}
           <Big>{n.country}</Big>
           <Info>{n.countryInfo}</Info>
           <Info>{n.flagSimilar ? `Similar to ${n.flagSimilar}` : ''}</Info>
@@ -142,9 +146,44 @@ function Back({ card }: { card: DeckCard }) {
   }
 }
 
-type Props = { card: DeckCard; row: CardRow; flipped: boolean; onFlip: () => void }
+type Props = {
+  card: DeckCard
+  row: CardRow
+  flipped: boolean
+  showMap: boolean
+  onFlip: () => void
+  onSpeak: () => void
+  onToggleMap: () => void
+}
 
-export function Card({ card, row, flipped, onFlip }: Props) {
+/** Google Maps search for the place this card is about. */
+export const mapsUrl = (card: DeckCard) => {
+  const q = card.type === 'capital' ? `${card.note.capital}, ${card.note.country}` : card.note.country
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+}
+
+const Action = ({ label, onClick, href, children }: { label: string; onClick?: () => void; href?: string; children: React.ReactNode }) => {
+  const cls = 'flex h-8 w-8 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-neutral-100 hover:text-ink'
+  return href ? (
+    <a href={href} target="_blank" rel="noreferrer" aria-label={label} title={label} className={cls} onClick={(e) => e.stopPropagation()}>
+      {children}
+    </a>
+  ) : (
+    <button
+      aria-label={label}
+      title={label}
+      className={cls}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick?.()
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+export function Card({ card, row, flipped, showMap, onFlip, onSpeak, onToggleMap }: Props) {
   const tag = stateTag(row)
   return (
     <motion.div
@@ -168,7 +207,20 @@ export function Card({ card, row, flipped, onFlip }: Props) {
         </div>
         <div className="backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-white px-8 text-center [transform:rotateY(180deg)]">
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          <Back card={card} />
+          <Back card={card} showMap={showMap} />
+          <div className="absolute bottom-3 right-3 flex items-center gap-0.5">
+            <Action label="Pronounce (S)" onClick={onSpeak}>
+              <Volume2 size={16} strokeWidth={1.75} />
+            </Action>
+            {card.type !== 'map' && card.note.map && (
+              <Action label={showMap ? 'Hide map (M)' : 'Show map (M)'} onClick={onToggleMap}>
+                <MapIcon size={16} strokeWidth={1.75} className={showMap ? 'text-ink' : ''} />
+              </Action>
+            )}
+            <Action label="Open in Google Maps (G)" href={mapsUrl(card)}>
+              <ExternalLink size={16} strokeWidth={1.75} />
+            </Action>
+          </div>
         </div>
       </motion.div>
     </motion.div>

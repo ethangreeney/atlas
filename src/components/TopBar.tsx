@@ -1,13 +1,11 @@
-import { SlidersHorizontal, Undo2, Volume2, VolumeX } from 'lucide-react'
+import { SlidersHorizontal, Undo2 } from 'lucide-react'
 import type { Queue } from '../lib/scheduler'
 
 type Props = {
   queue: Queue | null
-  muted: boolean
   canUndo: boolean
   filtersOpen: boolean
   filtersActive: boolean
-  onToggleMute: () => void
   onUndo: () => void
   onToggleFilters: () => void
 }
@@ -43,7 +41,7 @@ const IconButton = ({
   </button>
 )
 
-export function TopBar({ queue, muted, canUndo, filtersOpen, filtersActive, onToggleMute, onUndo, onToggleFilters }: Props) {
+export function TopBar({ queue, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters }: Props) {
   const c = queue?.counts
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between px-4 sm:px-6">
@@ -60,9 +58,6 @@ export function TopBar({ queue, muted, canUndo, filtersOpen, filtersActive, onTo
       <div className="flex items-center gap-1">
         <IconButton onClick={onUndo} label="Undo (Z)" disabled={!canUndo}>
           <Undo2 size={17} strokeWidth={1.75} />
-        </IconButton>
-        <IconButton onClick={onToggleMute} label={muted ? 'Unmute (M)' : 'Mute (M)'}>
-          {muted ? <VolumeX size={17} strokeWidth={1.75} /> : <Volume2 size={17} strokeWidth={1.75} />}
         </IconButton>
         <IconButton onClick={onToggleFilters} label="Filters" active={filtersOpen}>
           <SlidersHorizontal size={17} strokeWidth={1.75} />

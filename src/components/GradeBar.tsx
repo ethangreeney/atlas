@@ -2,9 +2,10 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { Grade } from 'ts-fsrs'
 import { GRADES } from '../lib/scheduler'
 
-const COLORS = ['bg-again', 'bg-hard', 'bg-good', 'bg-easy']
-
 type Props = { flipped: boolean; intervals: string[]; onFlip: () => void; onGrade: (g: Grade) => void; disabled: boolean }
+
+const button =
+  'rounded-2xl bg-white text-ink shadow-[0_0_0_1px_rgba(15,15,16,0.07),0_1px_2px_rgba(15,15,16,0.04)] transition-[box-shadow,transform,background-color] duration-100 hover:bg-neutral-50 hover:shadow-[0_0_0_1px_rgba(15,15,16,0.12),0_1px_2px_rgba(15,15,16,0.04)] active:scale-[0.98] disabled:pointer-events-none'
 
 export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled }: Props) {
   return (
@@ -24,12 +25,9 @@ export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled }: Prop
                 key={g.key}
                 disabled={disabled}
                 onClick={() => onGrade(g.grade)}
-                className="group flex flex-col items-center justify-center gap-0.5 rounded-2xl border border-line bg-white transition-[background-color,transform] duration-100 hover:bg-neutral-50 active:scale-[0.97] disabled:pointer-events-none"
+                className={`${button} flex flex-col items-center justify-center gap-0.5`}
               >
-                <span className="flex items-center gap-1.5 text-[14px] font-medium text-ink">
-                  <span className={`h-1.5 w-1.5 rounded-full ${COLORS[i]}`} />
-                  {g.label}
-                </span>
+                <span className="text-[14px] font-medium">{g.label}</span>
                 <span className="text-[12px] tabular-nums text-ink-3">{intervals[i]}</span>
               </button>
             ))}
@@ -39,7 +37,7 @@ export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled }: Prop
             key="show"
             onClick={onFlip}
             disabled={disabled}
-            className="absolute inset-0 flex items-center justify-center gap-3 rounded-2xl border border-line bg-white text-[14px] font-medium text-ink transition-[background-color,transform] duration-100 hover:bg-neutral-50 active:scale-[0.99] disabled:pointer-events-none"
+            className={`${button} absolute inset-0 flex items-center justify-center gap-3 text-[14px] font-medium`}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}

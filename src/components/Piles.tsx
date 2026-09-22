@@ -1,40 +1,42 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { GRADES } from '../lib/scheduler'
 
-const COLORS = ['bg-again', 'bg-hard', 'bg-good', 'bg-easy']
-
 type Props = { counts: [number, number, number, number]; refs: React.RefObject<(HTMLDivElement | null)[]> }
 
-/** Four little stacks the cards fly into. Counts tick when a card lands. */
+const MAX_LAYERS = 6
+
+/** Four small stacks the cards fly into. The stack grows with the count; the number ticks when a card lands. */
 export function Piles({ counts, refs }: Props) {
   return (
     <div className="flex w-full items-end justify-between px-2">
       {GRADES.map((g, i) => {
         const n = counts[i]
+        const layers = Math.max(1, Math.min(n, MAX_LAYERS))
         return (
-          <div key={g.key} className="flex flex-col items-center gap-2">
+          <div key={g.key} className="flex flex-col items-center gap-2.5">
             <div
               ref={(el) => {
                 refs.current[i] = el
               }}
-              className="relative h-9 w-14"
+              className="relative h-10 w-14"
+              style={{ marginTop: (layers - 1) * 2 }}
             >
-              {[2, 1, 0].map((layer) => (
+              {Array.from({ length: layers }, (_, layer) => layers - 1 - layer).map((depth) => (
                 <div
-                  key={layer}
-                  className="absolute inset-0 rounded-md border border-line bg-white"
+                  key={depth}
+                  className="absolute inset-0 rounded-lg bg-white transition-opacity duration-300"
                   style={{
-                    transform: `translateY(${-layer * 2.5}px) rotate(${(layer - 1) * 1.6 * (n > 0 ? 1 : 0.35)}deg)`,
-                    opacity: n > layer ? 1 : 0.35,
-                    boxShadow: n > layer ? '0 1px 2px rgba(15,15,16,0.05)' : 'none',
+                    transform: `translateY(${-depth * 2}px) rotate(${depth % 2 ? 0.8 : -0.6}deg)`,
+                    opacity: n === 0 ? 0.5 : 1,
+                    boxShadow: '0 0 0 1px rgba(15,15,16,0.07), 0 1px 2px rgba(15,15,16,0.05)',
                   }}
                 />
               ))}
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={n}
-                  className="absolute inset-0 flex items-center justify-center text-[13px] font-semibold tabular-nums text-ink"
-                  initial={{ scale: 1.35, opacity: 0.4 }}
+                  className={`absolute inset-0 flex items-center justify-center text-[13px] font-semibold tabular-nums ${n === 0 ? 'text-ink-3' : 'text-ink'}`}
+                  initial={{ scale: 1.3, opacity: 0.3 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 700, damping: 30 }}
@@ -43,10 +45,7 @@ export function Piles({ counts, refs }: Props) {
                 </motion.span>
               </AnimatePresence>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-ink-3">
-              <span className={`h-1.5 w-1.5 rounded-full ${COLORS[i]}`} />
-              {g.label}
-            </div>
+            <div className="text-[11px] font-medium text-ink-3">{g.label}</div>
           </div>
         )
       })}

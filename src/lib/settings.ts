@@ -4,13 +4,12 @@ import type { CardType } from './deck'
 export type Settings = {
   regions: string[] // empty = all
   types: CardType[] // empty = all
-  muted: boolean
   newPerDay: number
   reviewsPerDay: number
 }
 
 const KEY = 'atlas.settings'
-const DEFAULTS: Settings = { regions: [], types: [], muted: false, newPerDay: 20, reviewsPerDay: 200 }
+const DEFAULTS: Settings = { regions: [], types: [], newPerDay: 20, reviewsPerDay: 200 }
 
 let current: Settings = (() => {
   try {

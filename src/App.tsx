@@ -1,7 +1,7 @@
 import { AnimatePresence } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
-import { Card, type ExitTarget } from './components/Card'
+import { Card, mapsUrl, type ExitTarget } from './components/Card'
 import { Done } from './components/Done'
 import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
@@ -10,7 +10,7 @@ import { TopBar } from './components/TopBar'
 import { answerOf, DECK_VERSION } from './lib/deck'
 import { previewIntervals, Rating } from './lib/scheduler'
 import { useSession } from './lib/session'
-import { setSettings, useSettings } from './lib/settings'
+import { useSettings } from './lib/settings'
 import { langForCapital, speak, stopSpeaking } from './lib/tts'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
@@ -21,6 +21,7 @@ export default function App() {
   const card = queue?.current ?? null
 
   const [flipped, setFlipped] = useState(false)
+  const [showMap, setShowMap] = useState(false)
   const [seq, setSeq] = useState(0)
   const [exitTarget, setExitTarget] = useState<ExitTarget | null>(null)
   const [busy, setBusy] = useState(false)
@@ -43,11 +44,12 @@ export default function App() {
   const flip = useCallback(() => {
     if (!card || flipped || busy) return
     setFlipped(true)
-    if (!settings.muted) {
-      const lang = card.type === 'capital' ? langForCapital(card.note.country) : 'en-GB'
-      speak(answerOf(card), lang)
-    }
-  }, [card, flipped, busy, settings.muted])
+  }, [card, flipped, busy])
+
+  const say = useCallback(() => {
+    if (!card || !flipped) return
+    speak(answerOf(card), card.type === 'capital' ? langForCapital(card.note.country) : 'en-GB')
+  }, [card, flipped])
 
   const doGrade = useCallback(
     (g: Grade) => {
@@ -65,6 +67,7 @@ export default function App() {
       stopSpeaking()
       setBusy(true)
       setFlipped(false)
+      setShowMap(false)
       setSeq((s) => s + 1)
       void grade(card, g)
       setTimeout(() => {
@@ -79,6 +82,7 @@ export default function App() {
     if (!canUndo || busy) return
     setExitTarget(null)
     setFlipped(false)
+    setShowMap(false)
     setSeq((s) => s + 1)
     void undo()
   }, [canUndo, busy, undo])
@@ -110,15 +114,23 @@ export default function App() {
         case 'Z':
           doUndo()
           break
+        case 's':
+        case 'S':
+          say()
+          break
         case 'm':
         case 'M':
-          setSettings({ muted: !settings.muted })
+          if (flipped) setShowMap((v) => !v)
+          break
+        case 'g':
+        case 'G':
+          if (card && flipped) window.open(mapsUrl(card), '_blank', 'noopener')
           break
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [flip, doGrade, doUndo, flipped, filtersOpen, settings.muted])
+  }, [flip, doGrade, doUndo, say, card, flipped, filtersOpen])
 
   const filtersActive = settings.regions.length > 0 || settings.types.length > 0
   const progress = queue && queue.total > 0 ? queue.done / queue.total : 0
@@ -127,11 +139,9 @@ export default function App() {
     <div className="flex h-full flex-col bg-white">
       <TopBar
         queue={queue}
-        muted={settings.muted}
         canUndo={canUndo}
         filtersOpen={filtersOpen}
         filtersActive={filtersActive}
-        onToggleMute={() => setSettings({ muted: !settings.muted })}
         onUndo={doUndo}
         onToggleFilters={() => setFiltersOpen((o) => !o)}
       />
@@ -145,7 +155,12 @@ export default function App() {
         <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)]">
           <AnimatePresence custom={exitTarget} initial={false}>
             {ready && card && currentRow && (
-              <Card key={`${card.id}:${seq}`} card={card} row={currentRow} flipped={flipped} onFlip={flip} />
+              <Card key={`${card.id}:${seq}`} card={card} row={currentRow} flipped={flipped}
+                showMap={showMap}
+                onFlip={flip}
+                onSpeak={say}
+                onToggleMap={() => setShowMap((v) => !v)}
+              />
             )}
             {ready && queue && !card && <Done key="done" queue={queue} onLearnMore={() => learnMore(20)} />}
           </AnimatePresence>
@@ -166,7 +181,7 @@ export default function App() {
       <footer className="flex h-11 shrink-0 items-center justify-between px-4 text-[11px] text-ink-3 sm:px-6">
         <div className="hidden items-center gap-2 sm:flex">
           <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-          <kbd>z</kbd> undo
+          <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
         </div>
         <div className="truncate">
           <a href="https://github.com/anki-geo/ultimate-geography" className="hover:text-ink" target="_blank" rel="noreferrer">

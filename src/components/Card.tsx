@@ -7,11 +7,12 @@ import type { CardRow } from '../lib/db'
 export type ExitTarget = { x: number; y: number; rotate: number }
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
-const SLOW = typeof location !== 'undefined' && location.search.includes('slow') ? 10 : 1 // debug: ?slow
+// Debug/filming: ?slow=4 stretches the flip and fly-away animations 4x.
+const SLOW = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('slow')) || 1 : 1
 
 const variants: Variants = {
   enter: { opacity: 0, scale: 0.97, y: 12, x: 0, rotate: 0, zIndex: 10 },
-  center: { opacity: 1, scale: 1, y: 0, x: 0, rotate: 0, zIndex: 10, transition: { duration: 0.24, ease: EASE } },
+  center: { opacity: 1, scale: 1, y: 0, x: 0, rotate: 0, zIndex: 10, transition: { duration: 0.24 * SLOW, ease: EASE } },
   exit: (t: ExitTarget | null) =>
     t
       ? {
@@ -196,7 +197,7 @@ export function Card({ card, row, flipped, showMap, onFlip, onSpeak, onToggleMap
       <motion.div
         className="relative h-full w-full cursor-pointer select-none [transform-style:preserve-3d]"
         animate={{ rotateY: flipped ? 180 : 0 }}
-        transition={{ duration: 0.38, ease: [0.3, 0.7, 0.2, 1] }}
+        transition={{ duration: 0.38 * SLOW, ease: [0.3, 0.7, 0.2, 1] }}
         onClick={() => !flipped && onFlip()}
         role="button"
         aria-label={flipped ? 'Answer' : 'Show answer'}

@@ -204,11 +204,11 @@ export default function App() {
         <Piles counts={pileCounts} refs={pileRefs} />
       </div>
 
-      <footer className="flex h-11 shrink-0 items-center justify-between px-4 text-[11px] text-ink-3 sm:px-6">
-        <div className="flex items-center gap-2">
+      <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
+        <div className="flex shrink-0 items-center gap-2">
           <About />
-          <span className="mx-1 hidden sm:inline">·</span>
-          <span className="hidden items-center gap-2 sm:flex">
+          <span className="mx-1 hidden lg:inline">·</span>
+          <span className="hidden items-center gap-2 lg:flex">
           <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
           <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
           </span>
@@ -217,7 +217,7 @@ export default function App() {
           <a href="https://github.com/anki-geo/ultimate-geography" className="hover:text-ink" target="_blank" rel="noreferrer">
             Ultimate Geography {DECK_VERSION}
           </a>
-          <span className="hidden sm:inline"> · deck public domain · images CC BY-SA / CC0,</span>{' '}
+          <span className="hidden md:inline"> · deck public domain · images CC BY-SA / CC0,</span>{' '}
           <a
             href="https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv"
             className="hover:text-ink"

@@ -1,56 +1,60 @@
-let voices: SpeechSynthesisVoice[] = []
-const load = () => {
-  if (typeof speechSynthesis === 'undefined') return
-  voices = speechSynthesis.getVoices()
-}
-if (typeof speechSynthesis !== 'undefined') {
-  load()
-  speechSynthesis.addEventListener('voiceschanged', load)
-}
+import manifest from '../data/audio.json'
 
-const norm = (l: string) => l.replace('_', '-').toLowerCase()
+const CLIPS = manifest as Record<string, string>
 
 /**
- * Names are read in English, in the user's own dialect: the browser's language list first
- * (en-NZ in New Zealand, en-US in America), then the common English locales as fallbacks.
+ * Pronunciation is pre-recorded with neural voices in British and American English;
+ * the browser's locale picks one (NZ, AU, UK, IE, ZA, IN → gb; everyone else → us).
  */
-const preferred = () => {
-  const own = (typeof navigator !== 'undefined' ? navigator.languages : []).map(norm).filter((l) => l.startsWith('en'))
-  return [...new Set([...own, 'en-us', 'en-gb', 'en-au', 'en-nz', 'en-ie', 'en-za', 'en-in'])]
-}
-
-// macOS novelty and legacy voices that should never be picked.
-const JUNK =
-  /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|eddy|flo|fred|good news|grandma|grandpa|hysterical|jester|junior|kathy|organ|ralph|reed|rocko|sandy|shelley|superstar|trinoids|whisper|wobble|zarvox|compact|eloquence/
-
-const quality = (v: SpeechSynthesisVoice) => {
-  const n = v.name.toLowerCase()
-  if (JUNK.test(n)) return 0
-  if (/natural|neural|premium|enhanced|siri/.test(n)) return 4
-  if (n.startsWith('google') || n.startsWith('microsoft')) return 3
-  if (!v.localService) return 2
-  return 1
-}
-
-export function pickVoice() {
-  const order = preferred()
-  const rank = (v: SpeechSynthesisVoice) => {
-    const i = order.indexOf(norm(v.lang))
-    return i === -1 ? order.length : i
+const dialect = (() => {
+  const langs = typeof navigator !== 'undefined' ? navigator.languages.map((l) => l.toLowerCase()) : []
+  for (const l of langs) {
+    if (/^en-(nz|au|gb|ie|za|in|sg|ke|ng)/.test(l)) return 'gb'
+    if (/^en/.test(l)) return 'us'
   }
-  const en = voices.filter((v) => norm(v.lang).startsWith('en') && quality(v) > 0)
-  return en.sort((a, b) => rank(a) - rank(b) || quality(b) - quality(a))[0] ?? null
+  return 'us'
+})()
+
+const url = (text: string) => (CLIPS[text] ? `${import.meta.env.BASE_URL}audio/${dialect}/${CLIPS[text]}` : null)
+
+const cache = new Map<string, HTMLAudioElement>()
+
+/** Warm the clip for a card as soon as it appears so S plays instantly. */
+export function preload(text: string) {
+  const src = url(text)
+  if (!src || cache.has(text)) return
+  const a = new Audio(src)
+  a.preload = 'auto'
+  cache.set(text, a)
+  if (cache.size > 24) cache.delete(cache.keys().next().value!)
 }
+
+let playing: HTMLAudioElement | null = null
 
 export function speak(text: string) {
-  if (typeof speechSynthesis === 'undefined' || !text) return
-  speechSynthesis.cancel()
+  if (!text) return
+  stopSpeaking()
+  preload(text)
+  const a = cache.get(text)
+  if (!a) return fallback(text)
+  playing = a
+  a.currentTime = 0
+  a.play().catch(() => fallback(text))
+}
+
+export function stopSpeaking() {
+  if (playing) {
+    playing.pause()
+    playing = null
+  }
+  if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel()
+}
+
+/** Browser voice, only if a clip is missing or fails to load. */
+function fallback(text: string) {
+  if (typeof speechSynthesis === 'undefined') return
   const u = new SpeechSynthesisUtterance(text)
-  const v = pickVoice()
-  if (v) u.voice = v
-  u.lang = v?.lang ?? (typeof navigator !== 'undefined' ? navigator.language : 'en')
+  u.lang = typeof navigator !== 'undefined' ? navigator.language : 'en'
   u.rate = 0.95
   speechSynthesis.speak(u)
 }
-
-export const stopSpeaking = () => typeof speechSynthesis !== 'undefined' && speechSynthesis.cancel()

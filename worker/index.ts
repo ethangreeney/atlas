@@ -34,11 +34,15 @@ async function readSession(env: Env, req: Request): Promise<string | null> {
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
   const [p, s] = token.split('.')
   if (!p || !s) return null
-  const payload = fromB64url(p)
-  const ok = await crypto.subtle.verify('HMAC', await hmacKey(env.SESSION_SECRET), fromB64url(s), payload)
-  if (!ok) return null
-  const { sub, exp } = JSON.parse(new TextDecoder().decode(payload)) as { sub: string; exp: number }
-  return exp > Date.now() ? sub : null
+  try {
+    const payload = fromB64url(p)
+    const ok = await crypto.subtle.verify('HMAC', await hmacKey(env.SESSION_SECRET), fromB64url(s), payload)
+    if (!ok) return null
+    const { sub, exp } = JSON.parse(new TextDecoder().decode(payload)) as { sub: string; exp: number }
+    return exp > Date.now() ? sub : null
+  } catch {
+    return null
+  }
 }
 
 async function googleSignIn(env: Env, req: Request) {
@@ -93,10 +97,9 @@ async function push(env: Env, uid: string, req: Request) {
   return json({ ok: true, count: stmts.length })
 }
 
-export default {
-  async fetch(req, env) {
+export async function handleApi(req: Request, env: Env): Promise<Response> {
+  {
     const url = new URL(req.url)
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req)
 
     if (url.pathname === '/api/config') return json({ googleClientId: env.GOOGLE_CLIENT_ID ?? null })
     if (url.pathname === '/api/auth/google' && req.method === 'POST') return googleSignIn(env, req)
@@ -111,5 +114,12 @@ export default {
     if (url.pathname === '/api/sync' && req.method === 'GET') return pull(env, uid, Number(url.searchParams.get('since') ?? 0))
     if (url.pathname === '/api/sync' && req.method === 'POST') return push(env, uid, req)
     return json({ error: 'Not found' }, 404)
+  }
+}
+
+/** Worker entry (kept for `wrangler dev`); production runs the same handler as a Pages Function. */
+export default {
+  async fetch(req, env) {
+    return new URL(req.url).pathname.startsWith('/api/') ? handleApi(req, env) : env.ASSETS.fetch(req)
   },
 } satisfies ExportedHandler<Env>

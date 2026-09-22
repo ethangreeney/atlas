@@ -28,6 +28,14 @@ export default defineConfig({
         // Cache the whole deck's media so the app works offline after first load.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // Pronunciation clips are fetched on demand and kept once heard.
+        runtimeCaching: [
+          {
+            urlPattern: /\/audio\/.*\.mp3$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'audio', expiration: { maxEntries: 2000, maxAgeSeconds: 365 * 86400 } },
+          },
+        ],
       },
     }),
   ],

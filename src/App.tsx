@@ -2,6 +2,7 @@ import { AnimatePresence } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
 import { Card, mapsUrl, type ExitTarget } from './components/Card'
+import { About } from './components/About'
 import { Done } from './components/Done'
 import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
@@ -11,7 +12,7 @@ import { answerOf, DECK_VERSION } from './lib/deck'
 import { previewIntervals, Rating } from './lib/scheduler'
 import { useSession } from './lib/session'
 import { useSettings } from './lib/settings'
-import { speak, stopSpeaking } from './lib/tts'
+import { preload, speak, stopSpeaking } from './lib/tts'
 import { useAuth } from './lib/auth'
 import { syncNow } from './lib/sync'
 
@@ -57,6 +58,11 @@ export default function App() {
     const t = setTimeout(() => setPileCounts(day.grades), 400)
     return () => clearTimeout(t)
   }, [day])
+
+  // Have the pronunciation ready before the answer is shown.
+  useEffect(() => {
+    if (card) preload(answerOf(card))
+  }, [card])
 
   const intervals = useMemo(() => (currentRow ? previewIntervals(currentRow, new Date()) : []), [currentRow])
 
@@ -199,9 +205,13 @@ export default function App() {
       </div>
 
       <footer className="flex h-11 shrink-0 items-center justify-between px-4 text-[11px] text-ink-3 sm:px-6">
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="flex items-center gap-2">
+          <About />
+          <span className="mx-1 hidden sm:inline">·</span>
+          <span className="hidden items-center gap-2 sm:flex">
           <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
           <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
+          </span>
         </div>
         <div className="truncate">
           <a href="https://github.com/anki-geo/ultimate-geography" className="hover:text-ink" target="_blank" rel="noreferrer">

@@ -33,7 +33,7 @@ Vite, React, TypeScript, Tailwind, Motion, [ts-fsrs](https://github.com/open-spa
 
 ## Scheduling
 
-FSRS with desired retention 0.90, 20 new and 200 reviews a day, random new-card order, siblings buried for the day, one 10 minute learning and relearning step, day rollover at 4am, leeches tagged at 8 lapses but never suspended. Sync is last-write-wins per card.
+FSRS with desired retention 0.90, 20 new and 200 reviews a day, random new-card order that differs per browser, a warm-up of six well-known flag and map cards for brand-new learners, siblings buried for the day, one 10 minute learning and relearning step, day rollover at 4am, leeches tagged at 8 lapses but never suspended. Sync is last-write-wins per card.
 
 ## Develop
 

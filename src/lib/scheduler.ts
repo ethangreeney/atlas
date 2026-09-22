@@ -41,6 +41,28 @@ const hash = (s: string) => {
   return h >>> 0
 }
 
+/** Per-browser salt so every learner gets their own card order. */
+const SEED = (() => {
+  const key = 'atlas.seed'
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored) return stored
+    const fresh = Math.random().toString(36).slice(2)
+    localStorage.setItem(key, fresh)
+    return fresh
+  } catch {
+    return Math.random().toString(36).slice(2)
+  }
+})()
+
+/** Well-known countries whose flag and map cards go first for a brand-new learner, for easy early wins. */
+const STARTERS = new Set([
+  'France', 'Japan', 'United States of America', 'Brazil', 'Australia', 'Italy', 'Canada', 'Germany', 'China', 'India',
+  'Egypt', 'Mexico', 'United Kingdom', 'Spain', 'Russia', 'New Zealand', 'South Africa', 'Argentina', 'Greece', 'Ireland',
+])
+/** How many cards a learner grades before the warm-up ends and the order goes fully random. */
+const WARMUP_CARDS = 6
+
 export type Queue = {
   current: DeckCard | null
   counts: { new: number; learn: number; due: number }
@@ -65,6 +87,7 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   const seen = new Set(day.seenNotes)
   const cards = ALL_CARDS.filter((c) => matchesFilters(c, settings))
   const row = (c: DeckCard) => rows.get(c.id) ?? freshRow(c, now)
+  const rank = (c: DeckCard) => hash(c.id + day.day + SEED)
 
   const learning = cards
     .filter((c) => isLearning(row(c).state))
@@ -73,14 +96,18 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   const reviewBudget = Math.max(0, settings.reviewsPerDay - day.reviewCount)
   const reviews = cards
     .filter((c) => row(c).state === State.Review && row(c).due < end && !seen.has(c.note.id))
-    .sort((a, b) => +row(a).due - +row(b).due || hash(a.id + day.day) - hash(b.id + day.day))
+    .sort((a, b) => +row(a).due - +row(b).due || rank(a) - rank(b))
     .slice(0, reviewBudget)
 
   const newBudget = Math.max(0, Math.min(settings.newPerDay + day.extraNew - day.newCount, reviewBudget - reviews.length))
   const seenNew = new Set<string>()
+  let graded = 0
+  for (const r of rows.values()) if (r.state !== State.New) graded++
+  const warmup = graded < WARMUP_CARDS
+  const tier = (c: DeckCard) => (warmup && (c.type === 'flag' || c.type === 'map') && STARTERS.has(c.note.country) ? 0 : 1)
   const fresh = cards
     .filter((c) => row(c).state === State.New && !seen.has(c.note.id))
-    .sort((a, b) => hash(a.id + day.day) - hash(b.id + day.day))
+    .sort((a, b) => tier(a) - tier(b) || rank(a) - rank(b))
     .filter((c) => (seenNew.has(c.note.id) ? false : (seenNew.add(c.note.id), true)))
     .slice(0, newBudget)
 

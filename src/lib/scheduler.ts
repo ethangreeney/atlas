@@ -30,9 +30,9 @@ export const dayEnd = (d: Date) => {
   if (t <= d) t.setDate(t.getDate() + 1)
   return t
 }
-export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, seenNotes: [], grades: [0, 0, 0, 0] })
+export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, seenNotes: [], grades: [0, 0, 0, 0], updated: 0 })
 
-export const freshRow = (c: DeckCard, now: Date): CardRow => ({ ...createEmptyCard(now), id: c.id, noteId: c.note.id })
+export const freshRow = (c: DeckCard, now: Date): CardRow => ({ ...createEmptyCard(now), id: c.id, noteId: c.note.id, updated: 0 })
 
 // Deterministic per-day shuffle so the queue doesn't reorder itself between grades.
 const hash = (s: string) => {

@@ -4,6 +4,7 @@ import { db, type CardRow, type DayRow } from './db'
 import { ALL_CARDS, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayKey, emptyDay, freshRow, scheduler, type Queue } from './scheduler'
 import { useSettings } from './settings'
+import { schedulePush } from './sync'
 
 type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string }
 
@@ -79,7 +80,7 @@ export function useSession() {
       const before = rows.current.get(card.id)
       const prev = before ?? freshRow(card, now)
       const { card: next, log } = scheduler.next(prev, now, g)
-      const row: CardRow = { ...next, id: card.id, noteId: card.note.id, leech: before?.leech || becomesLeech(g, next.lapses) }
+      const row: CardRow = { ...next, id: card.id, noteId: card.note.id, leech: before?.leech || becomesLeech(g, next.lapses), updated: +now }
 
       const nd: DayRow = {
         ...d,
@@ -87,6 +88,7 @@ export function useSession() {
         reviewCount: d.reviewCount + (prev.state === State.Review ? 1 : 0),
         seenNotes: d.seenNotes.includes(card.note.id) ? d.seenNotes : [...d.seenNotes, card.note.id],
         grades: d.grades.map((n, i) => n + (i === g - 1 ? 1 : 0)) as DayRow['grades'],
+        updated: +now,
       }
 
       rows.current.set(card.id, row)
@@ -98,36 +100,53 @@ export function useSession() {
         return (await db.revlog.add({ ...log, cardId: card.id })) as number
       })
       setUndo({ row: before, day: d, logId, cardId: card.id })
+      schedulePush()
     },
     [day, loadDay],
   )
 
   const undoLast = useCallback(async () => {
     if (!undo) return
-    if (undo.row) rows.current.set(undo.cardId, undo.row)
+    const now = Date.now()
+    // Restore the previous state but stamp it as new, so a synced copy elsewhere is overwritten too.
+    const row = undo.row ? { ...undo.row, updated: now } : undefined
+    const day = { ...undo.day, updated: now }
+    if (row) rows.current.set(undo.cardId, row)
     else rows.current.delete(undo.cardId)
     pinned.current = undo.cardId
-    setDay(undo.day)
+    setDay(day)
     setUndo(null)
     await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
-      if (undo.row) await db.cards.put(undo.row)
+      if (row) await db.cards.put(row)
       else await db.cards.delete(undo.cardId)
-      await db.days.put(undo.day)
+      await db.days.put(day)
       await db.revlog.delete(undo.logId)
     })
+    schedulePush()
   }, [undo])
 
   const learnMore = useCallback(
     async (n = 20) => {
       if (!day) return
-      const nd = { ...day, extraNew: day.extraNew + n }
+      const nd = { ...day, extraNew: day.extraNew + n, updated: Date.now() }
       setDay(nd)
       await db.days.put(nd)
+      schedulePush()
     },
     [day],
   )
 
   const refresh = useCallback(() => setTick((t) => t + 1), [])
 
-  return { ready: !!day, queue, day, currentRow, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh }
+  /** Re-read everything from IndexedDB (after a sync pull). */
+  const reload = useCallback(async () => {
+    const all = await db.cards.toArray()
+    rows.current = new Map(all.map((r) => [r.id, r]))
+    pinned.current = null
+    setUndo(null)
+    await loadDay(new Date())
+    setTick((t) => t + 1)
+  }, [loadDay])
+
+  return { ready: !!day, queue, day, currentRow, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload }
 }

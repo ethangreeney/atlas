@@ -1,5 +1,6 @@
 import { SlidersHorizontal, Undo2 } from 'lucide-react'
 import type { Queue } from '../lib/scheduler'
+import { Account } from './Account'
 
 type Props = {
   queue: Queue | null
@@ -8,6 +9,7 @@ type Props = {
   filtersActive: boolean
   onUndo: () => void
   onToggleFilters: () => void
+  onSynced: () => void
 }
 
 const Count = ({ n, label, cls }: { n: number; label: string; cls: string }) => (
@@ -41,7 +43,7 @@ const IconButton = ({
   </button>
 )
 
-export function TopBar({ queue, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters }: Props) {
+export function TopBar({ queue, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced }: Props) {
   const c = queue?.counts
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between px-4 sm:px-6">
@@ -63,6 +65,7 @@ export function TopBar({ queue, canUndo, filtersOpen, filtersActive, onUndo, onT
           <SlidersHorizontal size={17} strokeWidth={1.75} />
           {filtersActive && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-ink" />}
         </IconButton>
+        <Account onSynced={onSynced} />
       </div>
     </header>
   )

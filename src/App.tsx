@@ -11,13 +11,16 @@ import { answerOf, DECK_VERSION } from './lib/deck'
 import { previewIntervals, Rating } from './lib/scheduler'
 import { useSession } from './lib/session'
 import { useSettings } from './lib/settings'
-import { langForCapital, speak, stopSpeaking } from './lib/tts'
+import { speak, stopSpeaking } from './lib/tts'
+import { useAuth } from './lib/auth'
+import { syncNow } from './lib/sync'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, grade, undo, canUndo, learnMore } = useSession()
+  const { ready, queue, day, currentRow, grade, undo, canUndo, learnMore, reload } = useSession()
+  const auth = useAuth()
   const card = queue?.current ?? null
 
   const [flipped, setFlipped] = useState(false)
@@ -31,6 +34,22 @@ export default function App() {
   const stageRef = useRef<HTMLDivElement>(null)
   const pileRefs = useRef<(HTMLDivElement | null)[]>([])
   const busyRef = useRef(false)
+
+  // Pull the latest progress when the app opens signed in, and whenever it comes back into view.
+  useEffect(() => {
+    if (!ready || !auth) return
+    const run = () =>
+      syncNow()
+        .then((changed) => {
+          if (changed) void reload()
+        })
+        .catch(() => {})
+    run()
+    const onVisible = () => document.visibilityState === 'visible' && run()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, auth?.user.id])
 
   // Pile counters tick when the card lands, not when the key is pressed.
   useEffect(() => {
@@ -48,7 +67,7 @@ export default function App() {
 
   const say = useCallback(() => {
     if (!card || !flipped) return
-    speak(answerOf(card), card.type === 'capital' ? langForCapital(card.note.country) : 'en-GB')
+    speak(answerOf(card))
   }, [card, flipped])
 
   const doGrade = useCallback(
@@ -144,6 +163,7 @@ export default function App() {
         filtersActive={filtersActive}
         onUndo={doUndo}
         onToggleFilters={() => setFiltersOpen((o) => !o)}
+        onSynced={reload}
       />
       <div className="mx-4 h-px bg-line sm:mx-6">
         <div className="h-full bg-ink transition-[width] duration-500 ease-out" style={{ width: `${progress * 100}%` }} />

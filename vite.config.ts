@@ -10,6 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: null, // registered from main.tsx so updates reload the page
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Atlas',

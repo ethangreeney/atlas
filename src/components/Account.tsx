@@ -47,7 +47,7 @@ export function Account({ onSynced }: Props) {
       <button
         onClick={signIn}
         disabled={busy}
-        className="h-8 rounded-full px-3 text-[13px] font-medium text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink disabled:opacity-50"
+        className="h-8 rounded-full px-2 text-[13px] sm:px-3 font-medium text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink disabled:opacity-50"
       >
         {busy ? 'Signing in…' : 'Sign in'}
       </button>

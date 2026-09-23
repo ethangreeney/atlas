@@ -30,7 +30,7 @@ export function About() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="card-shadow absolute bottom-8 left-0 z-40 w-[min(400px,calc(100vw-32px))] rounded-2xl bg-white p-5 text-left"
+            className="card-shadow absolute bottom-8 left-0 z-40 w-[min(400px,calc(100vw-32px))] rounded-2xl bg-white p-5 text-left whitespace-normal"
             initial={{ opacity: 0, y: 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}

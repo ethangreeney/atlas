@@ -47,8 +47,8 @@ const IconButton = ({
 export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced }: Props) {
   const c = queue?.counts
   return (
-    <header className="relative flex h-14 shrink-0 items-center justify-between px-4 sm:px-6">
-      <div className="flex items-baseline gap-3">
+    <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
+      <div className="flex shrink-0 items-baseline gap-3">
         <span className="text-[15px] font-semibold tracking-[-0.02em] text-ink">Atlas</span>
         {learned > 0 && (
           <span className="hidden text-[12px] text-ink-3 sm:inline" title="Cards you have answered at least once">
@@ -56,7 +56,7 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
           </span>
         )}
       </div>
-      <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-3 sm:gap-4">
+      <div className="flex flex-1 items-center justify-center gap-3 sm:absolute sm:left-1/2 sm:flex-none sm:-translate-x-1/2 sm:gap-4">
         {c && (
           <>
             <Count n={c.new} label="new" cls="text-easy" />
@@ -65,7 +65,7 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
           </>
         )}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center sm:gap-1">
         <IconButton onClick={onUndo} label="Undo (Z)" disabled={!canUndo}>
           <Undo2 size={17} strokeWidth={1.75} />
         </IconButton>

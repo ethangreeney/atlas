@@ -2,7 +2,7 @@ import { AnimatePresence } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
 import { Card, mapsUrl, type ExitTarget } from './components/Card'
-import { About } from './components/About'
+import { Welcome } from './components/Welcome'
 import { Done } from './components/Done'
 import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
@@ -207,7 +207,7 @@ export default function App() {
 
       <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
         <div className="flex shrink-0 items-center gap-2">
-          <About />
+          <Welcome />
           <span className="mx-1 hidden lg:inline">·</span>
           <span className="hidden items-center gap-2 lg:flex">
           <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}

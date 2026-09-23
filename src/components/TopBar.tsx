@@ -16,7 +16,7 @@ type Props = {
 const Count = ({ n, label, cls }: { n: number; label: string; cls: string }) => (
   <span className="flex items-baseline gap-1">
     <span className={`text-[13px] font-semibold tabular-nums ${cls}`}>{n}</span>
-    <span className="hidden text-[12px] text-ink-3 sm:inline">{label}</span>
+    <span className="text-[12px] text-ink-3">{label}</span>
   </span>
 )
 
@@ -44,11 +44,21 @@ const IconButton = ({
   </button>
 )
 
+/** Phone top bar: the counts take the place of the wordmark. */
+const InlineCounts = ({ c }: { c: NonNullable<Queue['counts']> }) => (
+  <div className="flex items-baseline gap-3 sm:hidden">
+    <Count n={c.new} label="new" cls="text-easy" />
+    <Count n={c.learn} label="learning" cls="text-again" />
+    <Count n={c.due} label="review" cls="text-good" />
+  </div>
+)
+
 export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced }: Props) {
   const c = queue?.counts
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
-      <div className="flex shrink-0 items-baseline gap-3">
+      {c && <InlineCounts c={c} />}
+      <div className="hidden shrink-0 items-baseline gap-3 sm:flex">
         <span className="text-[15px] font-semibold tracking-[-0.02em] text-ink">Atlas</span>
         {learned > 0 && (
           <span className="hidden text-[12px] text-ink-3 sm:inline" title="Cards you have answered at least once">
@@ -56,12 +66,12 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
           </span>
         )}
       </div>
-      <div className="flex flex-1 items-center justify-center gap-3 sm:absolute sm:left-1/2 sm:flex-none sm:-translate-x-1/2 sm:gap-4">
+      <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-4 sm:flex">
         {c && (
           <>
             <Count n={c.new} label="new" cls="text-easy" />
-            <Count n={c.learn} label="learn" cls="text-again" />
-            <Count n={c.due} label="due" cls="text-good" />
+            <Count n={c.learn} label="learning" cls="text-again" />
+            <Count n={c.due} label="review" cls="text-good" />
           </>
         )}
       </div>

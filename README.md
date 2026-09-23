@@ -6,6 +6,8 @@ Every country, capital, flag and map, learned with spaced repetition. Free, no a
 
 ![Atlas demo](docs/demo.gif)
 
+<sub>[Watch in full quality](docs/demo.mp4)</sub>
+
 ## Why
 
 I play [Krillion](https://krillion.io) and GeoGuessr and kept losing on the same things: micro-states in the Pacific and Caribbean, capitals nobody mentions, flags that look alike. The best material for this is the [Ultimate Geography](https://github.com/anki-geo/ultimate-geography) Anki deck, but the Anki apps are dated and fiddly. Atlas is that deck with a front end I actually want to open every day: it starts straight into today's cards, everything is a keystroke, and the scheduler is FSRS, the same algorithm Anki uses, tuned to the settings its authors recommend.

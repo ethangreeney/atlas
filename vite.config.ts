@@ -32,9 +32,9 @@ export default defineConfig({
         // Pronunciation clips are fetched on demand and kept once heard.
         runtimeCaching: [
           {
-            urlPattern: /\/audio\/.*\.mp3$/,
+            urlPattern: /\/voice\/.*\.mp3$/,
             handler: 'CacheFirst',
-            options: { cacheName: 'audio', expiration: { maxEntries: 2000, maxAgeSeconds: 365 * 86400 } },
+            options: { cacheName: 'voice', expiration: { maxEntries: 2000, maxAgeSeconds: 365 * 86400 } },
           },
         ],
       },

@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from 'motion/react'
+import { SlidersHorizontal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ALL_CARDS, mediaUrl } from '../lib/deck'
 
@@ -31,7 +32,7 @@ function FlagFan({ tilt }: { tilt: Tilt }) {
   const rotateY = useSpring(useTransform(tilt.x, [-0.5, 0.5], [-8, 8]), { stiffness: 120, damping: 18 })
   const rotateX = useSpring(useTransform(tilt.y, [-0.5, 0.5], [6, -6]), { stiffness: 120, damping: 18 })
   return (
-    <div className="relative h-[76px] scale-[0.84] [perspective:700px] sm:scale-100" aria-hidden>
+    <div className="relative h-[60px] scale-[0.8] [perspective:700px] sm:h-[76px] sm:scale-100" aria-hidden>
       <motion.div className="absolute inset-0 [transform-style:preserve-3d]" style={still ? undefined : { rotateX, rotateY }}>
         {FLAGS.map((f, i) => {
           const o = i - mid
@@ -110,7 +111,7 @@ export function Welcome() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="welcome-title"
-              className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-white p-7 text-left sm:p-8"
+              className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-white p-6 text-left sm:p-8"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -127,12 +128,12 @@ export function Welcome() {
             >
               <FlagFan tilt={tilt} />
 
-              <h2 id="welcome-title" className="mt-5 text-balance text-[24px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">
+              <h2 id="welcome-title" className="mt-3 text-balance text-[22px] font-semibold sm:mt-5 sm:text-[24px] leading-[1.15] tracking-[-0.025em] text-ink">
                 Learn every flag, capital and map.
               </h2>
-              <p className="mt-1.5 text-[14px] text-ink-2">A few minutes a day is enough.</p>
+              <p className="mt-1 text-[13.5px] text-ink-2 sm:mt-1.5 sm:text-[14px]">A few minutes a day is enough.</p>
 
-              <div className="mt-5 space-y-4 text-[14px] leading-snug">
+              <div className="mt-4 space-y-3 text-[13.5px] leading-snug sm:mt-5 sm:space-y-4 sm:text-[14px]">
                 <div>
                   <div className="font-medium text-ink">The deck geography fans swear by</div>
                   <p className="mt-0.5 text-ink-2">
@@ -151,10 +152,18 @@ export function Welcome() {
                     was trained on 700 million real reviews. It brings each card back just before you'd forget it.
                   </p>
                 </div>
+                <div>
+                  <div className="font-medium text-ink">Learn what you want</div>
+                  <p className="mt-0.5 text-ink-2">
+                    Stick to one region, or just flags, maps or capitals, with the{' '}
+                    <SlidersHorizontal size={13} strokeWidth={2} className="inline-block -translate-y-px text-ink" aria-label="filters" /> filters
+                    up top. Or learn everything.
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-6 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-3">Grade honestly</div>
-              <dl className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[14px]">
+              <div className="mt-5 text-[11px] font-medium uppercase sm:mt-6 tracking-[0.12em] text-ink-3">Grade honestly</div>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13.5px] sm:mt-2.5 sm:gap-y-1.5 sm:text-[14px]">
                 {GUIDE.map((g) => (
                   <div key={g.label} className="contents">
                     <dt className={`font-medium ${g.cls}`}>{g.label}</dt>
@@ -165,12 +174,12 @@ export function Welcome() {
 
               <button
                 onClick={close}
-                className="mt-7 flex h-11 w-full items-center justify-center gap-2.5 rounded-2xl bg-ink text-[14px] font-medium text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 active:scale-[0.98]"
+                className="mt-5 flex h-11 w-full sm:mt-7 items-center justify-center gap-2.5 rounded-2xl bg-ink text-[14px] font-medium text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 active:scale-[0.98]"
               >
                 Start learning
                 <span className="hidden rounded-[5px] border border-white/20 pointer-fine:inline px-[5px] py-[3px] text-[10.5px] leading-none text-white/60">space</span>
               </button>
-              <p className="mt-3 text-center text-[12px] text-ink-3">Free. No account needed, sign in only to sync devices.</p>
+              <p className="mt-3 text-center text-[12px] text-ink-3">Free. No account needed<span className="hidden sm:inline">, sign in only to sync devices</span>.</p>
             </motion.div>
           </motion.div>
         )}

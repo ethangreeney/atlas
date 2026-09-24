@@ -15,7 +15,7 @@ const dialect = (() => {
   return 'us'
 })()
 
-const url = (text: string) => (CLIPS[text] ? `${import.meta.env.BASE_URL}audio/${dialect}/${CLIPS[text]}` : null)
+const url = (text: string) => (CLIPS[text] ? `${import.meta.env.BASE_URL}voice/${dialect}/${CLIPS[text]}` : null)
 
 const cache = new Map<string, HTMLAudioElement>()
 

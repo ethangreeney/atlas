@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
-import { ALL_CARDS, CARD_BY_ID, type DeckCard } from './deck'
-import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, scheduler, type Queue } from './scheduler'
+import { CARD_BY_ID, type DeckCard } from './deck'
+import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, matchesFilters, scheduler, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
 
@@ -16,6 +16,11 @@ export function useSession() {
   const [undo, setUndo] = useState<Undo | null>(null)
   /** Card pinned to the front of the queue after an undo. */
   const pinned = useRef<string | null>(null)
+  /**
+   * The card on screen stays there until it's answered. Without this, coming back to the tab could swap it
+   * for a learning card that fell due in the meantime, mid-view and already flipped.
+   */
+  const shown = useRef<{ id: string; at: number } | null>(null)
 
   /**
    * Today's counters come from the review log, not the stored day row, so progress made on two devices
@@ -69,9 +74,19 @@ export function useSession() {
     if (!day) return null
     const q = buildQueue(new Date(), rows.current, settings, day)
     if (pinned.current) {
-      const c = ALL_CARDS.find((x) => x.id === pinned.current)
-      if (c) return { ...q, current: c }
+      const c = CARD_BY_ID.get(pinned.current)
+      if (c) {
+        shown.current = { id: c.id, at: Date.now() }
+        return { ...q, current: c }
+      }
     }
+    const keep = shown.current
+    if (keep && q.current?.id !== keep.id) {
+      const c = CARD_BY_ID.get(keep.id)
+      const untouched = (rows.current.get(keep.id)?.updated ?? 0) <= keep.at
+      if (c && untouched && matchesFilters(c, settings)) return { ...q, current: c }
+    }
+    shown.current = q.current ? { id: q.current.id, at: keep?.id === q.current.id ? keep.at : Date.now() } : null
     return q
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day, settings, tick])

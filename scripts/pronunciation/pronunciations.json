@@ -1,0 +1,2662 @@
+{
+ "Abkhazia": {
+  "us": "æbkˈɑziə",
+  "gb": "abkˈɑːziə",
+  "source": "wikipedia"
+ },
+ "Abu Dhabi": {
+  "us": "ˌɑbu dˈɑbi",
+  "gb": "ˌabuː dˈɑːbi",
+  "source": "hand"
+ },
+ "Abuja": {
+  "us": "əbˈuʤə",
+  "gb": "əbˈuːʤə",
+  "source": "wikipedia"
+ },
+ "Accra": {
+  "us": "əkɹˈɑ",
+  "gb": "əkɹˈɑː",
+  "source": "wikipedia"
+ },
+ "Addis Ababa": {
+  "us": "ˌædɪs ˈæbəbə",
+  "gb": "ˌadɪs ˈabəbə",
+  "source": "wikipedia"
+ },
+ "Adriatic Sea": {
+  "us": "ˌAdɹiˈætᵻk sˈi",
+  "gb": "ˌAdɹiˈatɪk sˈiː",
+  "source": "wikipedia+dictionary"
+ },
+ "Aegean Sea": {
+  "us": "iʤˈiən sˈi",
+  "gb": "iʤˈiːən sˈiː",
+  "source": "wikipedia+dictionary"
+ },
+ "Afghanistan": {
+  "us": "æfɡˈænᵻstæn",
+  "gb": "afɡˈanɪstan",
+  "source": "wikipedia"
+ },
+ "Africa": {
+  "us": "ˈæfɹəkə",
+  "gb": "ˈafɹɪkə",
+  "source": "dictionary"
+ },
+ "Akrotiri and Dhekelia": {
+  "us": "ˌækɹOtˈɪɹi ənd dɪkˈAliə",
+  "gb": "ˌakɹQtˈɪəɹi ənd dɪkˈAliə",
+  "source": "wikipedia"
+ },
+ "Alaska": {
+  "us": "əlˈæskə",
+  "gb": "əlˈaskə",
+  "source": "wikipedia"
+ },
+ "Albania": {
+  "us": "ælbˈAniə",
+  "gb": "albˈAniə",
+  "source": "wikipedia"
+ },
+ "Algeria": {
+  "us": "ælʤˈɪɹiə",
+  "gb": "alʤˈɪəɹiə",
+  "source": "wikipedia"
+ },
+ "Algiers": {
+  "us": "ælʤˈɪɹz",
+  "gb": "alʤˈɪəz",
+  "source": "wikipedia"
+ },
+ "Alofi": {
+  "us": "əlˈOfi",
+  "gb": "əlˈQfi",
+  "source": "hand"
+ },
+ "American Samoa": {
+  "us": "əmˈɛɹəkᵊn səmˈOə",
+  "gb": "əmˈɛɹɪkᵊn səmˈQə",
+  "source": "dictionary"
+ },
+ "Amman": {
+  "us": "əmˈɑn",
+  "gb": "əmˈɑːn",
+  "source": "wikipedia"
+ },
+ "Amsterdam": {
+  "us": "ˈæmstəɹdæm",
+  "gb": "ˈamstədam",
+  "source": "wikipedia"
+ },
+ "Andorra": {
+  "us": "ændˈɔɹə",
+  "gb": "andˈɔːɹə",
+  "source": "wikipedia"
+ },
+ "Andorra la Vella": {
+  "us": "ændˌɔɹə lˈə vˈAjə",
+  "gb": "andˌɔːɹə lˈə vˈAjə",
+  "source": "wikipedia"
+ },
+ "Angola": {
+  "us": "ænɡˈOlə",
+  "gb": "anɡˈQlə",
+  "source": "wikipedia"
+ },
+ "Anguilla": {
+  "us": "æŋɡwˈɪlə",
+  "gb": "aŋɡwˈɪlə",
+  "source": "wikipedia"
+ },
+ "Ankara": {
+  "us": "ˈæŋkəɹə",
+  "gb": "ˈaŋkəɹə",
+  "source": "wikipedia"
+ },
+ "Antananarivo": {
+  "us": "ˌɑntənˌɑnəɹˈivO",
+  "gb": "ˌantənˌanəɹˈiːvQ",
+  "source": "dictionary"
+ },
+ "Antarctica": {
+  "us": "æntˈɑɹktᵻkə",
+  "gb": "antˈɑːktɪkə",
+  "source": "wikipedia"
+ },
+ "Antigua and Barbuda": {
+  "us": "æntˈiɡwə ənd bɑɹbjˈudə",
+  "gb": "antˈiːɡwə ənd bɑːbjˈuːdə",
+  "source": "dictionary"
+ },
+ "Apia": {
+  "us": "ɑpˈiə",
+  "gb": "ɑːpˈiːə",
+  "source": "hand"
+ },
+ "Arabian Sea": {
+  "us": "əɹˈAbjən sˈi",
+  "gb": "əɹˈAbɪən sˈiː",
+  "source": "dictionary"
+ },
+ "Aral Sea": {
+  "us": "ˈɛɹəl sˈi",
+  "gb": "ˈaɹəl sˈiː",
+  "source": "wikipedia+dictionary"
+ },
+ "Arctic Ocean": {
+  "us": "ˈɑɹktɪk ˈOʃən",
+  "gb": "ˈɑːktɪk ˈQʃᵊn",
+  "source": "dictionary"
+ },
+ "Argentina": {
+  "us": "ˌɑɹʤəntˈinə",
+  "gb": "ˌɑːʤᵊntˈiːnə",
+  "source": "dictionary"
+ },
+ "Armenia": {
+  "us": "ɑɹmˈiniə",
+  "gb": "ɑːmˈiːniə",
+  "source": "wikipedia"
+ },
+ "Aruba": {
+  "us": "əɹˈubə",
+  "gb": "əɹˈuːbə",
+  "source": "wikipedia"
+ },
+ "Ashgabat": {
+  "us": "ˌɑʃɡəbˈɑt",
+  "gb": "ˌɑːʃɡəbˈɑːt",
+  "source": "wikipedia"
+ },
+ "Asia": {
+  "us": "ˈAʒə",
+  "gb": "ˈAʒə",
+  "source": "wikipedia"
+ },
+ "Asmara": {
+  "us": "æsmˈɑɹə",
+  "gb": "asmˈɑːɹə",
+  "source": "wikipedia"
+ },
+ "Astana": {
+  "us": "əstˈɑnə",
+  "gb": "əstˈɑːnə",
+  "source": "wikipedia"
+ },
+ "Asunción": {
+  "us": "ɑsˌunsiˈOn",
+  "gb": "ɑːsˌuːnsiˈQn",
+  "source": "wikipedia"
+ },
+ "Athens": {
+  "us": "ˈæθɪnz",
+  "gb": "ˈaθɪnz",
+  "source": "wikipedia"
+ },
+ "Atlantic Ocean": {
+  "us": "ətlˈæntɪk ˈOʃən",
+  "gb": "ətlˈantɪk ˈQʃᵊn",
+  "source": "dictionary"
+ },
+ "Australia": {
+  "us": "ɔstɹˈAljə",
+  "gb": "ɒstɹˈAlɪə",
+  "source": "dictionary"
+ },
+ "Austria": {
+  "us": "ˈɑstɹiə",
+  "gb": "ˈɒstɹiə",
+  "source": "wikipedia"
+ },
+ "Avarua": {
+  "us": "ˌævəɹˈuə",
+  "gb": "ˌavəɹˈuːə",
+  "source": "hand"
+ },
+ "Azerbaijan": {
+  "us": "ˌæzəɹbIʤˈɑn",
+  "gb": "ˌazəbIʤˈɑːn",
+  "source": "wikipedia"
+ },
+ "Azores": {
+  "us": "əzˈɔɹz",
+  "gb": "əzˈɔːz",
+  "source": "wikipedia"
+ },
+ "Baghdad": {
+  "us": "bˈæɡdæd",
+  "gb": "bˈaɡdad",
+  "source": "wikipedia"
+ },
+ "Bahrain": {
+  "us": "bɑɹˈAn",
+  "gb": "bɑːɹˈAn",
+  "source": "wikipedia"
+ },
+ "Baku": {
+  "us": "bɑkˈu",
+  "gb": "bɑːkˈuː",
+  "source": "wikipedia"
+ },
+ "Bali": {
+  "us": "bˈɑli",
+  "gb": "bˈɑːli",
+  "source": "wikipedia"
+ },
+ "Balkan Peninsula": {
+  "us": "bˈɔlkən pənˈɪnsələ",
+  "gb": "bˈɔːlkən pɪnˈɪnsjʊlə",
+  "source": "hand"
+ },
+ "Baltic Sea": {
+  "us": "bˈɔltɪk sˈi",
+  "gb": "bˈɔːltɪk sˈiː",
+  "source": "dictionary"
+ },
+ "Bamako": {
+  "us": "bˌæməkˈO",
+  "gb": "bˌaməkˈQ",
+  "source": "wikipedia"
+ },
+ "Banda Sea": {
+  "us": "bˈændə sˈi",
+  "gb": "bˈandə sˈiː",
+  "source": "dictionary"
+ },
+ "Bandar Seri Begawan": {
+  "us": "bˈʌndəɹ sˌɛɹi bəɡˈɑwən",
+  "gb": "bˈʌndə sˌɛɹi bəɡˈɑːwən",
+  "source": "hand"
+ },
+ "Bangkok": {
+  "us": "bæŋkˈɑk",
+  "gb": "baŋkˈɒk",
+  "source": "wikipedia"
+ },
+ "Bangladesh": {
+  "us": "bˌɑŋɡlədˈɛʃ",
+  "gb": "bˌaŋɡlədˈɛʃ",
+  "source": "dictionary"
+ },
+ "Bangui": {
+  "us": "bɑŋɡˈi",
+  "gb": "bɑːŋɡˈiː",
+  "source": "hand"
+ },
+ "Banjul": {
+  "us": "bænʤˈul",
+  "gb": "banʤˈuːl",
+  "source": "wikipedia"
+ },
+ "Barbados": {
+  "us": "bɑɹbˈAdɑs",
+  "gb": "bɑːbˈAdɒs",
+  "source": "wikipedia"
+ },
+ "Barents Sea": {
+  "us": "bˈɛɹənts sˈi",
+  "gb": "bˈaɹənts sˈiː",
+  "source": "wikipedia+dictionary"
+ },
+ "Basseterre": {
+  "us": "bæstˈɛɹ",
+  "gb": "bastˈɛː",
+  "source": "wikipedia"
+ },
+ "Bay of Bengal": {
+  "us": "bˈA əv bɛnɡˈɔl",
+  "gb": "bˈA əv bɛŋɡˈɔːl",
+  "source": "dictionary"
+ },
+ "Bay of Biscay": {
+  "us": "bˈA əv bˈɪskA",
+  "gb": "bˈA əv bˈɪskA",
+  "source": "wikipedia+dictionary"
+ },
+ "Beijing": {
+  "us": "bAʤˈɪŋ",
+  "gb": "bAʤˈɪŋ",
+  "source": "wikipedia"
+ },
+ "Beirut": {
+  "us": "bAɹˈut",
+  "gb": "bAɹˈuːt",
+  "source": "wikipedia"
+ },
+ "Belarus": {
+  "us": "bˌɛləɹˈus",
+  "gb": "bˌɛləɹˈuːs",
+  "source": "wikipedia"
+ },
+ "Belfast": {
+  "us": "bˈɛlfæst",
+  "gb": "bˈɛlfast",
+  "source": "wikipedia"
+ },
+ "Belgium": {
+  "us": "bˈɛlʤəm",
+  "gb": "bˈɛlʤəm",
+  "source": "dictionary"
+ },
+ "Belgrade": {
+  "us": "bɛlɡɹˈAd",
+  "gb": "bɛlɡɹˈAd",
+  "source": "wikipedia"
+ },
+ "Belize": {
+  "us": "bɪlˈiz",
+  "gb": "bɪlˈiːz",
+  "source": "wikipedia"
+ },
+ "Belmopan": {
+  "us": "bˌɛlmOpˈɑn",
+  "gb": "bˌɛlmQpˈɑːn",
+  "source": "wikipedia"
+ },
+ "Benin": {
+  "us": "bɛnˈin",
+  "gb": "bɛnˈiːn",
+  "source": "wikipedia"
+ },
+ "Bering Strait": {
+  "us": "bˈɛɹɪŋ stɹˈAt",
+  "gb": "bˈɛəɹɪŋ stɹˈAt",
+  "source": "wikipedia+dictionary"
+ },
+ "Berlin": {
+  "us": "bɜɹlˈɪn",
+  "gb": "bɜːlˈɪn",
+  "source": "wikipedia"
+ },
+ "Bermuda": {
+  "us": "bəɹmjˈudə",
+  "gb": "bəmjˈuːdə",
+  "source": "wikipedia"
+ },
+ "Bern": {
+  "us": "bˈɜɹn",
+  "gb": "bˈɜːn",
+  "source": "dictionary"
+ },
+ "Bhutan": {
+  "us": "butˈɑn",
+  "gb": "buːtˈɑːn",
+  "source": "wikipedia"
+ },
+ "Bishkek": {
+  "us": "bɪʃkˈɛk",
+  "gb": "bɪʃkˈɛk",
+  "source": "dictionary"
+ },
+ "Bissau": {
+  "us": "bɪsˈW",
+  "gb": "bɪsˈW",
+  "source": "wikipedia"
+ },
+ "Black Sea": {
+  "us": "blˈæk sˈi",
+  "gb": "blˈak sˈiː",
+  "source": "dictionary"
+ },
+ "Bogotá": {
+  "us": "bˌOɡətˈɑ",
+  "gb": "bˌQɡətˈɑː",
+  "source": "wikipedia"
+ },
+ "Bolivia": {
+  "us": "bəlˈɪviə",
+  "gb": "bəlˈɪviə",
+  "source": "wikipedia"
+ },
+ "Bosnia and Herzegovina": {
+  "us": "bˈɑzniə ənd hˌɜɹtsəɡˈOvinə",
+  "gb": "bˈɒznɪə ənd hˌɛːtsəɡˈɒvɪnə",
+  "source": "dictionary"
+ },
+ "Botswana": {
+  "us": "bɑtswˈɑnə",
+  "gb": "bɒtswˈɑːnə",
+  "source": "wikipedia"
+ },
+ "Bougainville": {
+  "us": "bˈuɡənvˌɪl",
+  "gb": "bˈuːɡᵊnvɪl",
+  "source": "dictionary"
+ },
+ "Brasília": {
+  "us": "bɹəzˈɪliə",
+  "gb": "bɹəzˈɪliə",
+  "source": "wikipedia"
+ },
+ "Bratislava": {
+  "us": "bɹˌætɪslˈɑvə",
+  "gb": "bɹˌatɪslˈɑːvə",
+  "source": "wikipedia"
+ },
+ "Brazil": {
+  "us": "bɹəzˈɪl",
+  "gb": "bɹəzˈɪl",
+  "source": "dictionary"
+ },
+ "Brazzaville": {
+  "us": "bɹˈɑzəvˌɪl",
+  "gb": "bɹˈazəvɪl",
+  "source": "dictionary"
+ },
+ "Bridgetown": {
+  "us": "bɹˈɪʤtˌWn",
+  "gb": "bɹˈɪʤtWn",
+  "source": "dictionary"
+ },
+ "British Virgin Islands": {
+  "us": "bɹˈɪɾɪʃ vˈɜɹʤən ˈIləndz",
+  "gb": "bɹˈɪtɪʃ vˈɜːʤɪn ˈIləndz",
+  "source": "dictionary"
+ },
+ "Brunei": {
+  "us": "bɹunˈI",
+  "gb": "bɹuːnˈI",
+  "source": "wikipedia"
+ },
+ "Brussels": {
+  "us": "bɹˈʌsəlz",
+  "gb": "bɹˈʌsəlz",
+  "source": "wikipedia"
+ },
+ "Bucharest": {
+  "us": "bˌukəɹˈɛst",
+  "gb": "bˌuːkəɹˈɛst",
+  "source": "wikipedia"
+ },
+ "Budapest": {
+  "us": "bjˌudəpˈɛst",
+  "gb": "bjˌuːdəpˈɛst",
+  "source": "wikipedia"
+ },
+ "Buenos Aires": {
+  "us": "bwˌAnəs ˈɛɹiz",
+  "gb": "bwˌAnəs ˈɛəɹiːz",
+  "source": "wikipedia"
+ },
+ "Bulgaria": {
+  "us": "bʌlɡˈɛɹiə",
+  "gb": "bʌlɡˈɛəɹiə",
+  "source": "wikipedia"
+ },
+ "Burkina Faso": {
+  "us": "bɜɹkˌinə fˈæsO",
+  "gb": "bɜːkˌiːnə fˈasQ",
+  "source": "wikipedia"
+ },
+ "Burundi": {
+  "us": "bəɹˈʊndi",
+  "gb": "bəɹˈʊndi",
+  "source": "wikipedia"
+ },
+ "Cairo": {
+  "us": "kˈIɹO",
+  "gb": "kˈIɹQ",
+  "source": "wikipedia"
+ },
+ "Cambodia": {
+  "us": "kæmbˈOdiə",
+  "gb": "kambˈQdiə",
+  "source": "wikipedia"
+ },
+ "Cameroon": {
+  "us": "kˌæməɹˈun",
+  "gb": "kˌaməɹˈuːn",
+  "source": "wikipedia"
+ },
+ "Canada": {
+  "us": "kˈænədə",
+  "gb": "kˈanədə",
+  "source": "dictionary"
+ },
+ "Canary Islands": {
+  "us": "kənˈɛɹi ˈIləndz",
+  "gb": "kənˈɛəɹi ˈIləndz",
+  "source": "wikipedia+dictionary"
+ },
+ "Canberra": {
+  "us": "kˈænbɹə",
+  "gb": "kˈanbɹə",
+  "source": "wikipedia"
+ },
+ "Cape Verde": {
+  "us": "kˈAp vˈɜɹd",
+  "gb": "kˈAp vˈɜːd",
+  "source": "wikipedia+dictionary"
+ },
+ "Caracas": {
+  "us": "kəɹˈækəs",
+  "gb": "kəɹˈakəs",
+  "source": "wikipedia"
+ },
+ "Cardiff": {
+  "us": "kˈɑɹdᵻf",
+  "gb": "kˈɑːdɪf",
+  "source": "wikipedia"
+ },
+ "Caribbean Sea": {
+  "us": "kˌɛɹəbˈiən sˈi",
+  "gb": "kˌaɹɪbˈiːən sˈiː",
+  "source": "dictionary"
+ },
+ "Caspian Sea": {
+  "us": "kˈæspiən sˈi",
+  "gb": "kˈaspiən sˈiː",
+  "source": "hand"
+ },
+ "Castries": {
+  "us": "kəstɹˈiz",
+  "gb": "kəstɹˈiːz",
+  "source": "wikipedia"
+ },
+ "Cayman Islands": {
+  "us": "kˈAmən ˈIləndz",
+  "gb": "kˈAmən ˈIləndz",
+  "source": "wikipedia+dictionary"
+ },
+ "Celebes Sea": {
+  "us": "sˈɛlɪbiz sˈi",
+  "gb": "sˈɛlɪbiːz sˈiː",
+  "source": "wikipedia+dictionary"
+ },
+ "Celtic Sea": {
+  "us": "kˈɛltɪk sˈi",
+  "gb": "kˈɛltɪk sˈiː",
+  "source": "dictionary"
+ },
+ "Central African Republic": {
+  "us": "sˈɛntɹəl ˈæfɹəkən ɹəpˈʌblɪk",
+  "gb": "sˈɛntɹᵊl ˈafɹɪkᵊn ɹɪpˈʌblɪk",
+  "source": "dictionary"
+ },
+ "Chad": {
+  "us": "ʧˈæd",
+  "gb": "ʧˈad",
+  "source": "wikipedia"
+ },
+ "Charlotte Amalie": {
+  "us": "ʃˈɑɹlət əmˈɑljə",
+  "gb": "ʃˈɑːlət əmˈɑːljə",
+  "source": "hand"
+ },
+ "Chile": {
+  "us": "ʧˈɪli",
+  "gb": "ʧˈɪli",
+  "source": "wikipedia"
+ },
+ "China": {
+  "us": "ʧˈInə",
+  "gb": "ʧˈInə",
+  "source": "dictionary"
+ },
+ "Chișinău": {
+  "us": "kˌɪʃɪnˈW",
+  "gb": "kˌɪʃɪnˈW",
+  "source": "wikipedia"
+ },
+ "City of San Marino": {
+  "us": "sˈɪɾi ʌv sˌæn məɹˈinO",
+  "gb": "sˈɪti ɒv sˌan məɹˈiːnQ",
+  "source": "hand"
+ },
+ "Colombia": {
+  "us": "kəlˈʌmbiə",
+  "gb": "kəlˈʌmbiə",
+  "source": "wikipedia"
+ },
+ "Comoros": {
+  "us": "kˈɑməɹOz",
+  "gb": "kˈɒməɹQz",
+  "source": "wikipedia"
+ },
+ "Conakry": {
+  "us": "kˈɑnəkɹi",
+  "gb": "kˈɒnəkɹi",
+  "source": "wikipedia"
+ },
+ "Cook Islands": {
+  "us": "kˈʊk ˈIləndz",
+  "gb": "kˈʊk ˈIləndz",
+  "source": "dictionary"
+ },
+ "Copenhagen": {
+  "us": "kˌOpənhˈAɡən",
+  "gb": "kˌQpənhˈAɡən",
+  "source": "wikipedia"
+ },
+ "Coral Sea": {
+  "us": "kˈɔɹəl sˈi",
+  "gb": "kˈɒɹəl sˈiː",
+  "source": "dictionary"
+ },
+ "Corsica": {
+  "us": "kˈɔɹsɪkə",
+  "gb": "kˈɔːsɪkə",
+  "source": "wikipedia"
+ },
+ "Costa Rica": {
+  "us": "kˌOstə ɹˈikə",
+  "gb": "kˌɒstə ɹˈiːkə",
+  "source": "hand"
+ },
+ "Croatia": {
+  "us": "kɹOˈAʃə",
+  "gb": "kɹQˈAʃə",
+  "source": "wikipedia"
+ },
+ "Cuba": {
+  "us": "kjˈubə",
+  "gb": "kjˈuːbə",
+  "source": "wikipedia"
+ },
+ "Curaçao": {
+  "us": "kjˈʊɹəsO",
+  "gb": "kjˈʊəɹəsQ",
+  "source": "wikipedia"
+ },
+ "Cyprus": {
+  "us": "sˈIpɹəs",
+  "gb": "sˈIpɹəs",
+  "source": "wikipedia"
+ },
+ "Czech Republic": {
+  "us": "ʧˈɛk ɹəpˈʌblɪk",
+  "gb": "ʧˈɛk ɹɪpˈʌblɪk",
+  "source": "dictionary"
+ },
+ "Dakar": {
+  "us": "dɑkˈɑɹ",
+  "gb": "dɑːkˈɑː",
+  "source": "wikipedia"
+ },
+ "Damascus": {
+  "us": "dəmˈæskəs",
+  "gb": "dəmˈaskəs",
+  "source": "wikipedia"
+ },
+ "Dead Sea": {
+  "us": "dˈɛd sˈi",
+  "gb": "dˈɛd sˈiː",
+  "source": "dictionary"
+ },
+ "Democratic Republic of the Congo": {
+  "us": "dˌɛməkɹˈæɾɪk ɹəpˈʌblɪk əv ðə kˈɑŋɡO",
+  "gb": "dˌɛməkɹˈatɪk ɹɪpˈʌblɪk əv ðə kˈɒŋɡQ",
+  "source": "dictionary"
+ },
+ "Denmark": {
+  "us": "dˈɛnmˌɑɹk",
+  "gb": "dˈɛnmɑːk",
+  "source": "dictionary"
+ },
+ "Denmark Strait": {
+  "us": "dˈɛnmˌɑɹk stɹˈAt",
+  "gb": "dˈɛnmɑːk stɹˈAt",
+  "source": "dictionary"
+ },
+ "Dhaka": {
+  "us": "dˈɑkə",
+  "gb": "dˈɑːkə",
+  "source": "wikipedia"
+ },
+ "Dili": {
+  "us": "dˈɪli",
+  "gb": "dˈiːliː",
+  "source": "dictionary"
+ },
+ "Djibouti": {
+  "us": "ʤᵻbˈuti",
+  "gb": "ʤɪbˈuːti",
+  "source": "wikipedia"
+ },
+ "Dodoma": {
+  "us": "dˈOdəmə",
+  "gb": "dQdˈQmə",
+  "source": "dictionary"
+ },
+ "Doha": {
+  "us": "dˈOhɑ",
+  "gb": "dˈQhɑː",
+  "source": "wikipedia"
+ },
+ "Dominica": {
+  "us": "dˌɑmɪnˈikə",
+  "gb": "dˌɒmɪnˈiːkə",
+  "source": "hand"
+ },
+ "Dominican Republic": {
+  "us": "dəmˈɪnᵻkən ɹəpˈʌblɪk",
+  "gb": "dəmˈɪnɪkən ɹɪpˈʌblɪk",
+  "source": "wikipedia+dictionary"
+ },
+ "Dublin": {
+  "us": "dˈʌblᵻn",
+  "gb": "dˈʌblɪn",
+  "source": "wikipedia"
+ },
+ "Dushanbe": {
+  "us": "dˌuʃɑmbˈA",
+  "gb": "duːʃˈanbA",
+  "source": "dictionary"
+ },
+ "East China Sea": {
+  "us": "ˈist ʧˈInə sˈi",
+  "gb": "ˈiːst ʧˈInə sˈiː",
+  "source": "dictionary"
+ },
+ "East Siberian Sea": {
+  "us": "ˈist sIbˈɪɹiən sˈi",
+  "gb": "ˈiːst sIbˈɪəɹɪən sˈiː",
+  "source": "dictionary"
+ },
+ "Ecuador": {
+  "us": "ˈɛkwədɔɹ",
+  "gb": "ˈɛkwədɔː",
+  "source": "wikipedia"
+ },
+ "Edinburgh": {
+  "us": "ˈɛdɪnbəɹə",
+  "gb": "ˈɛdɪnbəɹə",
+  "source": "wikipedia"
+ },
+ "Egypt": {
+  "us": "ˈiʤəpt",
+  "gb": "ˈiːʤɪpt",
+  "source": "dictionary"
+ },
+ "El Salvador": {
+  "us": "ˈɛl sˈælvədɔɹ",
+  "gb": "ˈɛl sˈalvədɔː",
+  "source": "wikipedia"
+ },
+ "England": {
+  "us": "ˈɪŋɡlənd",
+  "gb": "ˈɪŋɡlənd",
+  "source": "dictionary"
+ },
+ "English Channel": {
+  "us": "ˈɪŋɡlɪʃ ʧˈænᵊl",
+  "gb": "ˈɪŋɡlɪʃ ʧˈanᵊl",
+  "source": "dictionary"
+ },
+ "Equatorial Guinea": {
+  "us": "ˌɛkwətˈɔɹiəl ɡˈɪni",
+  "gb": "ˌɛkwətˈɔːɹɪəl ɡˈɪni",
+  "source": "dictionary"
+ },
+ "Eritrea": {
+  "us": "ˌɛɹᵻtɹˈiə",
+  "gb": "ˌɛɹɪtɹˈiːə",
+  "source": "wikipedia"
+ },
+ "Estonia": {
+  "us": "ɛstˈOniə",
+  "gb": "ɛstˈQniə",
+  "source": "wikipedia"
+ },
+ "Eswatini": {
+  "us": "ˌɛswɑtˈini",
+  "gb": "ˌɛswɑːtˈiːni",
+  "source": "wikipedia"
+ },
+ "Ethiopia": {
+  "us": "ˌiθiˈOpiə",
+  "gb": "ˌiːθɪˈQpɪə",
+  "source": "dictionary"
+ },
+ "Europe": {
+  "us": "jˈʊɹəp",
+  "gb": "jˈʊəɹəp",
+  "source": "dictionary"
+ },
+ "European Union": {
+  "us": "jˌʊɹəpˈiən jˈunjən",
+  "gb": "jˌʊəɹəpˈiːən jˈuːnɪən",
+  "source": "dictionary"
+ },
+ "Falkland Islands": {
+  "us": "fˈɔlklənd ˈIləndz",
+  "gb": "fˈɔːlklənd ˈIləndz",
+  "source": "wikipedia+dictionary"
+ },
+ "Faroe Islands": {
+  "us": "fˈɛɹO ˈIləndz",
+  "gb": "fˈɛəɹQ ˈIləndz",
+  "source": "wikipedia+dictionary"
+ },
+ "Federated States of Micronesia": {
+  "us": "fˈɛdəɹˌAɾᵻd stˈAts əv mˌIkɹOnˈiʒə",
+  "gb": "fˈɛdəɹAtɪd stˈAts əv mˌIkɹQnˈiːʒə",
+  "source": "wikipedia+dictionary"
+ },
+ "Fiji": {
+  "us": "fˈiʤi",
+  "gb": "fˈiːʤi",
+  "source": "wikipedia"
+ },
+ "Finland": {
+  "us": "fˈɪnlənd",
+  "gb": "fˈɪnlənd",
+  "source": "dictionary"
+ },
+ "France": {
+  "us": "fɹˈæns",
+  "gb": "fɹˈɑːns",
+  "source": "dictionary"
+ },
+ "Freetown": {
+  "us": "fɹˈitˌWn",
+  "gb": "fɹˈiːtWn",
+  "source": "dictionary"
+ },
+ "French Guiana": {
+  "us": "fɹˈɛnʧ ɡiˈɑnə",
+  "gb": "fɹˈɛnʧ ɡiˈɑːnə",
+  "source": "wikipedia+dictionary"
+ },
+ "French Polynesia": {
+  "us": "fɹˈɛnʧ pˌɑlᵻnˈiʒə",
+  "gb": "fɹˈɛnʧ pˌɒlɪnˈiːʒə",
+  "source": "wikipedia+dictionary"
+ },
+ "Funafuti": {
+  "us": "fˌunəfˈuɾi",
+  "gb": "fˌuːnəfˈuːti",
+  "source": "dictionary"
+ },
+ "Gabon": {
+  "us": "ɡəbˈɑn",
+  "gb": "ɡəbˈɒn",
+  "source": "wikipedia"
+ },
+ "Gaborone": {
+  "us": "ɡˌæbəɹˈOni",
+  "gb": "ɡˌabəɹˈQni",
+  "source": "wikipedia"
+ },
+ "Georgetown": {
+  "us": "ʤˈɔɹʤtˌWn",
+  "gb": "ʤˈɔːʤtWn",
+  "source": "dictionary"
+ },
+ "Georgia": {
+  "us": "ʤˈɔɹʤə",
+  "gb": "ʤˈɔːʤə",
+  "source": "dictionary"
+ },
+ "Germany": {
+  "us": "ʤˈɜɹməni",
+  "gb": "ʤˈɜːməni",
+  "source": "dictionary"
+ },
+ "Ghana": {
+  "us": "ɡˈɑnə",
+  "gb": "ɡˈɑːnə",
+  "source": "wikipedia"
+ },
+ "Gibraltar": {
+  "us": "ʤɪbɹˈɔltəɹ",
+  "gb": "ʤɪbɹˈɔːltə",
+  "source": "wikipedia"
+ },
+ "Gitega": {
+  "us": "ɡitˈAɡə",
+  "gb": "ɡɪtˈAɡə",
+  "source": "dictionary"
+ },
+ "Greece": {
+  "us": "ɡɹˈis",
+  "gb": "ɡɹˈiːs",
+  "source": "dictionary"
+ },
+ "Greenland": {
+  "us": "ɡɹˈinlənd",
+  "gb": "ɡɹˈiːnlənd",
+  "source": "dictionary"
+ },
+ "Grenada": {
+  "us": "ɡɹənˈAdə",
+  "gb": "ɡɹənˈAdə",
+  "source": "wikipedia"
+ },
+ "Guadeloupe": {
+  "us": "ɡwˌɑdəlˈup",
+  "gb": "ɡwˌɑːdəlˈuːp",
+  "source": "wikipedia"
+ },
+ "Guam": {
+  "us": "ɡwˈɑm",
+  "gb": "ɡwˈɑːm",
+  "source": "wikipedia"
+ },
+ "Guatemala": {
+  "us": "ɡwˌɑtəmˈɑlə",
+  "gb": "ɡwˌɑːtəmˈɑːlə",
+  "source": "wikipedia"
+ },
+ "Guatemala City": {
+  "us": "ɡwˌɑɾəmˈɑlə sˈɪɾi",
+  "gb": "ɡwˌɑːtəmˈɑːlə sˈɪti",
+  "source": "dictionary"
+ },
+ "Guernsey": {
+  "us": "ɡˈɜɹnzi",
+  "gb": "ɡˈɜːnzi",
+  "source": "wikipedia"
+ },
+ "Guinea": {
+  "us": "ɡˈɪni",
+  "gb": "ɡˈɪni",
+  "source": "wikipedia"
+ },
+ "Guinea-Bissau": {
+  "us": "ɡˌɪni bᵻsˈW",
+  "gb": "ɡˌɪni bɪsˈW",
+  "source": "wikipedia"
+ },
+ "Gulf of Alaska": {
+  "us": "ɡˈʌlf əv əlˈæskə",
+  "gb": "ɡˈʌlf əv əlˈaskə",
+  "source": "dictionary"
+ },
+ "Gulf of California": {
+  "us": "ɡˈʌlf əv kˌæləfˈɔɹnjə",
+  "gb": "ɡˈʌlf əv kˌalɪfˈɔːnɪə",
+  "source": "dictionary"
+ },
+ "Gulf of Carpentaria": {
+  "us": "ɡˈʌlf ʌv kˌɑɹpəntˈɛɹiə",
+  "gb": "ɡˈʌlf ɒv kˌɑːpəntˈɛəɹiə",
+  "source": "hand"
+ },
+ "Gulf of Guinea": {
+  "us": "ɡˈʌlf əv ɡˈɪni",
+  "gb": "ɡˈʌlf əv ɡˈɪni",
+  "source": "dictionary"
+ },
+ "Gulf of Mexico": {
+  "us": "ɡˈʌlf əv mˈɛksəkO",
+  "gb": "ɡˈʌlf əv mˈɛksɪkQ",
+  "source": "dictionary"
+ },
+ "Gulf of Thailand": {
+  "us": "ɡˈʌlf əv tˈIlˌænd",
+  "gb": "ɡˈʌlf əv tˈIland",
+  "source": "dictionary"
+ },
+ "Guyana": {
+  "us": "ɡIˈɑnə",
+  "gb": "ɡIˈɑːnə",
+  "source": "wikipedia"
+ },
+ "Hagåtña": {
+  "us": "həɡˈɑtnjə",
+  "gb": "həɡˈɑːtnjə",
+  "source": "wikipedia"
+ },
+ "Haiti": {
+  "us": "hˈAti",
+  "gb": "hˈAti",
+  "source": "wikipedia"
+ },
+ "Hanoi": {
+  "us": "hænˈY",
+  "gb": "hanˈY",
+  "source": "wikipedia"
+ },
+ "Harare": {
+  "us": "həɹˈɑɹA",
+  "gb": "həɹˈɑːɹA",
+  "source": "wikipedia"
+ },
+ "Hargeisa": {
+  "us": "hɑɹɡˈAsə",
+  "gb": "hɑːɡˈAsə",
+  "source": "wikipedia"
+ },
+ "Havana": {
+  "us": "həvˈænə",
+  "gb": "həvˈanə",
+  "source": "wikipedia"
+ },
+ "Hawaii": {
+  "us": "həwˈIi",
+  "gb": "həwˈIi",
+  "source": "wikipedia"
+ },
+ "Helsinki": {
+  "us": "hˈɛlsɪŋki",
+  "gb": "hˈɛlsɪŋki",
+  "source": "wikipedia"
+ },
+ "Honduras": {
+  "us": "hɑndjˈʊɹəs",
+  "gb": "hɒndjˈʊəɹəs",
+  "source": "wikipedia"
+ },
+ "Hong Kong": {
+  "us": "hˈɑŋ kˈɑŋ",
+  "gb": "hˌɒŋ kˈɒŋ",
+  "source": "hand"
+ },
+ "Honiara": {
+  "us": "hˌɑniˈɑɹə",
+  "gb": "hˌɒniˈɑːɹə",
+  "source": "wikipedia"
+ },
+ "Hudson Bay": {
+  "us": "hˈʌdsən bˈA",
+  "gb": "hˈʌdsən bˈA",
+  "source": "hand"
+ },
+ "Hungary": {
+  "us": "hˈʌŋɡəɹi",
+  "gb": "hˈʌŋɡəɹi",
+  "source": "dictionary"
+ },
+ "Iceland": {
+  "us": "ˈIslənd",
+  "gb": "ˈIslənd",
+  "source": "dictionary"
+ },
+ "India": {
+  "us": "ˈɪndiə",
+  "gb": "ˈɪndɪə",
+  "source": "dictionary"
+ },
+ "Indian Ocean": {
+  "us": "ˈɪndiən ˈOʃən",
+  "gb": "ˈɪndɪən ˈQʃᵊn",
+  "source": "dictionary"
+ },
+ "Indonesia": {
+  "us": "ˌɪndənˈiziə",
+  "gb": "ˌɪndənˈiːziə",
+  "source": "wikipedia"
+ },
+ "Iran": {
+  "us": "ɪɹˈɑn",
+  "gb": "ɪɹˈɑːn",
+  "source": "wikipedia"
+ },
+ "Iraq": {
+  "us": "ɪɹˈɑk",
+  "gb": "ɪɹˈɑːk",
+  "source": "dictionary"
+ },
+ "Ireland": {
+  "us": "ˈIəɹlənd",
+  "gb": "ˈIələnd",
+  "source": "wikipedia"
+ },
+ "Islamabad": {
+  "us": "ɪzlˈɑməbæd",
+  "gb": "ɪzlˈɑːməbad",
+  "source": "wikipedia"
+ },
+ "Isle of Man": {
+  "us": "ˈIl əv mˈæn",
+  "gb": "ˈIl əv mˈan",
+  "source": "wikipedia+dictionary"
+ },
+ "Israel": {
+  "us": "ˈɪzɹiəl",
+  "gb": "ˈɪzɹiəl",
+  "source": "wikipedia"
+ },
+ "Italy": {
+  "us": "ˈɪɾəli",
+  "gb": "ˈɪtəli",
+  "source": "dictionary"
+ },
+ "Ivory Coast": {
+  "us": "ˈIvəɹi kˈOst",
+  "gb": "ˈIvəɹi kˈQst",
+  "source": "dictionary"
+ },
+ "Jakarta": {
+  "us": "ʤəkˈɑɹtə",
+  "gb": "ʤəkˈɑːtə",
+  "source": "wikipedia"
+ },
+ "Jamaica": {
+  "us": "ʤəmˈAkə",
+  "gb": "ʤəmˈAkə",
+  "source": "wikipedia"
+ },
+ "Japan": {
+  "us": "ʤəpˈæn",
+  "gb": "ʤəpˈan",
+  "source": "dictionary"
+ },
+ "Java": {
+  "us": "ʤˈɑvə",
+  "gb": "ʤˈɑːvə",
+  "source": "dictionary"
+ },
+ "Jeju": {
+  "us": "ʤˈAʤu",
+  "gb": "ʤˈAʤuː",
+  "source": "hand"
+ },
+ "Jersey": {
+  "us": "ʤˈɜɹzi",
+  "gb": "ʤˈɜːzi",
+  "source": "wikipedia"
+ },
+ "Jerusalem": {
+  "us": "ʤəɹˈusələm",
+  "gb": "ʤəɹˈuːsələm",
+  "source": "wikipedia"
+ },
+ "Jordan": {
+  "us": "ʤˈɔɹdᵊn",
+  "gb": "ʤˈɔːdᵊn",
+  "source": "dictionary"
+ },
+ "Juba": {
+  "us": "ʤˈubə",
+  "gb": "ʤˈuːbə",
+  "source": "wikipedia"
+ },
+ "Kabul": {
+  "us": "kˈɑbəl",
+  "gb": "kˈɑːbəl",
+  "source": "wikipedia"
+ },
+ "Kaliningrad Oblast": {
+  "us": "kəlˈinənɡɹˌæd ˈɑbləst",
+  "gb": "kəlˈiːnɪnɡɹad ˈɒblast",
+  "source": "dictionary"
+ },
+ "Kampala": {
+  "us": "kæmpˈɑlə",
+  "gb": "kampˈɑːlə",
+  "source": "wikipedia"
+ },
+ "Kathmandu": {
+  "us": "kˌætmændˈu",
+  "gb": "kˌatmandˈuː",
+  "source": "wikipedia"
+ },
+ "Kazakhstan": {
+  "us": "kˌɑzɑkstˈɑn",
+  "gb": "kˌazəkstˈɑːn",
+  "source": "dictionary"
+ },
+ "Kenya": {
+  "us": "kˈɛnjə",
+  "gb": "kˈɛnjə",
+  "source": "wikipedia"
+ },
+ "Khartoum": {
+  "us": "kɑɹtˈum",
+  "gb": "kɑːtˈuːm",
+  "source": "wikipedia"
+ },
+ "Kigali": {
+  "us": "kɪɡˈɑli",
+  "gb": "kɪɡˈɑːli",
+  "source": "dictionary"
+ },
+ "Kingston": {
+  "us": "kˈɪŋstən",
+  "gb": "kˈɪŋstən",
+  "source": "dictionary"
+ },
+ "Kingstown": {
+  "us": "kˈɪŋstˌWn",
+  "gb": "kˈɪŋstˌWn",
+  "source": "wikipedia"
+ },
+ "Kinshasa": {
+  "us": "kɪnʃˈɑsə",
+  "gb": "kɪnʃˈɑːsə",
+  "source": "wikipedia"
+ },
+ "Kiribati": {
+  "us": "kˈɪɹəbæs",
+  "gb": "kˈɪɹɪbas",
+  "source": "hand"
+ },
+ "Kosovo": {
+  "us": "kˈɑsəvO",
+  "gb": "kˈɒsəvQ",
+  "source": "wikipedia"
+ },
+ "Kuala Lumpur": {
+  "us": "kwˌɑlə lˈʊmpʊɹ",
+  "gb": "kwˌɑːlə lˈʊmpʊə",
+  "source": "wikipedia"
+ },
+ "Kuwait": {
+  "us": "kʊwˈAt",
+  "gb": "kʊwˈAt",
+  "source": "wikipedia"
+ },
+ "Kuwait City": {
+  "us": "kʊwˈAt sˈɪɾi",
+  "gb": "kʊwˈAt sˈɪti",
+  "source": "wikipedia+dictionary"
+ },
+ "Kyiv": {
+  "us": "kˈijɪf",
+  "gb": "kˈɪjɪf",
+  "source": "dictionary"
+ },
+ "Kyrgyzstan": {
+  "us": "kˈɪɹɡɪstˌæn",
+  "gb": "kˌɜːɡɪstˈɑːn",
+  "source": "hand"
+ },
+ "Laayoune": {
+  "us": "lɑjˈun",
+  "gb": "lɑːjˈuːn",
+  "source": "wikipedia"
+ },
+ "Labrador Sea": {
+  "us": "lˈæbɹədˌɔɹ sˈi",
+  "gb": "lˈabɹədɔː sˈiː",
+  "source": "dictionary"
+ },
+ "Laos": {
+  "us": "lˈWs",
+  "gb": "lˈWs",
+  "source": "wikipedia"
+ },
+ "Latvia": {
+  "us": "lˈætviə",
+  "gb": "lˈatviə",
+  "source": "wikipedia"
+ },
+ "Lebanon": {
+  "us": "lˈɛbənɑn",
+  "gb": "lˈɛbənɒn",
+  "source": "wikipedia"
+ },
+ "Lesotho": {
+  "us": "lɪsˈutu",
+  "gb": "lɪsˈuːtuː",
+  "source": "wikipedia"
+ },
+ "Liberia": {
+  "us": "lIbˈɪɹiə",
+  "gb": "lIbˈɪəɹiə",
+  "source": "wikipedia"
+ },
+ "Libreville": {
+  "us": "lˈɪbɹəvˌɪl",
+  "gb": "lˈɪbɹəvˌɪl",
+  "source": "wikipedia"
+ },
+ "Libya": {
+  "us": "lˈɪbiə",
+  "gb": "lˈɪbiə",
+  "source": "wikipedia"
+ },
+ "Liechtenstein": {
+  "us": "lˈɪktənstIn",
+  "gb": "lˈɪktənstIn",
+  "source": "wikipedia"
+ },
+ "Lilongwe": {
+  "us": "lɪlˈɑŋwA",
+  "gb": "lɪlˈɒŋwA",
+  "source": "wikipedia"
+ },
+ "Lima": {
+  "us": "lˈimə",
+  "gb": "lˈiːmə",
+  "source": "wikipedia"
+ },
+ "Lisbon": {
+  "us": "lˈɪzbən",
+  "gb": "lˈɪzbən",
+  "source": "wikipedia"
+ },
+ "Lithuania": {
+  "us": "lˌɪθjuˈAniə",
+  "gb": "lˌɪθjuˈAniə",
+  "source": "wikipedia"
+ },
+ "Ljubljana": {
+  "us": "ljˌubljˈɑnə",
+  "gb": "ljˌuːbljˈɑːnə",
+  "source": "wikipedia"
+ },
+ "Lomé": {
+  "us": "lˈOmA",
+  "gb": "lˈQmA",
+  "source": "wikipedia"
+ },
+ "London": {
+  "us": "lˈʌndən",
+  "gb": "lˈʌndən",
+  "source": "wikipedia"
+ },
+ "Luanda": {
+  "us": "luˈændə",
+  "gb": "luːˈandə",
+  "source": "dictionary"
+ },
+ "Lusaka": {
+  "us": "lusˈɑkə",
+  "gb": "luːsˈɑːkə",
+  "source": "wikipedia"
+ },
+ "Luxembourg": {
+  "us": "lˈʌksəmbɜɹɡ",
+  "gb": "lˈʌksəmbɜːɡ",
+  "source": "wikipedia"
+ },
+ "Luxembourg City": {
+  "us": "lˈʌksəmbˌɜɹɡ sˈɪɾi",
+  "gb": "lˈʌksəmbˌɜːɡ sˈɪti",
+  "source": "wikipedia+dictionary"
+ },
+ "Macau": {
+  "us": "məkˈW",
+  "gb": "məkˈW",
+  "source": "wikipedia"
+ },
+ "Madagascar": {
+  "us": "mˌædəɡˈæskəɹ",
+  "gb": "mˌadəɡˈaskə",
+  "source": "dictionary"
+ },
+ "Madeira": {
+  "us": "mədˈɪɹə",
+  "gb": "mədˈɪəɹə",
+  "source": "wikipedia"
+ },
+ "Madrid": {
+  "us": "mədɹˈɪd",
+  "gb": "mədɹˈɪd",
+  "source": "wikipedia"
+ },
+ "Majuro": {
+  "us": "mˈæʤəɹO",
+  "gb": "mˈaʤəɹQ",
+  "source": "wikipedia"
+ },
+ "Malabo": {
+  "us": "məlˈɑbO",
+  "gb": "məlˈɑːbQ",
+  "source": "wikipedia"
+ },
+ "Malawi": {
+  "us": "məlˈɑwi",
+  "gb": "məlˈɑːwi",
+  "source": "wikipedia"
+ },
+ "Malaysia": {
+  "us": "məlˈAziə",
+  "gb": "məlˈAziə",
+  "source": "wikipedia"
+ },
+ "Maldives": {
+  "us": "mˈɔldivz",
+  "gb": "mˈɔːldivz",
+  "source": "wikipedia"
+ },
+ "Mali": {
+  "us": "mˈɑli",
+  "gb": "mˈɑːli",
+  "source": "wikipedia"
+ },
+ "Malta": {
+  "us": "mˈɑltə",
+  "gb": "mˈɒltə",
+  "source": "wikipedia"
+ },
+ "Malé": {
+  "us": "mˈɑlA",
+  "gb": "mˈɑːlA",
+  "source": "wikipedia"
+ },
+ "Managua": {
+  "us": "mənˈɑɡwə",
+  "gb": "mənˈɑːɡwə",
+  "source": "dictionary"
+ },
+ "Manama": {
+  "us": "mənˈɑmə",
+  "gb": "mənˈɑːmə",
+  "source": "dictionary"
+ },
+ "Manila": {
+  "us": "mənˈɪlə",
+  "gb": "mənˈɪlə",
+  "source": "wikipedia"
+ },
+ "Maputo": {
+  "us": "məpˈuɾO",
+  "gb": "məpˈuːtQ",
+  "source": "dictionary"
+ },
+ "Mariehamn": {
+  "us": "məɹˈiəhɑmən",
+  "gb": "məɹˈiːəhɑːmən",
+  "source": "wikipedia"
+ },
+ "Marshall Islands": {
+  "us": "mˈɑɹʃəl ˈIləndz",
+  "gb": "mˈɑːʃəl ˈIləndz",
+  "source": "wikipedia"
+ },
+ "Martinique": {
+  "us": "mˌɑɹtɪnˈik",
+  "gb": "mˌɑːtɪnˈiːk",
+  "source": "wikipedia"
+ },
+ "Maseru": {
+  "us": "mˈæzəɹu",
+  "gb": "məsˈɛːɹuː",
+  "source": "dictionary"
+ },
+ "Mauritania": {
+  "us": "mˌɔɹᵻtˈAniə",
+  "gb": "mˌɒɹɪtˈAniə",
+  "source": "wikipedia"
+ },
+ "Mauritius": {
+  "us": "məɹˈɪʃiəs",
+  "gb": "məɹˈɪʃiəs",
+  "source": "wikipedia"
+ },
+ "Mayotte": {
+  "us": "mIˈɑt",
+  "gb": "mIˈɒt",
+  "source": "wikipedia"
+ },
+ "Mbabane": {
+  "us": "ˌʌmbɑbˈɑnA",
+  "gb": "ˌʌmbɑːbˈɑːnA",
+  "source": "wikipedia"
+ },
+ "Mediterranean Sea": {
+  "us": "mˌɛdɪtəɹˈAniən sˈi",
+  "gb": "mˌɛdɪtəɹˈAniən sˈiː",
+  "source": "wikipedia+dictionary"
+ },
+ "Melanesia": {
+  "us": "mˌɛlənˈiziə",
+  "gb": "mˌɛlənˈiːziə",
+  "source": "wikipedia"
+ },
+ "Mexico": {
+  "us": "mˈɛksəkO",
+  "gb": "mˈɛksɪkQ",
+  "source": "dictionary"
+ },
+ "Mexico City": {
+  "us": "mˈɛksəkO sˈɪɾi",
+  "gb": "mˈɛksɪkQ sˈɪti",
+  "source": "dictionary"
+ },
+ "Micronesia": {
+  "us": "mˌIkɹənˈiziə",
+  "gb": "mˌIkɹənˈiːziə",
+  "source": "wikipedia"
+ },
+ "Minsk": {
+  "us": "mˈɪnsk",
+  "gb": "mˈɪnsk",
+  "source": "dictionary"
+ },
+ "Mogadishu": {
+  "us": "mˌOɡədˈiʃu",
+  "gb": "mˌɒɡədˈɪʃuː",
+  "source": "hand"
+ },
+ "Moldova": {
+  "us": "mɑldˈOvə",
+  "gb": "mɒldˈQvə",
+  "source": "wikipedia"
+ },
+ "Monaco": {
+  "us": "mˈɑnəkO",
+  "gb": "mˈɒnəkQ",
+  "source": "wikipedia"
+ },
+ "Mongolia": {
+  "us": "mɑŋɡˈOliə",
+  "gb": "mɒŋɡˈQliə",
+  "source": "wikipedia"
+ },
+ "Monrovia": {
+  "us": "mənɹˈOviə",
+  "gb": "mənɹˈQviə",
+  "source": "wikipedia"
+ },
+ "Montenegro": {
+  "us": "mˌɑntənˈAɡɹˌO",
+  "gb": "mˌɒntɪnˈiːɡɹQ",
+  "source": "dictionary"
+ },
+ "Montevideo": {
+  "us": "mˌɑntɪvɪdˈAO",
+  "gb": "mˌɒntɪvɪdˈAQ",
+  "source": "wikipedia"
+ },
+ "Morocco": {
+  "us": "məɹˈɑkO",
+  "gb": "məɹˈɒkQ",
+  "source": "wikipedia"
+ },
+ "Moroni": {
+  "us": "məɹˈɑni",
+  "gb": "məɹˈQni",
+  "source": "dictionary"
+ },
+ "Moscow": {
+  "us": "mˈɑskO",
+  "gb": "mˈɒskQ",
+  "source": "wikipedia"
+ },
+ "Mozambique": {
+  "us": "mˌOzæmbˈik",
+  "gb": "mˌQzambˈiːk",
+  "source": "wikipedia"
+ },
+ "Muscat": {
+  "us": "mˈʌskæt",
+  "gb": "mˈʌskat",
+  "source": "wikipedia"
+ },
+ "Myanmar": {
+  "us": "mjˈænmɑɹ",
+  "gb": "mjˈanmɑː",
+  "source": "hand"
+ },
+ "N'Djamena": {
+  "us": "ənʤɑmˈAnə",
+  "gb": "ənʤɑːmˈAnə",
+  "source": "wikipedia"
+ },
+ "Nairobi": {
+  "us": "nIɹˈObi",
+  "gb": "nIɹˈQbi",
+  "source": "wikipedia"
+ },
+ "Namibia": {
+  "us": "nəmˈɪbiə",
+  "gb": "nəmˈɪbiə",
+  "source": "wikipedia"
+ },
+ "Nassau": {
+  "us": "nˈæsɔ",
+  "gb": "nˈasɔː",
+  "source": "wikipedia"
+ },
+ "Nauru": {
+  "us": "nɑˈuɹu",
+  "gb": "nɑːˈuːɹuː",
+  "source": "wikipedia"
+ },
+ "Naypyidaw": {
+  "us": "nˈApjɪdɔ",
+  "gb": "nˈApjɪdɔː",
+  "source": "wikipedia"
+ },
+ "Nepal": {
+  "us": "nɪpˈɔl",
+  "gb": "nɪpˈɔːl",
+  "source": "wikipedia"
+ },
+ "Netherlands": {
+  "us": "nˈɛðəɹləndz",
+  "gb": "nˈɛðələndz",
+  "source": "dictionary"
+ },
+ "New Caledonia": {
+  "us": "nˈu kˌælᵻdˈOniə",
+  "gb": "njˈuː kˌalɪdˈQniə",
+  "source": "wikipedia+dictionary"
+ },
+ "New Delhi": {
+  "us": "njˈu dˈɛli",
+  "gb": "njˈuː dˈɛli",
+  "source": "wikipedia"
+ },
+ "New Zealand": {
+  "us": "nˈu zˈilənd",
+  "gb": "njˈuː zˈiːlənd",
+  "source": "dictionary"
+ },
+ "Ngerulmud": {
+  "us": "ɛŋɡˈɛɹulmʊd",
+  "gb": "ɛŋɡˈɛɹuːlmʊd",
+  "source": "hand"
+ },
+ "Niamey": {
+  "us": "niɑmˈA",
+  "gb": "njɑːmˈA",
+  "source": "dictionary"
+ },
+ "Nicaragua": {
+  "us": "nˌɪkəɹˈɑɡwə",
+  "gb": "nˌɪkəɹˈɑːɡwə",
+  "source": "wikipedia"
+ },
+ "Nicosia": {
+  "us": "nˌɪkəsˈiə",
+  "gb": "nˌɪkəsˈiːə",
+  "source": "wikipedia"
+ },
+ "Niger": {
+  "us": "niʒˈɛɹ",
+  "gb": "niːʒˈɛː",
+  "source": "wikipedia"
+ },
+ "Nigeria": {
+  "us": "nIʤˈɪɹiə",
+  "gb": "nIʤˈɪəɹiə",
+  "source": "wikipedia"
+ },
+ "Niue": {
+  "us": "njˈuA",
+  "gb": "njˈuːA",
+  "source": "wikipedia"
+ },
+ "North America": {
+  "us": "nˈɔɹθ əmˈɛɹəkə",
+  "gb": "nˈɔːθ əmˈɛɹɪkə",
+  "source": "dictionary"
+ },
+ "North Korea": {
+  "us": "nˈɔɹθ kəɹˈiə",
+  "gb": "nˈɔːθ kəɹˈɪə",
+  "source": "dictionary"
+ },
+ "North Macedonia": {
+  "us": "nˈɔɹθ mˌæsɪdˈOniə",
+  "gb": "nˈɔːθ mˌasɪdˈQniə",
+  "source": "wikipedia+dictionary"
+ },
+ "North Nicosia": {
+  "us": "nˈɔɹθ nˌɪkəsˈiə",
+  "gb": "nˈɔːθ nˌɪkəsˈɪə",
+  "source": "dictionary"
+ },
+ "North Sea": {
+  "us": "nˈɔɹθ sˈi",
+  "gb": "nˈɔːθ sˈiː",
+  "source": "dictionary"
+ },
+ "Northern Cyprus": {
+  "us": "nˈɔɹðəɹn sˈIpɹəs",
+  "gb": "nˈɔːðn sˈIpɹəs",
+  "source": "wikipedia+dictionary"
+ },
+ "Northern Ireland": {
+  "us": "nˈɔɹðəɹn ˈIəɹlənd",
+  "gb": "nˈɔːðn ˈIələnd",
+  "source": "dictionary"
+ },
+ "Northern Mariana Islands": {
+  "us": "nˈɔɹðəɹn mˌɛɹiˈænə ˈIləndz",
+  "gb": "nˈɔːðən mˌaɹiˈɑːnə ˈIləndz",
+  "source": "hand"
+ },
+ "Norway": {
+  "us": "nˈɔɹwA",
+  "gb": "nˈɔːwA",
+  "source": "dictionary"
+ },
+ "Norwegian Sea": {
+  "us": "nɔɹwˈiʤᵊn sˈi",
+  "gb": "nɔːwˈiːʤᵊn sˈiː",
+  "source": "dictionary"
+ },
+ "Nouakchott": {
+  "us": "nwækʃˈɑt",
+  "gb": "nwakʃˈɒt",
+  "source": "wikipedia"
+ },
+ "Nouméa": {
+  "us": "numˈAə",
+  "gb": "nuːmˈAə",
+  "source": "hand"
+ },
+ "Nukuʻalofa": {
+  "us": "nˌukuəlˈOfə",
+  "gb": "nˌuːkuəlˈQfə",
+  "source": "wikipedia"
+ },
+ "Nuuk": {
+  "us": "nˈuk",
+  "gb": "nˈuːk",
+  "source": "dictionary"
+ },
+ "Oceania": {
+  "us": "ˌOsiˈɑniə",
+  "gb": "ˌQsiˈɑːniə",
+  "source": "wikipedia"
+ },
+ "Oman": {
+  "us": "Omˈɑn",
+  "gb": "Qmˈɑːn",
+  "source": "wikipedia"
+ },
+ "Oranjestad": {
+  "us": "ɑɹˈænjəstɑt",
+  "gb": "ɒɹˈanjəstɑːt",
+  "source": "wikipedia"
+ },
+ "Oslo": {
+  "us": "ˈɑzlO",
+  "gb": "ˈɒzlQ",
+  "source": "wikipedia"
+ },
+ "Ottawa": {
+  "us": "ˈɑtəwə",
+  "gb": "ˈɒtəwə",
+  "source": "wikipedia"
+ },
+ "Ouagadougou": {
+  "us": "wˌɑɡədˈuɡu",
+  "gb": "wˌɑːɡədˈuːɡuː",
+  "source": "wikipedia"
+ },
+ "Pacific Ocean": {
+  "us": "pəsˈɪfɪk ˈOʃən",
+  "gb": "pəsˈɪfɪk ˈQʃᵊn",
+  "source": "dictionary"
+ },
+ "Pakistan": {
+  "us": "pˈækᵻstæn",
+  "gb": "pˈakɪstan",
+  "source": "wikipedia"
+ },
+ "Palau": {
+  "us": "pəlˈW",
+  "gb": "pəlˈW",
+  "source": "wikipedia"
+ },
+ "Palestine": {
+  "us": "pˈæləstˌIn",
+  "gb": "pˈalɪstIn",
+  "source": "dictionary"
+ },
+ "Palikir": {
+  "us": "pˈælᵻkɪɹ",
+  "gb": "pˈalɪkɪə",
+  "source": "wikipedia"
+ },
+ "Panama": {
+  "us": "pˈænəmɑ",
+  "gb": "pˈanəmɑː",
+  "source": "wikipedia"
+ },
+ "Panama City": {
+  "us": "pˈænəmˌɑ sˈɪɾi",
+  "gb": "pˌanəmˈɑː sˈɪti",
+  "source": "dictionary"
+ },
+ "Papeete": {
+  "us": "pˌɑpiˈiti",
+  "gb": "pˌɑːpɪˈAti",
+  "source": "dictionary"
+ },
+ "Papua New Guinea": {
+  "us": "pˈæpuə nˈu ɡˈɪni",
+  "gb": "pˈapuə njˈuː ɡˈɪni",
+  "source": "hand"
+ },
+ "Paraguay": {
+  "us": "pˈɛɹəɡwI",
+  "gb": "pˈaɹəɡwI",
+  "source": "wikipedia"
+ },
+ "Paramaribo": {
+  "us": "pˌɛɹəmˈɛɹɪbO",
+  "gb": "pˌaɹəmˈaɹɪbQ",
+  "source": "wikipedia"
+ },
+ "Paris": {
+  "us": "pˈæɹɪs",
+  "gb": "pˈaɹɪs",
+  "source": "wikipedia"
+ },
+ "Persian Gulf": {
+  "us": "pˈɜɹʒᵊn ɡˈʌlf",
+  "gb": "pˈɜːʃᵊn ɡˈʌlf",
+  "source": "dictionary"
+ },
+ "Peru": {
+  "us": "pəɹˈu",
+  "gb": "pəɹˈuː",
+  "source": "wikipedia"
+ },
+ "Philippine Sea": {
+  "us": "fˈɪləpˌin sˈi",
+  "gb": "fˈɪlɪpiːn sˈiː",
+  "source": "dictionary"
+ },
+ "Philippines": {
+  "us": "fˈilᵻpinz",
+  "gb": "fˈilɪpiːnz",
+  "source": "wikipedia"
+ },
+ "Phnom Penh": {
+  "us": "pənˌɑm pˈɛn",
+  "gb": "pənˌɒm pˈɛn",
+  "source": "wikipedia"
+ },
+ "Podgorica": {
+  "us": "pˈɔdɡɔɹˌitsə",
+  "gb": "pɒdɡˈɔːɹɪtsə",
+  "source": "dictionary"
+ },
+ "Poland": {
+  "us": "pˈOlənd",
+  "gb": "pˈQlənd",
+  "source": "dictionary"
+ },
+ "Polynesia": {
+  "us": "pˌɑlᵻnˈiziə",
+  "gb": "pˌɒlɪnˈiːziə",
+  "source": "wikipedia"
+ },
+ "Port Louis": {
+  "us": "pˈɔɹt lˈui",
+  "gb": "pˈɔːt lˈuːi",
+  "source": "dictionary"
+ },
+ "Port Moresby": {
+  "us": "pˈɔɹt mˈɔɹzbi",
+  "gb": "pˈɔːt mˈɔːzbi",
+  "source": "wikipedia+dictionary"
+ },
+ "Port Vila": {
+  "us": "pˈɔɹt vˈilə",
+  "gb": "pˈɔːt vˈiːlə",
+  "source": "wikipedia+dictionary"
+ },
+ "Port of Spain": {
+  "us": "pˈɔɹt əv spˈAn",
+  "gb": "pˈɔːt əv spˈAn",
+  "source": "dictionary"
+ },
+ "Port-au-Prince": {
+  "us": "pˌɔɹt ˈO pɹˈɪns",
+  "gb": "pˌɔːt ˈQ pɹˈɪns",
+  "source": "wikipedia"
+ },
+ "Porto-Novo": {
+  "us": "pˌɔɹtO nˈOvO",
+  "gb": "pˌɔːtQ nˈQvQ",
+  "source": "hand"
+ },
+ "Portugal": {
+  "us": "pˈɔɹʧəɡᵊl",
+  "gb": "pˈɔːʧʊɡᵊl",
+  "source": "dictionary"
+ },
+ "Prague": {
+  "us": "pɹˈɑɡ",
+  "gb": "pɹˈɑːɡ",
+  "source": "wikipedia"
+ },
+ "Praia": {
+  "us": "pɹˈIə",
+  "gb": "pɹˈIə",
+  "source": "dictionary"
+ },
+ "Pretoria, Cape Town, Bloemfontein": {
+  "us": "pɹətˈɔɹiə, kˈAp tˈWn, blˈumfɑntˌAn",
+  "gb": "pɹɪtˈɔːɹɪə, kˈAp tˈWn, blˈuːmfɒntˌAn",
+  "source": "hand"
+ },
+ "Pristina": {
+  "us": "pɹˈiʃtɪnə",
+  "gb": "pɹˈiːʃtɪnə",
+  "source": "wikipedia"
+ },
+ "Puerto Rico": {
+  "us": "pwˌɛɹtə ɹˈikO",
+  "gb": "pwˌɜːtQ ɹˈiːkQ",
+  "source": "hand"
+ },
+ "Pyongyang": {
+  "us": "pjɑŋjˈæŋ",
+  "gb": "pjɒŋjˈaŋ",
+  "source": "wikipedia"
+ },
+ "Qatar": {
+  "us": "kətˈɑɹ",
+  "gb": "kətˈɑː",
+  "source": "wikipedia"
+ },
+ "Quito": {
+  "us": "kˈiɾO",
+  "gb": "kˈiːtQ",
+  "source": "dictionary"
+ },
+ "Rabat": {
+  "us": "ɹəbˈɑt",
+  "gb": "ɹəbˈɑːt",
+  "source": "wikipedia"
+ },
+ "Red Sea": {
+  "us": "ɹˈɛd sˈi",
+  "gb": "ɹˈɛd sˈiː",
+  "source": "dictionary"
+ },
+ "Republic of the Congo": {
+  "us": "ɹəpˈʌblɪk əv ðə kˈɑŋɡO",
+  "gb": "ɹɪpˈʌblɪk əv ðə kˈɒŋɡQ",
+  "source": "dictionary"
+ },
+ "Reykjavík": {
+  "us": "ɹˈAkjəvˌɪk",
+  "gb": "ɹˈAkjəvˌɪk",
+  "source": "wikipedia"
+ },
+ "Riga": {
+  "us": "ɹˈiɡə",
+  "gb": "ɹˈiːɡə",
+  "source": "wikipedia"
+ },
+ "Riyadh": {
+  "us": "ɹˈiæd",
+  "gb": "ɹˈiːad",
+  "source": "wikipedia"
+ },
+ "Romania": {
+  "us": "ɹOmˈAniə",
+  "gb": "ɹQmˈAniə",
+  "source": "wikipedia"
+ },
+ "Rome": {
+  "us": "ɹˈOm",
+  "gb": "ɹˈQm",
+  "source": "wikipedia"
+ },
+ "Roseau": {
+  "us": "ɹOzˈO",
+  "gb": "ɹQzˈQ",
+  "source": "wikipedia"
+ },
+ "Russia": {
+  "us": "ɹˈʌʃə",
+  "gb": "ɹˈʌʃə",
+  "source": "dictionary"
+ },
+ "Rwanda": {
+  "us": "ɹuˈændə",
+  "gb": "ɹuˈandə",
+  "source": "wikipedia"
+ },
+ "Réunion": {
+  "us": "ɹijˈunjən",
+  "gb": "ɹiːjˈuːnjən",
+  "source": "wikipedia"
+ },
+ "Sahrawi Arab Democratic Republic": {
+  "us": "səɹˈɑwi ˈɛɹəb dˌɛməkɹˈæɾɪk ɹəpˈʌblɪk",
+  "gb": "səɹˈɑːwi ˈaɹəb dˌɛməkɹˈatɪk ɹɪpˈʌblɪk",
+  "source": "wikipedia+dictionary"
+ },
+ "Saint Kitts and Nevis": {
+  "us": "sˌAnt kˈɪts ænd nˈivɪs",
+  "gb": "sˌAnt kˈɪts ənd nˈiːvɪs",
+  "source": "hand"
+ },
+ "Saint Lucia": {
+  "us": "sˈAnt lˈuʃə",
+  "gb": "sˈAnt lˈuːʃə",
+  "source": "wikipedia+dictionary"
+ },
+ "Saint Martin": {
+  "us": "sˈAnt mˈɑɹtᵊn",
+  "gb": "sˈAnt mˈɑːtɪn",
+  "source": "dictionary"
+ },
+ "Saint Vincent and the Grenadines": {
+  "us": "sˈAnt vˈɪnsənt ənd ðə ɡɹˌɛnədˈinz",
+  "gb": "sˈAnt vˈɪnsənt ənd ðə ɡɹˌɛnədˈiːnz",
+  "source": "wikipedia+dictionary"
+ },
+ "Samoa": {
+  "us": "səmˈOə",
+  "gb": "səmˈQə",
+  "source": "hand"
+ },
+ "San José": {
+  "us": "sˌæn hOzˈA",
+  "gb": "sˌan hQzˈA",
+  "source": "hand"
+ },
+ "San Juan": {
+  "us": "sˌæn wˈɑn",
+  "gb": "sˌan wˈɑːn",
+  "source": "hand"
+ },
+ "San Marino": {
+  "us": "sˌæn məɹˈinO",
+  "gb": "sˌan məɹˈiːnQ",
+  "source": "wikipedia"
+ },
+ "San Salvador": {
+  "us": "sˈæn sˈælvədɔɹ",
+  "gb": "sˈan sˈalvədɔː",
+  "source": "dictionary"
+ },
+ "Sanaa": {
+  "us": "sənˈɑ",
+  "gb": "sənˈɑː",
+  "source": "wikipedia"
+ },
+ "Santiago": {
+  "us": "sˌæntiˈɑɡO",
+  "gb": "sˌantiˈɑːɡQ",
+  "source": "wikipedia"
+ },
+ "Santo Domingo": {
+  "us": "sˌæntO dəmˈɪŋɡO",
+  "gb": "sˌantQ dəmˈɪŋɡQ",
+  "source": "wikipedia"
+ },
+ "Sarajevo": {
+  "us": "sˌɛɹəjˈAvO",
+  "gb": "sˌaɹəjˈAvQ",
+  "source": "wikipedia"
+ },
+ "Sardinia": {
+  "us": "sɑɹdˈɪniə",
+  "gb": "sɑːdˈɪniə",
+  "source": "wikipedia"
+ },
+ "Saudi Arabia": {
+  "us": "sˌWdi əɹˈAbiə",
+  "gb": "sˌWdi əɹˈAbiə",
+  "source": "wikipedia"
+ },
+ "Scandinavia": {
+  "us": "skˌændənˈAviə",
+  "gb": "skˌandɪnˈAvɪə",
+  "source": "dictionary"
+ },
+ "Scotland": {
+  "us": "skˈɑtlənd",
+  "gb": "skˈɒtlənd",
+  "source": "dictionary"
+ },
+ "Sea of Galilee": {
+  "us": "sˈi əv ɡˈæləlˌi",
+  "gb": "sˈiː əv ɡˈalɪliː",
+  "source": "dictionary"
+ },
+ "Sea of Japan": {
+  "us": "sˈi əv ʤəpˈæn",
+  "gb": "sˈiː əv ʤəpˈan",
+  "source": "dictionary"
+ },
+ "Sea of Okhotsk": {
+  "us": "sˈi ʌv Okˈɑtsk",
+  "gb": "sˈiː ɒv Qkˈɒtsk",
+  "source": "hand"
+ },
+ "Senegal": {
+  "us": "sˌɛnəɡˈɔl",
+  "gb": "sˌɛnəɡˈɔːl",
+  "source": "wikipedia"
+ },
+ "Seoul": {
+  "us": "sˈOl",
+  "gb": "sˈQl",
+  "source": "wikipedia"
+ },
+ "Serbia": {
+  "us": "sˈɜɹbiə",
+  "gb": "sˈɜːbiə",
+  "source": "wikipedia"
+ },
+ "Seychelles": {
+  "us": "sAʃˈɛlz",
+  "gb": "sAʃˈɛlz",
+  "source": "wikipedia"
+ },
+ "Sicily": {
+  "us": "sˈɪsəli",
+  "gb": "sˈɪsɪli",
+  "source": "dictionary"
+ },
+ "Sierra Leone": {
+  "us": "siˌɛɹə liˈOni",
+  "gb": "siˌɛɹə liˈQni",
+  "source": "wikipedia"
+ },
+ "Singapore": {
+  "us": "sˈɪŋɡəpɔɹ",
+  "gb": "sˈɪŋɡəpɔː",
+  "source": "wikipedia"
+ },
+ "Sint Maarten": {
+  "us": "sˌɪnt mˈɑɹtᵊn",
+  "gb": "sˌɪnt mˈɑːtᵊn",
+  "source": "hand"
+ },
+ "Skopje": {
+  "us": "skˈɑpjA",
+  "gb": "skˈɒpjA",
+  "source": "wikipedia"
+ },
+ "Slovakia": {
+  "us": "slOvˈækiə",
+  "gb": "slQvˈakiə",
+  "source": "wikipedia"
+ },
+ "Slovenia": {
+  "us": "slOvˈiniə",
+  "gb": "slQvˈiːniə",
+  "source": "wikipedia"
+ },
+ "Sofia": {
+  "us": "sˈOfiə",
+  "gb": "sˈQfiə",
+  "source": "wikipedia"
+ },
+ "Solomon Islands": {
+  "us": "sˈɑləmən ˈIləndz",
+  "gb": "sˈɒləmən ˈIləndz",
+  "source": "dictionary"
+ },
+ "Somalia": {
+  "us": "səmˈɑliə",
+  "gb": "səmˈɑːliə",
+  "source": "wikipedia"
+ },
+ "Somaliland": {
+  "us": "səmˈɑlilˌænd",
+  "gb": "səmˈɑːlilˌand",
+  "source": "hand"
+ },
+ "South Africa": {
+  "us": "sˈWθ ˈæfɹəkə",
+  "gb": "sˈWθ ˈafɹɪkə",
+  "source": "dictionary"
+ },
+ "South America": {
+  "us": "sˈWθ əmˈɛɹəkə",
+  "gb": "sˈWθ əmˈɛɹɪkə",
+  "source": "dictionary"
+ },
+ "South China Sea": {
+  "us": "sˈWθ ʧˈInə sˈi",
+  "gb": "sˈWθ ʧˈInə sˈiː",
+  "source": "dictionary"
+ },
+ "South Korea": {
+  "us": "sˈWθ kəɹˈiə",
+  "gb": "sˈWθ kəɹˈɪə",
+  "source": "dictionary"
+ },
+ "South Ossetia": {
+  "us": "sˈWθ ɑsˈɛtiə",
+  "gb": "sˈWθ ɒsˈɛtiə",
+  "source": "wikipedia+dictionary"
+ },
+ "South Sudan": {
+  "us": "sˈWθ sudˈɑn",
+  "gb": "sˈWθ suːdˈɑːn",
+  "source": "wikipedia+dictionary"
+ },
+ "South Tarawa": {
+  "us": "sˈWθ təɹˈɑwə",
+  "gb": "sˈWθ tˈaɹəwə",
+  "source": "dictionary"
+ },
+ "Southern Ocean": {
+  "us": "sˈʌðəɹn ˈOʃən",
+  "gb": "sˈʌðn ˈQʃᵊn",
+  "source": "dictionary"
+ },
+ "Spain": {
+  "us": "spˈAn",
+  "gb": "spˈAn",
+  "source": "dictionary"
+ },
+ "Sri Jayawardenepura Kotte": {
+  "us": "ʃɹˌi ʤˌIəwˌɑɹdənəpˈʊɹə kˈOtA",
+  "gb": "ʃɹˌiː ʤˌIəwˌɑːdənəpˈʊəɹə kˈQtA",
+  "source": "hand"
+ },
+ "Sri Lanka": {
+  "us": "sɹˈi lˈæŋkə",
+  "gb": "sɹˈi lˈaŋkə",
+  "source": "wikipedia"
+ },
+ "St. George's": {
+  "us": "sˌAnt ʤˈɔɹʤɪz",
+  "gb": "sˌAnt ʤˈɔːʤɪz",
+  "source": "hand"
+ },
+ "St. John's": {
+  "us": "sˌAnt ʤˈɑnz",
+  "gb": "sˌAnt ʤˈɒnz",
+  "source": "hand"
+ },
+ "Stockholm": {
+  "us": "stˈɑkhOlm",
+  "gb": "stˈɒkhQlm",
+  "source": "wikipedia"
+ },
+ "Sucre": {
+  "us": "sˈukɹˌA",
+  "gb": "sˈuːkɹA",
+  "source": "dictionary"
+ },
+ "Sudan": {
+  "us": "sudˈɑn",
+  "gb": "suːdˈɑːn",
+  "source": "wikipedia"
+ },
+ "Sukhumi": {
+  "us": "sukˈumi",
+  "gb": "suːkˈuːmi",
+  "source": "hand"
+ },
+ "Sumatra": {
+  "us": "sʊmˈɑtɹə",
+  "gb": "sʊmˈɑːtɹə",
+  "source": "wikipedia"
+ },
+ "Suriname": {
+  "us": "sˈʊɹᵻnæm",
+  "gb": "sˈʊəɹɪnam",
+  "source": "wikipedia"
+ },
+ "Suva": {
+  "us": "sˈuvə",
+  "gb": "sˈuːvə",
+  "source": "dictionary"
+ },
+ "Svalbard": {
+  "us": "svˈɑlbɑɹd",
+  "gb": "svˈɑːlbɑːd",
+  "source": "wikipedia"
+ },
+ "Sweden": {
+  "us": "swˈidᵊn",
+  "gb": "swˈiːdᵊn",
+  "source": "dictionary"
+ },
+ "Switzerland": {
+  "us": "swˈɪtsəɹlənd",
+  "gb": "swˈɪtsələnd",
+  "source": "dictionary"
+ },
+ "Syria": {
+  "us": "sˈɪɹiə",
+  "gb": "sˈɪɹɪə",
+  "source": "dictionary"
+ },
+ "São Tomé": {
+  "us": "sˌW təmˈA",
+  "gb": "sˌW təmˈA",
+  "source": "hand"
+ },
+ "São Tomé and Príncipe": {
+  "us": "sˌW təmˈA ænd pɹˈɪnsɪpə",
+  "gb": "sˌW təmˈA ənd pɹˈɪnsɪpə",
+  "source": "hand"
+ },
+ "Taipei": {
+  "us": "tˌIpˈA",
+  "gb": "tˌIpˈA",
+  "source": "wikipedia"
+ },
+ "Taiwan": {
+  "us": "tˌIwˈɑn",
+  "gb": "tIwˈɑːn",
+  "source": "dictionary"
+ },
+ "Tajikistan": {
+  "us": "tɑʤˈikɪstɑn",
+  "gb": "tɑːʤˈiːkɪstɑːn",
+  "source": "wikipedia"
+ },
+ "Tallinn": {
+  "us": "tˈælɪn",
+  "gb": "tˈalɪn",
+  "source": "wikipedia"
+ },
+ "Tanzania": {
+  "us": "tˌænzənˈiə",
+  "gb": "tˌanzənˈiːə",
+  "source": "wikipedia"
+ },
+ "Tashkent": {
+  "us": "tæʃkˈɛnt",
+  "gb": "taʃkˈɛnt",
+  "source": "wikipedia"
+ },
+ "Tasman Sea": {
+  "us": "tˈæzmən sˈi",
+  "gb": "tˈazmən sˈiː",
+  "source": "hand"
+ },
+ "Tbilisi": {
+  "us": "təbɪlˈisi",
+  "gb": "təbɪlˈiːsi",
+  "source": "wikipedia"
+ },
+ "Tegucigalpa": {
+  "us": "tɛɡˌusᵻɡˈælpə",
+  "gb": "tɛɡˌuːsɪɡˈalpə",
+  "source": "wikipedia"
+ },
+ "Tehran": {
+  "us": "tɛɹˈæn",
+  "gb": "tɛɹˈan",
+  "source": "wikipedia"
+ },
+ "Thailand": {
+  "us": "tˈIlænd",
+  "gb": "tˈIland",
+  "source": "wikipedia"
+ },
+ "The Bahamas": {
+  "us": "ðə bəhˈɑməz",
+  "gb": "ðə bəhˈɑːməz",
+  "source": "wikipedia+dictionary"
+ },
+ "The Gambia": {
+  "us": "ðə ɡˈæmbiə",
+  "gb": "ðə ɡˈambɪə",
+  "source": "dictionary"
+ },
+ "Thimphu": {
+  "us": "tɪmpˈu",
+  "gb": "tɪmpˈuː",
+  "source": "wikipedia"
+ },
+ "Timor Sea": {
+  "us": "tˈimˌɔɹ sˈi",
+  "gb": "tˈiːmɔː sˈiː",
+  "source": "dictionary"
+ },
+ "Timor-Leste": {
+  "us": "timɔɹlˈɛstA",
+  "gb": "tiːmɔːlˈɛstA",
+  "source": "wikipedia"
+ },
+ "Tirana": {
+  "us": "tɪɹˈɑnə",
+  "gb": "tɪɹˈɑːnə",
+  "source": "wikipedia"
+ },
+ "Tiraspol": {
+  "us": "tɪɹˈæspɔl",
+  "gb": "tɪɹˈaspɒl",
+  "source": "hand"
+ },
+ "Togo": {
+  "us": "tˈOɡO",
+  "gb": "tˈQɡQ",
+  "source": "wikipedia"
+ },
+ "Tokyo": {
+  "us": "tˈOkiO",
+  "gb": "tˈQkiQ",
+  "source": "wikipedia"
+ },
+ "Tonga": {
+  "us": "tˈɑŋə",
+  "gb": "tˈɒŋə",
+  "source": "wikipedia"
+ },
+ "Transnistria": {
+  "us": "tɹænznˈɪstɹiə",
+  "gb": "tɹanznˈɪstɹiə",
+  "source": "hand"
+ },
+ "Trinidad and Tobago": {
+  "us": "tɹˈɪnɪdˌæd ænd təbˈAɡO",
+  "gb": "tɹˈɪnɪdad ənd təbˈAɡQ",
+  "source": "hand"
+ },
+ "Tripoli": {
+  "us": "tɹˈɪpəli",
+  "gb": "tɹˈɪpəli",
+  "source": "wikipedia"
+ },
+ "Tskhinvali": {
+  "us": "tskɪnvˈɑli",
+  "gb": "tskɪnvˈɑːli",
+  "source": "hand"
+ },
+ "Tunis": {
+  "us": "tˈunəs",
+  "gb": "tjˈuːnɪs",
+  "source": "dictionary"
+ },
+ "Tunisia": {
+  "us": "tjunˈɪziə",
+  "gb": "tjuːnˈɪziə",
+  "source": "wikipedia"
+ },
+ "Turkey": {
+  "us": "tˈɜɹki",
+  "gb": "tˈɜːki",
+  "source": "dictionary"
+ },
+ "Turkmenistan": {
+  "us": "tɜɹkmˈɛnᵻstæn",
+  "gb": "tɜːkmˈɛnɪstan",
+  "source": "wikipedia"
+ },
+ "Turks and Caicos Islands": {
+  "us": "tˈɜɹks ænd kˈAkəs ˈIləndz",
+  "gb": "tˈɜːks ənd kˈAkɒs ˈIləndz",
+  "source": "hand"
+ },
+ "Tuvalu": {
+  "us": "tuvˈɑlu",
+  "gb": "tuːvˈɑːluː",
+  "source": "wikipedia"
+ },
+ "Tórshavn": {
+  "us": "tˈɔɹshWn",
+  "gb": "tˈɔːshWn",
+  "source": "hand"
+ },
+ "Uganda": {
+  "us": "juɡˈɑndə",
+  "gb": "juːɡˈandə",
+  "source": "dictionary"
+ },
+ "Ukraine": {
+  "us": "jukɹˈAn",
+  "gb": "juːkɹˈAn",
+  "source": "wikipedia"
+ },
+ "Ulaanbaatar": {
+  "us": "ˌulɑnbˈɑtɑɹ",
+  "gb": "ˌuːlɑːnbˈɑːtɑː",
+  "source": "hand"
+ },
+ "United Arab Emirates": {
+  "us": "junˈIɾᵻd ˈɛɹəb ˈɛməɹəts",
+  "gb": "juːnˈItɪd ˈaɹəb ˈɛmɪɹəts",
+  "source": "hand"
+ },
+ "United Kingdom": {
+  "us": "junˈIɾᵻd kˈɪŋdəm",
+  "gb": "juːnˈItɪd kˈɪŋdəm",
+  "source": "dictionary"
+ },
+ "United States Virgin Islands": {
+  "us": "junˈIɾᵻd stˈAts vˈɜɹʤən ˈIləndz",
+  "gb": "juːnˈItɪd stˈAts vˈɜːʤɪn ˈIləndz",
+  "source": "dictionary"
+ },
+ "United States of America": {
+  "us": "junˈIɾᵻd stˈAts əv əmˈɛɹəkə",
+  "gb": "juːnˈItɪd stˈAts əv əmˈɛɹɪkə",
+  "source": "dictionary"
+ },
+ "Uruguay": {
+  "us": "ˈjʊɹəɡwI",
+  "gb": "ˈjʊəɹəɡwI",
+  "source": "wikipedia"
+ },
+ "Uzbekistan": {
+  "us": "ʊzbˌɛkᵻstˈɑn",
+  "gb": "ʊzbˌɛkɪstˈɑːn",
+  "source": "wikipedia"
+ },
+ "Vaduz": {
+  "us": "fɑdˈuts",
+  "gb": "fɑːdˈuːts",
+  "source": "wikipedia"
+ },
+ "Valletta": {
+  "us": "vəlˈɛtə",
+  "gb": "vəlˈɛtə",
+  "source": "wikipedia"
+ },
+ "Vanuatu": {
+  "us": "vˌɑnuˈɑtu",
+  "gb": "vˌɑːnuˈɑːtuː",
+  "source": "wikipedia"
+ },
+ "Vatican City": {
+  "us": "vˈætɪkən sˈɪti",
+  "gb": "vˈatɪkən sˈɪti",
+  "source": "wikipedia"
+ },
+ "Venezuela": {
+  "us": "vˌɛnəzwˈAlə",
+  "gb": "vˌɛnəzwˈAlə",
+  "source": "wikipedia"
+ },
+ "Victoria": {
+  "us": "vɪktˈɔɹiə",
+  "gb": "vɪktˈɔːɹɪə",
+  "source": "dictionary"
+ },
+ "Vienna": {
+  "us": "viˈɛnə",
+  "gb": "viˈɛnə",
+  "source": "wikipedia"
+ },
+ "Vientiane": {
+  "us": "vjɛntjˈɑn",
+  "gb": "vjɛntjˈɑːn",
+  "source": "hand"
+ },
+ "Vietnam": {
+  "us": "vˌiɛtnˈɑm",
+  "gb": "vjˌɛtnˈam",
+  "source": "dictionary"
+ },
+ "Vilnius": {
+  "us": "vˈɪlniəs",
+  "gb": "vˈɪlniəs",
+  "source": "wikipedia"
+ },
+ "Wales": {
+  "us": "wˈAlz",
+  "gb": "wˈAlz",
+  "source": "dictionary"
+ },
+ "Wallis and Futuna": {
+  "us": "wˈɑlɪs ænd futˈunə",
+  "gb": "wˈɒlɪs ənd fuːtˈuːnə",
+  "source": "hand"
+ },
+ "Warsaw": {
+  "us": "wˈɔɹsɔ",
+  "gb": "wˈɔːsɔː",
+  "source": "wikipedia"
+ },
+ "Washington, D.C.": {
+  "us": "wˈɑʃɪŋtən dˌisˈi",
+  "gb": "wˈɒʃɪŋtən dˌiːsˈiː",
+  "source": "hand"
+ },
+ "Wellington": {
+  "us": "wˈɛlɪŋtən",
+  "gb": "wˈɛlɪŋtən",
+  "source": "wikipedia"
+ },
+ "White Sea": {
+  "us": "wˈIt sˈi",
+  "gb": "wˈIt sˈiː",
+  "source": "dictionary"
+ },
+ "Willemstad": {
+  "us": "wˈɪləmstɑt",
+  "gb": "wˈɪləmstɑːt",
+  "source": "wikipedia"
+ },
+ "Windhoek": {
+  "us": "wˈɪndhʊk",
+  "gb": "wˈɪndhʊk",
+  "source": "wikipedia"
+ },
+ "Yamoussoukro": {
+  "us": "jˌæmʊsˈukɹO",
+  "gb": "jˌamʊsˈuːkɹQ",
+  "source": "wikipedia"
+ },
+ "Yaoundé": {
+  "us": "jɑˈʊndA",
+  "gb": "jɑːˈʊndA",
+  "source": "wikipedia"
+ },
+ "Yaren": {
+  "us": "jˈɑɹən",
+  "gb": "jˈɑːɹən",
+  "source": "hand"
+ },
+ "Yellow Sea": {
+  "us": "jˈɛlO sˈi",
+  "gb": "jˈɛlQ sˈiː",
+  "source": "dictionary"
+ },
+ "Yemen": {
+  "us": "jˈɛmən",
+  "gb": "jˈɛmən",
+  "source": "wikipedia"
+ },
+ "Yerevan": {
+  "us": "jˌɛɹəvˈæn",
+  "gb": "jˌɛɹəvˈan",
+  "source": "wikipedia"
+ },
+ "Zagreb": {
+  "us": "zˈɑɡɹɛb",
+  "gb": "zˈɑːɡɹɛb",
+  "source": "wikipedia"
+ },
+ "Zambia": {
+  "us": "zˈæmbiə",
+  "gb": "zˈambiə",
+  "source": "wikipedia"
+ },
+ "Zanzibar": {
+  "us": "zˈænzᵻbɑɹ",
+  "gb": "zˈanzɪbɑː",
+  "source": "wikipedia"
+ },
+ "Zimbabwe": {
+  "us": "zɪmbˈɑbwA",
+  "gb": "zɪmbˈɑːbwA",
+  "source": "wikipedia"
+ },
+ "Åland Islands": {
+  "us": "ˈɔlənd ˈIləndz",
+  "gb": "ˈɔːlənd ˈIləndz",
+  "source": "wikipedia+dictionary"
+ }
+}

@@ -20,7 +20,7 @@ Grade honestly. Again means you got it wrong, even if you nearly had it. Hard me
 
 The top bar shows today's new, learning and review counts with a progress line underneath. A short welcome explains all this on first visit and reopens from "How it works" in the footer.
 
-Every name has a pre-recorded neural pronunciation in a US or British voice, picked from your browser's language (press `S`). Any card can show its location map (`M`) or open in Google Maps (`G`). Filters let you drill a region or a card type. Sign in with Google to sync progress across devices, or don't. It works offline as an installable web app and updates itself when a new version ships.
+Every name has a pre-recorded pronunciation in a US or British voice, picked from your browser's language (press `S`). Clips are spoken from exact phonetic spellings taken from Wikipedia's English pronunciations, so a name like Ouagadougou is said correctly rather than guessed from its spelling. Any card can show its location map (`M`) or open in Google Maps (`G`). Filters let you drill a region or a card type. Sign in with Google to sync progress across devices, or don't. It works offline as an installable web app and updates itself when a new version ships.
 
 ## Keys
 
@@ -35,7 +35,7 @@ Every name has a pre-recorded neural pronunciation in a US or British voice, pic
 
 ## Stack
 
-Vite, React, TypeScript, Tailwind, Motion, [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), Dexie (IndexedDB). Hosted on Cloudflare Pages with a small Pages Function and D1 for sync. Pronunciation clips are generated once with Microsoft neural voices via [edge-tts](https://github.com/rany2/edge-tts) and shipped as static files.
+Vite, React, TypeScript, Tailwind, Motion, [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), Dexie (IndexedDB). Hosted on Cloudflare Pages with a small Pages Function and D1 for sync. Pronunciation clips are rendered once with [Kokoro](https://github.com/hexgrad/kokoro), an open-source neural voice, from phonemes built out of Wikipedia's English IPA, a pronunciation dictionary and hand-checked overrides, and shipped as static files.
 
 ## Scheduling
 
@@ -59,7 +59,7 @@ npx wrangler d1 migrations apply atlas --local
 pnpm build && npx wrangler pages dev dist
 ```
 
-`pnpm build:deck` rebuilds `src/data/deck.json` from the CrowdAnki export in `deck-src/`. `scripts/build-audio.py` regenerates the pronunciation clips.
+`pnpm build:deck` rebuilds `src/data/deck.json` from the CrowdAnki export in `deck-src/`. `scripts/pronunciation/` builds the phonetic spelling for every name (see the notes at the top of each script), and `scripts/build-audio.py` renders the clips from it.
 
 Deploy:
 

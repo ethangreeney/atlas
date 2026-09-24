@@ -61,7 +61,9 @@ export default function App() {
 
   // Have the pronunciation ready before the answer is shown.
   useEffect(() => {
-    if (card) preload(answerOf(card))
+    if (!card) return
+    preload(answerOf(card))
+    if (card.type === 'capital' || card.type === 'country') preload(card.type === 'capital' ? card.note.country : card.note.capital!)
   }, [card])
 
   const intervals = useMemo(() => (currentRow ? previewIntervals(currentRow, new Date()) : []), [currentRow])
@@ -71,9 +73,9 @@ export default function App() {
     setFlipped(true)
   }, [card, flipped, busy])
 
-  const say = useCallback(() => {
+  const say = useCallback((text?: string) => {
     if (!card || !flipped) return
-    speak(answerOf(card))
+    speak(text ?? answerOf(card))
   }, [card, flipped])
 
   const doGrade = useCallback(

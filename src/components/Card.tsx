@@ -49,6 +49,27 @@ const Big = ({ children }: { children: React.ReactNode }) => (
 const Small = ({ children }: { children: React.ReactNode }) => (
   <div className="text-[15px] font-medium text-ink-2">{children}</div>
 )
+/** A name on the answer side: tap it to hear just that name. */
+const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => void; big?: boolean }) => (
+  <button
+    type="button"
+    title={`Hear “${text}”`}
+    className="group relative cursor-pointer text-inherit transition-colors hover:text-ink"
+    onClick={(e) => {
+      e.stopPropagation()
+      onSay(text)
+    }}
+  >
+    {text}
+    <Volume2
+      size={big ? 18 : 13}
+      strokeWidth={2}
+      aria-hidden
+      className={`absolute left-full top-1/2 -translate-y-1/2 text-ink-3 opacity-60 transition-opacity group-hover:opacity-100 ${big ? 'ml-2' : 'ml-1.5'}`}
+    />
+  </button>
+)
+
 const Info = ({ children }: { children: React.ReactNode }) =>
   children ? <div className="max-w-[34ch] text-balance text-[13px] leading-snug text-ink-3">{children}</div> : null
 
@@ -105,7 +126,7 @@ function Front({ card }: { card: DeckCard }) {
   }
 }
 
-function Back({ card, showMap }: { card: DeckCard; showMap: boolean }) {
+function Back({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSay: (t: string) => void }) {
   const n = card.note
   const map = showMap && n.map && card.type !== 'map' ? <Map file={n.map} size="sm" /> : null
   switch (card.type) {
@@ -113,8 +134,12 @@ function Back({ card, showMap }: { card: DeckCard; showMap: boolean }) {
       return (
         <>
           {map}
-          <Small>{n.country}</Small>
-          <Big>{n.capital}</Big>
+          <Small>
+            <Say text={n.country!} onSay={onSay} />
+          </Small>
+          <Big>
+            <Say text={n.capital!} onSay={onSay} big />
+          </Big>
           <Info>{n.capitalInfo}</Info>
         </>
       )
@@ -122,8 +147,12 @@ function Back({ card, showMap }: { card: DeckCard; showMap: boolean }) {
       return (
         <>
           {map}
-          <Small>{n.capital}</Small>
-          <Big>{n.country}</Big>
+          <Small>
+            <Say text={n.capital!} onSay={onSay} />
+          </Small>
+          <Big>
+            <Say text={n.country!} onSay={onSay} big />
+          </Big>
           <Info>{n.countryInfo}</Info>
         </>
       )
@@ -131,7 +160,9 @@ function Back({ card, showMap }: { card: DeckCard; showMap: boolean }) {
       return (
         <>
           {map ?? <Flag file={n.flagBack ?? n.flag!} size="sm" />}
-          <Big>{n.country}</Big>
+          <Big>
+            <Say text={n.country!} onSay={onSay} big />
+          </Big>
           <Info>{n.countryInfo}</Info>
           <Info>{n.flagSimilar ? `Similar to ${n.flagSimilar}` : ''}</Info>
         </>
@@ -140,7 +171,9 @@ function Back({ card, showMap }: { card: DeckCard; showMap: boolean }) {
       return (
         <>
           <Map file={n.map!} size="sm" />
-          <Big>{n.country}</Big>
+          <Big>
+            <Say text={n.country!} onSay={onSay} big />
+          </Big>
           <Info>{n.countryInfo}</Info>
         </>
       )
@@ -153,7 +186,7 @@ type Props = {
   flipped: boolean
   showMap: boolean
   onFlip: () => void
-  onSpeak: () => void
+  onSpeak: (text?: string) => void
   onToggleMap: () => void
 }
 
@@ -208,11 +241,8 @@ export function Card({ card, row, flipped, showMap, onFlip, onSpeak, onToggleMap
         </div>
         <div className="backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-white px-8 text-center [transform:rotateY(180deg)]">
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          <Back card={card} showMap={showMap} />
+          <Back card={card} showMap={showMap} onSay={onSpeak} />
           <div className="absolute bottom-3 right-3 flex items-center gap-0.5">
-            <Action label="Pronounce (S)" onClick={onSpeak}>
-              <Volume2 size={16} strokeWidth={1.75} />
-            </Action>
             {card.type !== 'map' && card.note.map && (
               <Action label={showMap ? 'Hide map (M)' : 'Show map (M)'} onClick={onToggleMap}>
                 <MapIcon size={16} strokeWidth={1.75} className={showMap ? 'text-ink' : ''} />

@@ -1,15 +1,39 @@
 {
+ "Abu Dhabi": [
+  "ˌɑbu dˈɑbi",
+  "ˌabuː dˈɑːbi"
+ ],
  "Alofi": [
   "əlˈOfi",
   "əlˈQfi"
+ ],
+ "Apia": [
+  "ɑpˈiə",
+  "ɑːpˈiːə"
  ],
  "Avarua": [
   "ˌævəɹˈuə",
   "ˌavəɹˈuːə"
  ],
+ "Balkan Peninsula": [
+  "bˈɔlkən pənˈɪnsələ",
+  "bˈɔːlkən pɪnˈɪnsjʊlə"
+ ],
  "Bandar Seri Begawan": [
   "bˈʌndəɹ sˌɛɹi bəɡˈɑwən",
   "bˈʌndə sˌɛɹi bəɡˈɑːwən"
+ ],
+ "Bangui": [
+  "bɑŋɡˈi",
+  "bɑːŋɡˈiː"
+ ],
+ "Belgrade": [
+  "bɛlɡɹˈAd",
+  "bɛlɡɹˈAd"
+ ],
+ "Bogotá": [
+  "bˌOɡətˈɑ",
+  "bˌQɡətˈɑː"
  ],
  "Caspian Sea": [
   "kˈæspiən sˈi",
@@ -27,9 +51,17 @@
   "kˌOstə ɹˈikə",
   "kˌɒstə ɹˈiːkə"
  ],
+ "Dominica": [
+  "dˌɑmɪnˈikə",
+  "dˌɒmɪnˈiːkə"
+ ],
  "Gulf of Carpentaria": [
   "ɡˈʌlf ʌv kˌɑɹpəntˈɛɹiə",
   "ɡˈʌlf ɒv kˌɑːpəntˈɛəɹiə"
+ ],
+ "Harare": [
+  "həɹˈɑɹA",
+  "həɹˈɑːɹA"
  ],
  "Hong Kong": [
   "hˈɑŋ kˈɑŋ",
@@ -43,6 +75,26 @@
   "ʤˈAʤu",
   "ʤˈAʤuː"
  ],
+ "Kiribati": [
+  "kˈɪɹəbæs",
+  "kˈɪɹɪbas"
+ ],
+ "Kyrgyzstan": [
+  "kˈɪɹɡɪstˌæn",
+  "kˌɜːɡɪstˈɑːn"
+ ],
+ "Mogadishu": [
+  "mˌOɡədˈiʃu",
+  "mˌɒɡədˈɪʃuː"
+ ],
+ "Moldova": [
+  "mɑldˈOvə",
+  "mɒldˈQvə"
+ ],
+ "Myanmar": [
+  "mjˈænmɑɹ",
+  "mjˈanmɑː"
+ ],
  "Ngerulmud": [
   "ɛŋɡˈɛɹulmʊd",
   "ɛŋɡˈɛɹuːlmʊd"
@@ -55,9 +107,17 @@
   "numˈAə",
   "nuːmˈAə"
  ],
+ "Papua New Guinea": [
+  "pˈæpuə nˈu ɡˈɪni",
+  "pˈapuə njˈuː ɡˈɪni"
+ ],
  "Porto-Novo": [
   "pˌɔɹtO nˈOvO",
   "pˌɔːtQ nˈQvQ"
+ ],
+ "Pretoria, Cape Town, Bloemfontein": [
+  "pɹətˈɔɹiə, kˈAp tˈWn, blˈumfɑntˌAn",
+  "pɹɪtˈɔːɹɪə, kˈAp tˈWn, blˈuːmfɒntˌAn"
  ],
  "Puerto Rico": [
   "pwˌɛɹtə ɹˈikO",
@@ -66,6 +126,10 @@
  "Saint Kitts and Nevis": [
   "sˌAnt kˈɪts ænd nˈivɪs",
   "sˌAnt kˈɪts ənd nˈiːvɪs"
+ ],
+ "Samoa": [
+  "səmˈOə",
+  "səmˈQə"
  ],
  "San José": [
   "sˌæn hOzˈA",
@@ -147,6 +211,10 @@
   "junˈIɾᵻd ˈɛɹəb ˈɛməɹəts",
   "juːnˈItɪd ˈaɹəb ˈɛmɪɹəts"
  ],
+ "Vientiane": [
+  "vjɛntjˈɑn",
+  "vjɛntjˈɑːn"
+ ],
  "Wallis and Futuna": [
   "wˈɑlɪs ænd futˈunə",
   "wˈɒlɪs ənd fuːtˈuːnə"
@@ -158,57 +226,5 @@
  "Yaren": [
   "jˈɑɹən",
   "jˈɑːɹən"
- ],
- "Mogadishu": [
-  "mˌOɡədˈiʃu",
-  "mˌɒɡədˈɪʃuː"
- ],
- "Vientiane": [
-  "vjɛntjˈɑn",
-  "vjɛntjˈɑːn"
- ],
- "Samoa": [
-  "səmˈOə",
-  "səmˈQə"
- ],
- "Apia": [
-  "ɑpˈiə",
-  "ɑːpˈiːə"
- ],
- "Bangui": [
-  "bɑŋɡˈi",
-  "bɑːŋɡˈiː"
- ],
- "Dominica": [
-  "dˌɑmɪnˈikə",
-  "dˌɒmɪnˈiːkə"
- ],
- "Kiribati": [
-  "kˈɪɹəbæs",
-  "kˈɪɹɪbas"
- ],
- "Myanmar": [
-  "mjˈænmɑɹ",
-  "mjˈanmɑː"
- ],
- "Papua New Guinea": [
-  "pˈæpuə nˈu ɡˈɪni",
-  "pˈapuə njˈuː ɡˈɪni"
- ],
- "Pretoria, Cape Town, Bloemfontein": [
-  "pɹətˈɔɹiə, kˈAp tˈWn, blˈumfɑntˌAn",
-  "pɹɪtˈɔːɹɪə, kˈAp tˈWn, blˈuːmfɒntˌAn"
- ],
- "Abu Dhabi": [
-  "ˌɑbu dˈɑbi",
-  "ˌabuː dˈɑːbi"
- ],
- "Balkan Peninsula": [
-  "bˈɔlkən pənˈɪnsələ",
-  "bˈɔːlkən pɪnˈɪnsjʊlə"
- ],
- "Kyrgyzstan": [
-  "kˈɪɹɡɪstˌæn",
-  "kˌɜːɡɪstˈɑːn"
  ]
 }

@@ -1,11 +1,11 @@
 {
  "Abkhazia": {
   "title": "Abkhazia",
-  "raw": "audio=Abkhazia pronunciation.mp3|æ|b|ˈ|k|ɑː|z|i|ə"
+  "raw": "audio=Abkhazia pronunciation.mp3|æ|b|ˈ|k|ɑː|z|i|ə|#|audio=Abkhazia alternate pronunciation.mp3|æ|b|ˈ|k|eɪ|z|i|ə"
  },
  "Abu Dhabi": {
   "title": "Abu Dhabi, United Arab Emirates",
-  "raw": "UK|ˌ|æ|b|uː|ˈ|d|æ|b|i"
+  "raw": "UK|ˌ|æ|b|uː|ˈ|d|æ|b|i|#|US|ˌ|ɑː|b|uː|ˈ|d|ɑː|b|i"
  },
  "Abuja": {
   "title": "Abuja, Nigeria",
@@ -56,19 +56,19 @@
  "American Samoa": null,
  "Amman": {
   "title": "Amman, Jordan",
-  "raw": "UK|ə|ˈ|m|ɑː|n|audio=LL-Q1860 (eng)-Vealhurl-Amman.wav"
+  "raw": "UK|ə|ˈ|m|ɑː|n|audio=LL-Q1860 (eng)-Vealhurl-Amman.wav|#|US|ɑː|ˈ|m|ɑː|n"
  },
  "Amsterdam": {
   "title": "Amsterdam, Netherlands",
-  "raw": "ˈ|æ|m|s|t|ər|d|æ|m"
+  "raw": "ˈ|æ|m|s|t|ər|d|æ|m|#|UKalso|ˌ|æ|m|s|t|ər|ˈ|d|æ|m"
  },
  "Andorra": {
   "title": "Andorra",
-  "raw": "audio=en-us-Andorra.ogg|lang|æ|n|ˈ|d|ɔːr|ə"
+  "raw": "audio=en-us-Andorra.ogg|lang|æ|n|ˈ|d|ɔːr|ə|#|æ|n|ˈ|d|ɒr|ə"
  },
  "Andorra la Vella": {
   "title": "Andorra la Vella, Andorra",
-  "raw": "UK|æ|n|ˌ|d|ɔːr|ə|_|l|ə|_|ˈ|v|eɪ|j|ə"
+  "raw": "UK|æ|n|ˌ|d|ɔːr|ə|_|l|ə|_|ˈ|v|eɪ|j|ə|#|US|-|_|l|ɑː|_|ˈ|v|eɪ|l|j|ə"
  },
  "Angola": {
   "title": "Angola",
@@ -80,7 +80,7 @@
  },
  "Ankara": {
   "title": "Ankara, Turkey",
-  "raw": "ˈ|æ|ŋ|k|ər|ə"
+  "raw": "ˈ|æ|ŋ|k|ər|ə|#|USalso|ˈ|ɑː|ŋ|-|#|æ|n|ˈ|s|aɪ|r|ə|#|æ|ŋ|ˈ|ɡ|ɔːr|ə|#|USalso|ˈ|æ|ŋ|ɡ|ə|r|ə"
  },
  "Antananarivo": null,
  "Antarctica": {
@@ -109,11 +109,11 @@
  },
  "Ashgabat": {
   "title": "Ashgabat, Turkmenistan",
-  "raw": "ˌ|ɑː|ʃ|g|ə|ˈ|b|ɑː|t"
+  "raw": "ˌ|ɑː|ʃ|g|ə|ˈ|b|ɑː|t|#|ˈ|ɑː|ʃ|g|ə|b|æ|t"
  },
  "Asia": {
   "title": "Asia",
-  "raw": "ˈ|eɪ|ʒ|ə|audio=En-us-Asia.ogg"
+  "raw": "ˈ|eɪ|ʒ|ə|audio=En-us-Asia.ogg|#|UKalso|ˈ|eɪ|ʃ|ə"
  },
  "Asmara": {
   "title": "Asmara, Eritrea",
@@ -121,7 +121,7 @@
  },
  "Astana": {
   "title": "Astana, Kazakhstan",
-  "raw": "ə|ˈ|s|t|ɑː|n|ə|audio=LL-Q1860 (eng)-Vealhurl-Astana.wav"
+  "raw": "ə|ˈ|s|t|ɑː|n|ə|audio=LL-Q1860 (eng)-Vealhurl-Astana.wav|#|USalso|æ|ˈ|s|t|ɑː|n|ə|#|UKalso|æ|ˈ|s|t|æ|n|ə"
  },
  "Asunción": {
   "title": "Asunción, Paraguay",
@@ -135,28 +135,28 @@
  "Australia": null,
  "Austria": {
   "title": "Austria",
-  "raw": "audio=en-us-Austria.ogg|ˈ|ɒ|s|t|r|i|ə"
+  "raw": "audio=en-us-Austria.ogg|ˈ|ɒ|s|t|r|i|ə|#|ˈ|ɔː|s|t|r|i|ə"
  },
  "Avarua": null,
  "Azerbaijan": {
   "title": "Azerbaijan",
-  "raw": "UK|audio=En-Azerbaijan-pronunciation.ogg|ˌ|æ|z|ər|b|aɪ|ˈ|dʒ|ɑː|n|,_|-|ˈ|dʒ|æ|n"
+  "raw": "UK|audio=En-Azerbaijan-pronunciation.ogg|ˌ|æ|z|ər|b|aɪ|ˈ|dʒ|ɑː|n|,_|-|ˈ|dʒ|æ|n|#|US|audio=en-us-Azerbaijan.ogg|ˌ|ɑː|z|ər|b|aɪ|ˈ|dʒ|ɑː|n|,_|ˌ|æ|z|-|"
  },
  "Azores": {
   "title": "Azores",
-  "raw": "ə|ˈ|z|ɔər|z"
+  "raw": "ə|ˈ|z|ɔər|z|#|USalso|ˈ|eɪ|z|ɔər|z"
  },
  "Baghdad": {
   "title": "Baghdad, Iraq",
-  "raw": "ˈ|b|æ|g|d|æ|d|audio=En-Baghdad.wav"
+  "raw": "ˈ|b|æ|g|d|æ|d|audio=En-Baghdad.wav|#|b|ə|g|ˈ|d|æ|d"
  },
  "Bahrain": {
   "title": "Bahrain",
-  "raw": "audio=En-us-Bahrain.ogg|b|ɑː|ˈ|r|eɪ|n"
+  "raw": "audio=En-us-Bahrain.ogg|b|ɑː|ˈ|r|eɪ|n|#|b|æ|x|ˈ|r|eɪ|n"
  },
  "Baku": {
   "title": "Baku, Azerbaijan",
-  "raw": "US|b|ɑː|ˈ|k|uː|,_|ˈ|b|ɑː|k|uː"
+  "raw": "US|b|ɑː|ˈ|k|uː|,_|ˈ|b|ɑː|k|uː|#|UK|b|æ|ˈ|k|uː|,_|ˈ|b|æ|k|u:"
  },
  "Bali": {
   "title": "Bali",
@@ -164,18 +164,18 @@
  },
  "Balkan Peninsula": {
   "title": "Balkan Peninsula",
-  "raw": "ˈ|b|ɔː|l|k|ən|z"
+  "raw": "ˈ|b|ɔː|l|k|ən|z|#|ˈ|b|ɒ|l|k|ən|z"
  },
  "Baltic Sea": null,
  "Bamako": {
   "title": "Bamako, Mali",
-  "raw": "ˌ|b|æ|m|ə|ˈ|k|oʊ"
+  "raw": "ˌ|b|æ|m|ə|ˈ|k|oʊ|#|USalso|ˌ|b|ɑː|m|ə|ˈ|k|oʊ"
  },
  "Banda Sea": null,
  "Bandar Seri Begawan": null,
  "Bangkok": {
   "title": "Bangkok, Thailand",
-  "raw": "b|æ|ŋ|'|k|ɒ|k|audio=LL-Q1860 (eng)-Vealhurl-Bangkok.wav"
+  "raw": "b|æ|ŋ|'|k|ɒ|k|audio=LL-Q1860 (eng)-Vealhurl-Bangkok.wav|#|'|b|æ|ŋ|k|ɒ|k|audio=LL-Q1860 (eng)-Arlo Barnes-bangkok.wav"
  },
  "Bangladesh": {
   "title": "Bangladesh",
@@ -184,15 +184,15 @@
  "Bangui": null,
  "Banjul": {
   "title": "Banjul, The Gambia",
-  "raw": "UK|b|æ|n|ˈ|dʒ|uː|l"
+  "raw": "UK|b|æ|n|ˈ|dʒ|uː|l|#|US|ˈ|b|ɑː|n|dʒ|uː|l"
  },
  "Barbados": {
   "title": "Barbados",
-  "raw": "UK|b|ɑːr|ˈ|b|eɪ|d|ɒ|s"
+  "raw": "UK|b|ɑːr|ˈ|b|eɪ|d|ɒ|s|#|US|b|ɑːr|ˈ|b|eɪ|d|oʊ|s|audio=En-us-Barbados.ogg|#|local|b|ɑːr|ˈ|b|eɪ|d|ə|s"
  },
  "Barents Sea": {
   "title": "Barents Sea",
-  "raw": "ˈ|b|ær|ə|n|t|s"
+  "raw": "ˈ|b|ær|ə|n|t|s|#|US|ˈ|b|ɑːr|ə|n|t|s"
  },
  "Basseterre": {
   "title": "Basseterre, Saint Kitts and Nevis",
@@ -205,7 +205,7 @@
  },
  "Beijing": {
   "title": "Beijing, China",
-  "raw": "b|eɪ|ˈ|dʒ|ɪ|ŋ"
+  "raw": "b|eɪ|ˈ|dʒ|ɪ|ŋ|#|p|iː|ˈ|k|ɪ|ŋ"
  },
  "Beirut": {
   "title": "Beirut, Lebanon",
@@ -213,20 +213,20 @@
  },
  "Belarus": {
   "title": "Belarus",
-  "raw": "ˌ|b|ɛ|l|ə|ˈ|r|uː|s"
+  "raw": "ˌ|b|ɛ|l|ə|ˈ|r|uː|s|#|USalso|ˌ|b|iː|l|ə|ˈ|r|uː|s|#|UKalso|ˈ|b|ɛ|l|ə|r|ʌ|s|,_|-|r|ʊ|s"
  },
  "Belfast": {
   "title": "Belfast, Northern Ireland",
-  "raw": "ˈ|b|ɛ|l|f|æ|s|t|audio=LL-Q1860 (eng)-Vealhurl-Belfast.wav"
+  "raw": "ˈ|b|ɛ|l|f|æ|s|t|audio=LL-Q1860 (eng)-Vealhurl-Belfast.wav|#|-|f|a:|s|t|#|-|f|a:|s|t|#|-|f|æ|s|t"
  },
  "Belgium": null,
  "Belgrade": {
   "title": "Belgrade, Serbia",
-  "raw": "b|ɛ|l|ˈ|g|r|eɪ|d"
+  "raw": "b|ɛ|l|ˈ|g|r|eɪ|d|#|ˈ|b|ɛ|l|ɡ|r|eɪ|d|#|US|b|ɛ|l|ˈ|ɡ|r|ɑː|d|,_|-|ˈ|ɡ|r|æ|d"
  },
  "Belize": {
   "title": "Belize",
-  "raw": "audio=En-us-Belize.ogg|b|ɪ|.|ˈ|l|iː|z"
+  "raw": "audio=En-us-Belize.ogg|b|ɪ|.|ˈ|l|iː|z|#|b|ɛ|.|ˈ|l|iː|z"
  },
  "Belmopan": {
   "title": "Belmopan, Belize",
@@ -234,11 +234,11 @@
  },
  "Benin": {
   "title": "Benin",
-  "raw": "audio=En-Benin-pronunciation.ogg|b|ɛ|ˈ|n|iː|n"
+  "raw": "audio=En-Benin-pronunciation.ogg|b|ɛ|ˈ|n|iː|n|#|b|ᵻ|ˈ|n|iː|n"
  },
  "Bering Strait": {
   "title": "Bering Strait",
-  "raw": "ˈ|b|ɛər|ɪ|ŋ|,_|ˈ|b|ɛr|ɪ|ŋ"
+  "raw": "ˈ|b|ɛər|ɪ|ŋ|,_|ˈ|b|ɛr|ɪ|ŋ|#|usalso|ˈ|b|ɪər|ɪ|ŋ"
  },
  "Berlin": {
   "title": "Berlin, Germany",
@@ -261,7 +261,7 @@
  "Black Sea": null,
  "Bogotá": {
   "title": "Bogotá, Colombia",
-  "raw": "ˌ|b|oʊ|ɡ|ə|ˈ|t|ɑː"
+  "raw": "ˌ|b|oʊ|ɡ|ə|ˈ|t|ɑː|#|UK|ˌ|b|ɒ|ɡ|-|#|US|ˈ|b|oʊ|ɡ|ə|t|ɑː"
  },
  "Bolivia": {
   "title": "Bolivia",
@@ -269,11 +269,11 @@
  },
  "Bosnia and Herzegovina": {
   "title": "Bosnia and Herzegovina",
-  "raw": "audio=En-us-Bosnia and Herzegovina.ogg|ˈ|b|ɒ|z|n|i|ə|...|ˌ|h|ɛər|t|s|ə|ɡ|oʊ|ˈ|v|iː|n|ə|,_|-|_|ˌ|h|ɜːr|t|s|-|,_|-|ɡ|ə|-"
+  "raw": "audio=En-us-Bosnia and Herzegovina.ogg|ˈ|b|ɒ|z|n|i|ə|...|ˌ|h|ɛər|t|s|ə|ɡ|oʊ|ˈ|v|iː|n|ə|,_|-|_|ˌ|h|ɜːr|t|s|-|,_|-|ɡ|ə|-|#|-|_|ˌ|h|ɜːr|t|s|ə|ˈ|ɡ|ɒ|v|ᵻ|n|ə"
  },
  "Botswana": {
   "title": "Botswana",
-  "raw": "audio=En-Bostwana-pronunciation.ogg|b|ɒ|t|ˈ|s|w|ɑː|n|ə"
+  "raw": "audio=En-Bostwana-pronunciation.ogg|b|ɒ|t|ˈ|s|w|ɑː|n|ə|#|UKalso|b|ʊ|t|ˈ|s|w|ɑː|n|ə|,_|b|ʊ|ˈ|tʃ|w|ɑː|n|ə"
  },
  "Bougainville": null,
  "Brasília": {
@@ -282,7 +282,7 @@
  },
  "Bratislava": {
   "title": "Bratislava, Slovakia",
-  "raw": "ˌ|b|r|æ|t|ɪ|ˈ|s|l|ɑː|v|ə|audio=LL-Q1860 (eng)-Vealhurl-Bratislava.wav"
+  "raw": "ˌ|b|r|æ|t|ɪ|ˈ|s|l|ɑː|v|ə|audio=LL-Q1860 (eng)-Vealhurl-Bratislava.wav|#|ˌ|b|r|ɑː|t|-"
  },
  "Brazil": null,
  "Brazzaville": null,
@@ -298,15 +298,15 @@
  },
  "Bucharest": {
   "title": "Bucharest, Romania",
-  "raw": "UK|ˌ|b|uː|k|ə|ˈ|r|ɛ|s|t|audio=LL-Q1860 (eng)-Vealhurl-Bucharest.wav"
+  "raw": "UK|ˌ|b|uː|k|ə|ˈ|r|ɛ|s|t|audio=LL-Q1860 (eng)-Vealhurl-Bucharest.wav|#|US|ˈ|b|uː|k|ə|r|ɛ|s|t"
  },
  "Budapest": {
   "title": "Budapest, Hungary",
-  "raw": "UK|ˌ|b|(|j|)|uː|d|ə|ˈ|p|ɛ|s|t|,_|ˌ|b|ʊ|d|-|,_|ˈ|b|(|j|)|uː|d|ə|p|ɛ|s|t|,_|ˈ|b|ʊ|d|-"
+  "raw": "UK|ˌ|b|(|j|)|uː|d|ə|ˈ|p|ɛ|s|t|,_|ˌ|b|ʊ|d|-|,_|ˈ|b|(|j|)|uː|d|ə|p|ɛ|s|t|,_|ˈ|b|ʊ|d|-|#|US|audio=en-us-Budapest.ogg|ˈ|b|uː|d|ə|p|ɛ|s|t|,_|-|p|ɛ|ʃ|t|,_|ˌ|b|uː|d|ə|ˈ|p|ɛ|ʃ|t"
  },
  "Buenos Aires": {
   "title": "Buenos Aires, Argentina",
-  "raw": "ˌ|b|w|eɪ|n|ə|s|_|ˈ|ɛər|iː|z"
+  "raw": "ˌ|b|w|eɪ|n|ə|s|_|ˈ|ɛər|iː|z|#|-|ˈ|aɪ|r|ᵻ|s"
  },
  "Bulgaria": {
   "title": "Bulgaria",
@@ -314,11 +314,11 @@
  },
  "Burkina Faso": {
   "title": "Burkina Faso",
-  "raw": "uk|b|ɜːr|ˌ|k|iː|n|ə|_|ˈ|f|æ|s|oʊ"
+  "raw": "uk|b|ɜːr|ˌ|k|iː|n|ə|_|ˈ|f|æ|s|oʊ|#|audio=En-us-Burkina Faso.ogg|us|-|ˈ|f|ɑː|s|oʊ"
  },
  "Burundi": {
   "title": "Burundi",
-  "raw": "audio=En-Burundi-pronunciation.ogg|b|ə|ˈ|r|ʊ|n|d|i"
+  "raw": "audio=En-Burundi-pronunciation.ogg|b|ə|ˈ|r|ʊ|n|d|i|#|b|ə|ˈ|r|ʌ|n|d|i"
  },
  "Cairo": {
   "title": "Cairo, Egypt",
@@ -379,17 +379,17 @@
  },
  "Chile": {
   "title": "Chile",
-  "raw": "audio=En-Chile-pronunciation.ogg|ˈ|tʃ|ɪ|l|i"
+  "raw": "audio=En-Chile-pronunciation.ogg|ˈ|tʃ|ɪ|l|i|#|'|tʃ|ɪ|l|eɪ"
  },
  "China": null,
  "Chișinău": {
   "title": "Chișinău, Moldova",
-  "raw": "ˌ|k|ɪ|ʃ|ɪ|ˈ|n|aʊ|audio=En-us-Chișinău.ogg"
+  "raw": "ˌ|k|ɪ|ʃ|ɪ|ˈ|n|aʊ|audio=En-us-Chișinău.ogg|#|ˈ|k|ɪ|ʃ|ə|n|ɛ|f|,_|-|n|ɛ|v"
  },
  "City of San Marino": null,
  "Colombia": {
   "title": "Colombia",
-  "raw": "audio=En-Colombia-pronunciation.ogg|k|ə|ˈ|l|ʌ|m|b|i|ə"
+  "raw": "audio=En-Colombia-pronunciation.ogg|k|ə|ˈ|l|ʌ|m|b|i|ə|#|-|ˈ|l|ɒ|m|-"
  },
  "Comoros": {
   "title": "Comoros",
@@ -402,7 +402,7 @@
  "Cook Islands": null,
  "Copenhagen": {
   "title": "Copenhagen, Denmark",
-  "raw": "ˌ|k|oʊ|p|ən|ˈ|h|eɪ|ɡ|ən|,_|-|ˈ|h|ɑː|-"
+  "raw": "ˌ|k|oʊ|p|ən|ˈ|h|eɪ|ɡ|ən|,_|-|ˈ|h|ɑː|-|#|ˈ|k|oʊ|p|ən|h|eɪ|ɡ|ən|,_|-|h|ɑː|-"
  },
  "Coral Sea": null,
  "Corsica": {
@@ -411,7 +411,7 @@
  },
  "Costa Rica": {
   "title": "Costa Rica",
-  "raw": "uk|ˌ|k|ɒ|s|t|ə|_|ˈ|r|iː|k|ə"
+  "raw": "uk|ˌ|k|ɒ|s|t|ə|_|ˈ|r|iː|k|ə|#|us|audio=En-us-Costa Rica.ogg|ˌ|k|oʊ|s|t|ə|-"
  },
  "Croatia": {
   "title": "Croatia",
@@ -431,15 +431,15 @@
  },
  "Czech Republic": {
   "title": "Czech Republic",
-  "raw": "audio=en-us-Czech Republic.ogg|tʃ|ɛ|k"
+  "raw": "audio=en-us-Czech Republic.ogg|tʃ|ɛ|k|#|audio=Czechia.ogg|ˈ|tʃ|ɛ|k|i|ə"
  },
  "Dakar": {
   "title": "Dakar, Senegal",
-  "raw": "d|ɑː|ˈ|k|ɑːr|,_|d|æ|-"
+  "raw": "d|ɑː|ˈ|k|ɑːr|,_|d|æ|-|#|'|d|æ|k|ɑːr|#|d|ə|ˈ|k|ɑːr|,_|d|ɑː|ˈ|k|ɑːr|,_|ˈ|d|æ|k|ər"
  },
  "Damascus": {
   "title": "Damascus, Syria",
-  "raw": "d|ə|ˈ|m|æ|s|k|ə|s"
+  "raw": "d|ə|ˈ|m|æ|s|k|ə|s|#|UKalso|d|ə|ˈ|m|ɑː|s|k|ə|s|audio=LL-Q1860 (eng)-Vealhurl-Damascus.wav"
  },
  "Dead Sea": null,
  "Democratic Republic of the Congo": null,
@@ -447,7 +447,7 @@
  "Denmark Strait": null,
  "Dhaka": {
   "title": "Dhaka, Bangladesh",
-  "raw": "ˈ|d|ɑː|k|ə|audio=en-us-Dhaka.ogg"
+  "raw": "ˈ|d|ɑː|k|ə|audio=en-us-Dhaka.ogg|#|ˈ|d|æ|k|ə|audio=LL-Q1860 (eng)-Vealhurl-Dhaka.wav"
  },
  "Dili": null,
  "Djibouti": {
@@ -461,7 +461,7 @@
  },
  "Dominica": {
   "title": "Dominica",
-  "raw": "ˌ|d|ɒ|m|ɪ|ˈ|n|iː|k|ə|n|"
+  "raw": "ˌ|d|ɒ|m|ɪ|ˈ|n|iː|k|ə|n||#|local|ˌ|d|ɒ|m|ɪ|ˈ|n|iː|k|ə|#|UK|US|ˌ|d|ɒ|m|ᵻ|ˈ|n|iː|k|ə|#|audio=en-us-Dominica.ogg|d|ə|ˈ|m|ɪ|n|ᵻ|k|ə|#|ˌ|d|ɒ|m|ɪ|ˈ|n|iː|k|ə"
  },
  "Dominican Republic": {
   "title": "Dominican Republic",
@@ -492,7 +492,7 @@
  "Equatorial Guinea": null,
  "Eritrea": {
   "title": "Eritrea",
-  "raw": "audio=LL-Q1860 (eng)-Vealhurl-Eritrea.wav|ˌ|ɛr|ᵻ|ˈ|t|r|iː|ə"
+  "raw": "audio=LL-Q1860 (eng)-Vealhurl-Eritrea.wav|ˌ|ɛr|ᵻ|ˈ|t|r|iː|ə|#|-|ˈ|t|r|eɪ|-"
  },
  "Estonia": {
   "title": "Estonia",
@@ -500,7 +500,7 @@
  },
  "Eswatini": {
   "title": "Eswatini",
-  "raw": "ˌ|ɛ|s|w|ɑː|ˈ|t|iː|n|i|audio=en-us-Eswatini.oga"
+  "raw": "ˌ|ɛ|s|w|ɑː|ˈ|t|iː|n|i|audio=en-us-Eswatini.oga|#|ˈ|s|w|ɑː|z|i|l|æ|n|d|audio=LL-Q1860 (eng)-Vealhurl-Swaziland.wav"
  },
  "Ethiopia": null,
  "Europe": null,
@@ -519,14 +519,14 @@
  },
  "Fiji": {
   "title": "Fiji",
-  "raw": "audio=en-us-Fiji.ogg|ˈ|f|iː|dʒ|i"
+  "raw": "audio=en-us-Fiji.ogg|ˈ|f|iː|dʒ|i|#|f|iː|ˈ|dʒ|iː"
  },
  "Finland": null,
  "France": null,
  "Freetown": null,
  "French Guiana": {
   "title": "French Guiana",
-  "raw": "ɡ|i|ˈ|ɑː|n|ə"
+  "raw": "ɡ|i|ˈ|ɑː|n|ə|#|ɡ|i|ˈ|æ|n|ə"
  },
  "French Polynesia": {
   "title": "French Polynesia",
@@ -539,7 +539,7 @@
  },
  "Gaborone": {
   "title": "Gaborone, Botswana",
-  "raw": "UK|ˌ|ɡ|æ|b|ə|ˈ|r|oʊ|n|i|,_|ˌ|h|æ|b|-"
+  "raw": "UK|ˌ|ɡ|æ|b|ə|ˈ|r|oʊ|n|i|,_|ˌ|h|æ|b|-|#|US|ˌ|ɡ|ɑː|b|ə|ˈ|r|oʊ|n|i|,_|-|n|eɪ"
  },
  "Georgetown": null,
  "Georgia": null,
@@ -592,11 +592,11 @@
  "Gulf of Thailand": null,
  "Guyana": {
   "title": "Guyana",
-  "raw": "audio=en-us-Guyana.ogg|ɡ|aɪ|ˈ|ɑː|n|ə"
+  "raw": "audio=en-us-Guyana.ogg|ɡ|aɪ|ˈ|ɑː|n|ə|#|audio=en-us-Guyana-2.ogg|ɡ|aɪ|ˈ|æ|n|ə"
  },
  "Hagåtña": {
   "title": "Hagåtña, Guam",
-  "raw": "h|ə|ˈ|ɡ|ɑː|t|n|j|ə"
+  "raw": "h|ə|ˈ|ɡ|ɑː|t|n|j|ə|#|ə|ˈ|ɡ|ɑː|n|j|ə"
  },
  "Haiti": {
   "title": "Haiti",
@@ -608,7 +608,7 @@
  },
  "Harare": {
   "title": "Harare, Zimbabwe",
-  "raw": "h|ə|ˈ|r|ɑr|eɪ"
+  "raw": "h|ə|ˈ|r|ɑr|ɛ"
  },
  "Hargeisa": {
   "title": "Hargeisa, Somaliland",
@@ -616,7 +616,7 @@
  },
  "Havana": {
   "title": "Havana, Cuba",
-  "raw": "h|ə|ˈ|v|æ|n|ə"
+  "raw": "h|ə|ˈ|v|æ|n|ə|#|USalso|h|ə|ˈ|v|ɑː|n|ə"
  },
  "Hawaii": {
   "title": "Hawaii",
@@ -624,7 +624,7 @@
  },
  "Helsinki": {
   "title": "Helsinki, Finland",
-  "raw": "ˈ|h|ɛ|l|s|ɪ|ŋ|k|i"
+  "raw": "ˈ|h|ɛ|l|s|ɪ|ŋ|k|i|#|h|ɛ|l|ˈ|s|ɪ|ŋ|k|i|audio=en-us-Helsinki.ogg"
  },
  "Honduras": {
   "title": "Honduras",
@@ -632,7 +632,7 @@
  },
  "Hong Kong": {
   "title": "Hong Kong",
-  "raw": "US|'|h|Q|N|k|Q|N"
+  "raw": "US|'|h|Q|N|k|Q|N|#|UK|h|Q|N|'|k|Q|N"
  },
  "Honiara": {
   "title": "Honiara, Solomon Islands",
@@ -645,11 +645,11 @@
  "Indian Ocean": null,
  "Indonesia": {
   "title": "Indonesia",
-  "raw": "UK|ˌ|ɪ|n|d|ə|ˈ|n|iː|z|i|ə|,_|-|ʒ|ə"
+  "raw": "UK|ˌ|ɪ|n|d|ə|ˈ|n|iː|z|i|ə|,_|-|ʒ|ə|#|US|audio=En-us-Indonesia.ogg|ˌ|ɪ|n|d|ə|ˈ|n|iː|ʒ|ə|,_|-|ʃ|ə"
  },
  "Iran": {
   "title": "Iran",
-  "raw": "audio=En-us-Iran.ogg|ɪ|.|ˈ|r|ɑː|n"
+  "raw": "audio=En-us-Iran.ogg|ɪ|.|ˈ|r|ɑː|n|#|audio=LL-Q1860 (eng)-Vealhurl-Persia.wav|ˈ|p|ɜːr|ʒ|ə"
  },
  "Iraq": null,
  "Ireland": {
@@ -702,12 +702,12 @@
  },
  "Kabul": {
   "title": "Kabul, Afghanistan",
-  "raw": "ˈ|k|ɑː|b|əl|audio=LL-Q1860 (eng)-Vealhurl-Kabul.wav"
+  "raw": "ˈ|k|ɑː|b|əl|audio=LL-Q1860 (eng)-Vealhurl-Kabul.wav|#|ˈ|k|ɑː|b|ʊ|l|#|ˈ|k|ɑː|b|uː|l|#|k|ə|ˈ|b|uː|l|#|k|ə|ˈ|b|ʊ|l"
  },
  "Kaliningrad Oblast": null,
  "Kampala": {
   "title": "Kampala, Uganda",
-  "raw": "UK|k|æ|m|ˈ|p|ɑː|l|ə"
+  "raw": "UK|k|æ|m|ˈ|p|ɑː|l|ə|#|US|k|ɑː|m|ˈ|-|audio=Kampala.ogg"
  },
  "Kathmandu": {
   "title": "Kathmandu, Nepal",
@@ -734,7 +734,7 @@
  },
  "Kiribati": {
   "title": "Kiribati",
-  "raw": "uk|ˌ|k|ɪ|r|.|ə|.|ˈ|b|ɑː|t|.|i"
+  "raw": "uk|ˌ|k|ɪ|r|.|ə|.|ˈ|b|ɑː|t|.|i|#|us|-|ˈ|b|æ|t|.|i|#|uk|-|ˈ|b|ɑː|s|#|us|ˈ|k|ɪ|r|.|ɪ|.|b|æ|s|audio=en-us-Kiribati.ogg|#|b|æ|s"
  },
  "Kosovo": {
   "title": "Kosovo",
@@ -742,7 +742,7 @@
  },
  "Kuala Lumpur": {
   "title": "Kuala Lumpur, Malaysia",
-  "raw": "UK|ˌ|k|w|ɑː|l|ə|_|ˈ|l|ʊ|m|p|ʊər|,_|-|p|ər|audio=LL-Q1860 (eng)-Vealhurl-Kuala Lumpur.wav"
+  "raw": "UK|ˌ|k|w|ɑː|l|ə|_|ˈ|l|ʊ|m|p|ʊər|,_|-|p|ər|audio=LL-Q1860 (eng)-Vealhurl-Kuala Lumpur.wav|#|alsoUS|-|_|l|ʊ|m|ˈ|p|ʊər"
  },
  "Kuwait": {
   "title": "Kuwait",
@@ -759,16 +759,16 @@
  },
  "Laayoune": {
   "title": "Laayoune",
-  "raw": "l|ɑː|ˈ|j|uː|n"
+  "raw": "l|ɑː|ˈ|j|uː|n|#|UK|l|aɪ|ˈ|-|#|ˌ|ɛ|l|_|aɪ|ˈ|(|j|)|uː|n"
  },
  "Labrador Sea": null,
  "Laos": {
   "title": "Laos",
-  "raw": "audio=En-us-Laos.ogg|l|aʊ|s"
+  "raw": "audio=En-us-Laos.ogg|l|aʊ|s|#|ˈ|l|ɑː|oʊ|s|,_|ˈ|l|ɑː|ɒ|s|,_|ˈ|l|eɪ|ɒ|s"
  },
  "Latvia": {
   "title": "Latvia",
-  "raw": "audio=en-us-Latvia.ogg|ˈ|l|æ|t|v|i|ə"
+  "raw": "audio=en-us-Latvia.ogg|ˈ|l|æ|t|v|i|ə|#|ˈ|l|ɑː|t|v|i|ə"
  },
  "Lebanon": {
   "title": "Lebanon",
@@ -796,7 +796,7 @@
  },
  "Lilongwe": {
   "title": "Lilongwe, Malawi",
-  "raw": "UK|l|ɪ|ˈ|l|ɒ|ŋ|w|eɪ"
+  "raw": "UK|l|ɪ|ˈ|l|ɒ|ŋ|w|eɪ|#|US|-|w|i|,_|l|ɪ|ˈ|l|ɔː|ŋ|w|eɪ"
  },
  "Lima": {
   "title": "Lima, Peru",
@@ -812,11 +812,11 @@
  },
  "Ljubljana": {
   "title": "Ljubljana, Slovenia",
-  "raw": "UK|ˌ|lj|uː|b|ˈ|l|j|ɑː|n|ə|,_|ˌ|l|ʊ|b|l|i|ˈ|ɑː|n|ə"
+  "raw": "UK|ˌ|lj|uː|b|ˈ|l|j|ɑː|n|ə|,_|ˌ|l|ʊ|b|l|i|ˈ|ɑː|n|ə|#|US|ˌ|lj|uː|b|l|i|ˈ|ɑː|n|ə|,_|l|i|ˌ|uː|-"
  },
  "Lomé": {
   "title": "Lomé, Togo",
-  "raw": "UK|ˈ|l|oʊ|m|eɪ"
+  "raw": "UK|ˈ|l|oʊ|m|eɪ|#|US|l|oʊ|ˈ|m|eɪ"
  },
  "London": {
   "title": "London, England",
@@ -842,11 +842,11 @@
  "Madagascar": null,
  "Madeira": {
   "title": "Madeira",
-  "raw": "m|ə|ˈ|d|ɪər|ə"
+  "raw": "m|ə|ˈ|d|ɪər|ə|#|m|ə|ˈ|d|ɛər|ə"
  },
  "Madrid": {
   "title": "Madrid, Spain",
-  "raw": "m|ə|ˈ|d|r|ɪ|d|audio=LL-Q1860 (eng)-Vealhurl-Madrid.wav"
+  "raw": "m|ə|ˈ|d|r|ɪ|d|audio=LL-Q1860 (eng)-Vealhurl-Madrid.wav|#|m|ə|ˈ|d|r|iː|d"
  },
  "Majuro": {
   "title": "Majuro, Marshall Islands",
@@ -862,7 +862,7 @@
  },
  "Malaysia": {
   "title": "Malaysia",
-  "raw": "UK|audio=En-us-Malaysia.ogg|m|ə|ˈ|l|eɪ|z|i|ə"
+  "raw": "UK|audio=En-us-Malaysia.ogg|m|ə|ˈ|l|eɪ|z|i|ə|#|US|m|ə|ˈ|l|eɪ|ʒ|ə"
  },
  "Maldives": {
   "title": "Maldives",
@@ -874,7 +874,7 @@
  },
  "Malta": {
   "title": "Malta",
-  "raw": "audio=en-us-Malta.ogg|ˈ|m|ɒ|l|t|ə"
+  "raw": "audio=en-us-Malta.ogg|ˈ|m|ɒ|l|t|ə|#|ˈ|m|ɔː|l|t|ə"
  },
  "Malé": {
   "title": "Malé, Maldives",
@@ -922,22 +922,22 @@
  },
  "Melanesia": {
   "title": "Melanesia",
-  "raw": "UK|ˌ|m|ɛ|l|ə|ˈ|n|iː|z|i|ə|audio=LL-Q1860 (eng)-Vealhurl-Melanesia.wav"
+  "raw": "UK|ˌ|m|ɛ|l|ə|ˈ|n|iː|z|i|ə|audio=LL-Q1860 (eng)-Vealhurl-Melanesia.wav|#|US|ˌ|m|ɛ|l|ə|ˈ|n|iː|ʒ|ə"
  },
  "Mexico": null,
  "Mexico City": null,
  "Micronesia": {
   "title": "Micronesia",
-  "raw": "UK|ˌ|m|aɪ|k|r|ə|ˈ|n|iː|z|i|ə"
+  "raw": "UK|ˌ|m|aɪ|k|r|ə|ˈ|n|iː|z|i|ə|#|US|-|ˈ|n|iː|ʒ|ə|audio=En-us-Micronesia.ogg"
  },
  "Minsk": null,
  "Mogadishu": {
   "title": "Mogadishu, Somalia",
-  "raw": "ˌ|10=uː|16=ʃ|15=ɪ|14=d|13=ˈ|12=-|11=,_|9=ʃ|m|8=iː|7=d|6=ˈ|5=ə|4=ɡ|ɒ|17=-"
+  "raw": "ˌ|10=uː|16=ʃ|15=ɪ|14=d|13=ˈ|12=-|11=,_|9=ʃ|m|8=iː|7=d|6=ˈ|5=ə|4=ɡ|ɒ|17=-|#|US|ˌ|m|oʊ|ɡ|-|,_|ˌ|m|ɔː|ɡ|-"
  },
  "Moldova": {
   "title": "Moldova",
-  "raw": "audio=en-us-Moldova.ogg|m|ɒ|l|ˈ|d|oʊ|v|ə"
+  "raw": "audio=en-us-Moldova.ogg|m|ɒ|l|ˈ|d|oʊ|v|ə|#|UK|ˈ|m|ɒ|l|d|ə|v|ə"
  },
  "Monaco": {
   "title": "Monaco",
@@ -949,12 +949,12 @@
  },
  "Monrovia": {
   "title": "Monrovia, Liberia",
-  "raw": "m|ə|n|ˈ|r|oʊ|v|i|ə|audio=en-us-Monrovia.oga"
+  "raw": "m|ə|n|ˈ|r|oʊ|v|i|ə|audio=en-us-Monrovia.oga|#|m|ə|n|ˈ|r|oʊ|v|i|ə|,_|m|ɒ|n|ˈ|r|oʊ|v|i|ə|#|m|ə|n|ˈ|r|oʊ|v|i|ə"
  },
  "Montenegro": null,
  "Montevideo": {
   "title": "Montevideo, Uruguay",
-  "raw": "ˌ|m|ɒ|n|t|ɪ|v|ɪ|ˈ|d|eɪ|oʊ"
+  "raw": "ˌ|m|ɒ|n|t|ɪ|v|ɪ|ˈ|d|eɪ|oʊ|#|USalso|-|'|v|ɪ|d|i|oʊ"
  },
  "Morocco": {
   "title": "Morocco",
@@ -963,7 +963,7 @@
  "Moroni": null,
  "Moscow": {
   "title": "Moscow, Russia",
-  "raw": "ˈ|m|ɒ|s|k|oʊ"
+  "raw": "ˈ|m|ɒ|s|k|oʊ|#|ˈ|m|ɒ|s|k|aʊ"
  },
  "Mozambique": {
   "title": "Mozambique",
@@ -971,7 +971,7 @@
  },
  "Muscat": {
   "title": "Muscat, Oman",
-  "raw": "ˈ|m|ʌ|s|k|æ|t|,_|ˈ|m|ʌ|s|k|ə|t"
+  "raw": "ˈ|m|ʌ|s|k|æ|t|,_|ˈ|m|ʌ|s|k|ə|t|#|USalso|ˈ|m|ʌ|s|k|ɑː|t"
  },
  "Myanmar": null,
  "N'Djamena": {
@@ -992,7 +992,7 @@
  },
  "Nauru": {
   "title": "Nauru",
-  "raw": "n|ɑː|ˈ|uː|r|uː|audio=LL-Q1860 (eng)-Flame, not lame-Nauru.wav"
+  "raw": "n|ɑː|ˈ|uː|r|uː|audio=LL-Q1860 (eng)-Flame, not lame-Nauru.wav|#|ˈ|n|aʊ|r|uː|#|ˈ|n|aʊ|ɛər|əʊ"
  },
  "Naypyidaw": {
   "title": "Naypyidaw, Myanmar",
@@ -1000,7 +1000,7 @@
  },
  "Nepal": {
   "title": "Nepal",
-  "raw": "lang|n|ɪ|ˈ|p|ɔː|l"
+  "raw": "lang|n|ɪ|ˈ|p|ɔː|l|#|alsous|-|ˈ|p|ɑː|l"
  },
  "Netherlands": null,
  "New Caledonia": {
@@ -1032,7 +1032,7 @@
  },
  "Niue": {
   "title": "Niue",
-  "raw": "UK|ˈ|nj|uː|.|eɪ|audio=LL-Q1860 (eng)-Vealhurl-Niue.wav"
+  "raw": "UK|ˈ|nj|uː|.|eɪ|audio=LL-Q1860 (eng)-Vealhurl-Niue.wav|#|US|n|iː|.|ˈ|juː|.|eɪ"
  },
  "North America": null,
  "North Korea": null,
@@ -1062,7 +1062,7 @@
  "Nuuk": null,
  "Oceania": {
   "title": "Oceania",
-  "raw": "UK|ˌ|oʊ|.|s|i|.|ˈ|ɑː|.|n|i|.|ə|,_|ˌ|oʊ|.|ʃ|i|.|-|,_|-|ˈ|eɪ|.|n|-"
+  "raw": "UK|ˌ|oʊ|.|s|i|.|ˈ|ɑː|.|n|i|.|ə|,_|ˌ|oʊ|.|ʃ|i|.|-|,_|-|ˈ|eɪ|.|n|-|#|audio=En-us-Oceania.ogg|US|ˌ|oʊ|.|ʃ|i|.|ˈ|æ|.|n|i|.|ə|,_|-|ˈ|ɑː|.|n|-"
  },
  "Oman": {
   "title": "Oman",
@@ -1070,15 +1070,15 @@
  },
  "Oranjestad": {
   "title": "Oranjestad, Aruba",
-  "raw": "UK|ɒ|ˈ|r|æ|n|j|ə|s|t|ɑː|t"
+  "raw": "UK|ɒ|ˈ|r|æ|n|j|ə|s|t|ɑː|t|#|US|ɔː|ˈ|r|ɑː|n|-|,_|oʊ|ˈ|r|ɑː|n|-"
  },
  "Oslo": {
   "title": "Oslo, Norway",
-  "raw": "ˈ|ɒ|z|l|oʊ"
+  "raw": "ˈ|ɒ|z|l|oʊ|#|USalso|ˈ|ɒ|s|l|oʊ"
  },
  "Ottawa": {
   "title": "Ottawa, Canada",
-  "raw": "audio=Ottawa.ogg|ˈ|ɒ|t|ə|w|ə"
+  "raw": "audio=Ottawa.ogg|ˈ|ɒ|t|ə|w|ə|#|ˈ|ɒ|t|ə|w|ɑː"
  },
  "Ouagadougou": {
   "title": "Ouagadougou, Burkina Faso",
@@ -1087,7 +1087,7 @@
  "Pacific Ocean": null,
  "Pakistan": {
   "title": "Pakistan",
-  "raw": "audio=En-us-Pakistan.ogg|ˈ|p|æ|k|ᵻ|s|t|æ|n"
+  "raw": "audio=En-us-Pakistan.ogg|ˈ|p|æ|k|ᵻ|s|t|æ|n|#|audio=En-us-Pakistan-2.ogg|ˈ|p|ɑː|k|ᵻ|s|t|ɑː|n|#|ˌ|p|æ|k|ᵻ|ˈ|s|t|æ|n|#|ˌ|p|ɑː|k|ᵻ|ˈ|s|t|ɑː|n"
  },
  "Palau": {
   "title": "Palau",
@@ -1100,13 +1100,13 @@
  },
  "Panama": {
   "title": "Panama",
-  "raw": "audio=En-us-Panama-2.ogg|ˈ|p|æ|n|ə|m|ɑː"
+  "raw": "audio=En-us-Panama-2.ogg|ˈ|p|æ|n|ə|m|ɑː|#||p|æ|n|ə|ˈ|m|ɑː"
  },
  "Panama City": null,
  "Papeete": null,
  "Papua New Guinea": {
   "title": "Papua New Guinea",
-  "raw": "ˈ|p|æ|p|(|j|)|u|ə|...|ˈ|ɡ|ɪ|n|i|,_|ˈ|p|ɑː|-|audio=En-us-Papua New Guinea.ogg"
+  "raw": "ˈ|p|æ|p|(|j|)|u|ə|...|ˈ|ɡ|ɪ|n|i|,_|ˈ|p|ɑː|-|audio=En-us-Papua New Guinea.ogg|#|US|ˈ|p|ɑː|p|w|ə|-|,_|ˈ|p|ɑː|p|(|j|)|ə|-"
  },
  "Paraguay": {
   "title": "Paraguay",
@@ -1114,7 +1114,7 @@
  },
  "Paramaribo": {
   "title": "Paramaribo, Suriname",
-  "raw": "UK|ˌ|p|ær|ə|ˈ|m|ær|ɪ|b|oʊ"
+  "raw": "UK|ˌ|p|ær|ə|ˈ|m|ær|ɪ|b|oʊ|#|US|ˌ|p|ɑːr|ə|ˈ|m|ɑːr|ɪ|b|oʊ"
  },
  "Paris": {
   "title": "Paris, France",
@@ -1138,7 +1138,7 @@
  "Poland": null,
  "Polynesia": {
   "title": "Polynesia",
-  "raw": "UK|ˌ|p|ɒ|l|ᵻ|ˈ|n|iː|z|i|ə|audio=LL-Q1860 (eng)-Vealhurl-Polynesia.wav"
+  "raw": "UK|ˌ|p|ɒ|l|ᵻ|ˈ|n|iː|z|i|ə|audio=LL-Q1860 (eng)-Vealhurl-Polynesia.wav|#|US|-|ˈ|n|iː|ʒ|ə"
  },
  "Port Louis": null,
  "Port Moresby": {
@@ -1164,7 +1164,7 @@
  "Pretoria, Cape Town, Bloemfontein": null,
  "Pristina": {
   "title": "Pristina, Kosovo",
-  "raw": "UK|ˈ|p|r|iː|ʃ|t|ɪ|n|ə|,_|p|r|ɪ|ʃ|ˈ|t|iː|n|ə"
+  "raw": "UK|ˈ|p|r|iː|ʃ|t|ɪ|n|ə|,_|p|r|ɪ|ʃ|ˈ|t|iː|n|ə|#|US|ˈ|p|r|ɪ|ʃ|t|ɪ|n|ə"
  },
  "Puerto Rico": {
   "title": "Puerto Rico",
@@ -1176,12 +1176,12 @@
  },
  "Qatar": {
   "title": "Qatar",
-  "raw": "k|ə|ˈ|t|ɑːr|audio=LL-Q1860 (eng)-Flame, not lame-Qatar.wav"
+  "raw": "k|ə|ˈ|t|ɑːr|audio=LL-Q1860 (eng)-Flame, not lame-Qatar.wav|#|ˈ|k|ɑː|t|ɑr|#|ˈ|k|ʌ|t|ɑːr|,_|ˈ|k|æ|-|,_|-|ər|#|ˈ|k|ɑː|t|ər|#|k|æ|ˈ|t|ɑːr|,_|k|ɑː|-"
  },
  "Quito": null,
  "Rabat": {
   "title": "Rabat, Morocco",
-  "raw": "r|ə|ˈ|b|ɑː|t"
+  "raw": "r|ə|ˈ|b|ɑː|t|#|UK|r|ə|ˈ|b|æ|t|#|US|r|ɑː|ˈ|b|ɑː|t"
  },
  "Red Sea": null,
  "Republic of the Congo": null,
@@ -1195,7 +1195,7 @@
  },
  "Riyadh": {
   "title": "Riyadh, Saudi Arabia",
-  "raw": "UK|ˈ|r|iː|æ|d|audio=LL-Q1860 (eng)-Vealhurl-Riyadh.wav"
+  "raw": "UK|ˈ|r|iː|æ|d|audio=LL-Q1860 (eng)-Vealhurl-Riyadh.wav|#|US|r|iː|ˈ|j|ɑː|d"
  },
  "Romania": {
   "title": "Romania",
@@ -1212,7 +1212,7 @@
  "Russia": null,
  "Rwanda": {
   "title": "Rwanda",
-  "raw": "UK|r|u|ˈ|æ|n|d|ə|audio=RwandaUK.wav"
+  "raw": "UK|r|u|ˈ|æ|n|d|ə|audio=RwandaUK.wav|#|US|audio=Rwanda pronunciation.ogg|r|u|ˈ|ɑː|n|d|ə"
  },
  "Réunion": {
   "title": "Réunion",
@@ -1237,7 +1237,7 @@
  },
  "Samoa": {
   "title": "Samoa",
-  "raw": "ˈ|s|aː|m|ɔː|ə"
+  "raw": "ˈ|s|aː|m|ɔː|ə|#|us|s|ə|ˈ|m|oʊ|ə|#|alsouk|s|ɑː|ˈ|m|oʊ|ə"
  },
  "San José": null,
  "San Juan": {
@@ -1255,7 +1255,7 @@
  },
  "Santiago": {
   "title": "Santiago, Chile",
-  "raw": "ˌ|s|æ|n|t|i|ˈ|ɑː|ɡ|oʊ"
+  "raw": "ˌ|s|æ|n|t|i|ˈ|ɑː|ɡ|oʊ|#|usalso|ˌ|s|ɑː|n|-"
  },
  "Santo Domingo": {
   "title": "Santo Domingo, Dominican Republic",
@@ -1271,7 +1271,7 @@
  },
  "Saudi Arabia": {
   "title": "Saudi Arabia",
-  "raw": "audio=En-us-Saudi Arabia-3.ogg|ˌ|s|aʊ|d|i|_|ə|ˈ|r|eɪ|b|i|ə"
+  "raw": "audio=En-us-Saudi Arabia-3.ogg|ˌ|s|aʊ|d|i|_|ə|ˈ|r|eɪ|b|i|ə|#|audio=En-us-Saudi Arabia-2.ogg|also|ˌ|s|ɔː|d|i|_|-|"
  },
  "Scandinavia": null,
  "Scotland": null,
@@ -1292,12 +1292,12 @@
  },
  "Seychelles": {
   "title": "Seychelles",
-  "raw": "audio=En-us-Seychelles.ogg|s|eɪ|ˈ|ʃ|ɛ|l|(|z|)"
+  "raw": "audio=En-us-Seychelles.ogg|s|eɪ|ˈ|ʃ|ɛ|l|(|z|)|#|ˈ|s|eɪ|ʃ|ɛ|l|(|z|)"
  },
  "Sicily": null,
  "Sierra Leone": {
   "title": "Sierra Leone",
-  "raw": "audio=En-us-Sierra Leone.ogg|s|i|ˌ|ɛr|ə|_|l|i|ˈ|oʊ|n|(|i|)"
+  "raw": "audio=En-us-Sierra Leone.ogg|s|i|ˌ|ɛr|ə|_|l|i|ˈ|oʊ|n|(|i|)|#|UK|s|i|ˌ|ɛər|ə|_|-|#|US|ˌ|s|ɪər|ə|_|-"
  },
  "Singapore": {
   "title": "Singapore",
@@ -1306,7 +1306,7 @@
  "Sint Maarten": null,
  "Skopje": {
   "title": "Skopje, North Macedonia",
-  "raw": "ˈ|s|k|ɒ|p|j|eɪ|audio=En-uk-Skopje.ogg"
+  "raw": "ˈ|s|k|ɒ|p|j|eɪ|audio=En-uk-Skopje.ogg|#|USalso|ˈ|s|k|oʊ|p|j|eɪ"
  },
  "Slovakia": {
   "title": "Slovakia",
@@ -1332,7 +1332,7 @@
  "South Korea": null,
  "South Ossetia": {
   "title": "South Ossetia",
-  "raw": "ɒ|ˈ|s|ɛ|t|i|ə|audio=Ossetia pronunciation.mp3"
+  "raw": "ɒ|ˈ|s|ɛ|t|i|ə|audio=Ossetia pronunciation.mp3|#|ɒ|ˈ|s|iː|ʃ|ə|audio=Ossetia alternate pronunciation.mp3"
  },
  "South Sudan": {
   "title": "South Sudan",
@@ -1344,7 +1344,7 @@
  "Sri Jayawardenepura Kotte": null,
  "Sri Lanka": {
   "title": "Sri Lanka",
-  "raw": "s|r|i|_|ˈ|l|æ|ŋ|k|ə|,_|ʃ|r|iː|_|-"
+  "raw": "s|r|i|_|ˈ|l|æ|ŋ|k|ə|,_|ʃ|r|iː|_|-|#|audio=En-us-Sri Lanka.ogg|-|_|ˈ|l|ɑː|ŋ|k|ə"
  },
  "St. George's": null,
  "St. John's": null,
@@ -1355,7 +1355,7 @@
  "Sucre": null,
  "Sudan": {
   "title": "Sudan",
-  "raw": "lang|s|uː|ˈ|d|ɑː|n"
+  "raw": "lang|s|uː|ˈ|d|ɑː|n|#|s|uː|ˈ|d|æ|n|audio=En-us-Sudan from Sudan pronunciation (Voice of America).ogg"
  },
  "Sukhumi": null,
  "Sumatra": {
@@ -1369,7 +1369,7 @@
  "Suva": null,
  "Svalbard": {
   "title": "Svalbard",
-  "raw": "US|ˈ|s|v|ɑː|l|b|ɑːr|(|d|)"
+  "raw": "US|ˈ|s|v|ɑː|l|b|ɑːr|(|d|)|#|UK|also|ˈ|s|v|æ|l|-"
  },
  "Sweden": null,
  "Switzerland": null,
@@ -1386,19 +1386,19 @@
  "Taiwan": null,
  "Tajikistan": {
   "title": "Tajikistan",
-  "raw": "audio=En-us-Tajikistan.ogg|t|ɑː|ˈ|dʒ|iː|k|ɪ|s|t|ɑː|n"
+  "raw": "audio=En-us-Tajikistan.ogg|t|ɑː|ˈ|dʒ|iː|k|ɪ|s|t|ɑː|n|#|t|ə|-|,_|t|æ|-"
  },
  "Tallinn": {
   "title": "Tallinn, Estonia",
-  "raw": "ˈ|t|æ|l|ɪ|n|audio=en-us-Tallinn.ogg"
+  "raw": "ˈ|t|æ|l|ɪ|n|audio=en-us-Tallinn.ogg|#|USalso|ˈ|t|ɑː|l|ɪ|n"
  },
  "Tanzania": {
   "title": "Tanzania",
-  "raw": "ˌ|t|æ|n|z|ə|ˈ|n|iː|ə|audio=LL-Q1860 (eng)-Soundguys-Tanzania.wav"
+  "raw": "ˌ|t|æ|n|z|ə|ˈ|n|iː|ə|audio=LL-Q1860 (eng)-Soundguys-Tanzania.wav|#|t|æ|n|ˈ|z|eɪ|n|i|ə"
  },
  "Tashkent": {
   "title": "Tashkent, Uzbekistan",
-  "raw": "t|æ|ʃ|ˈ|k|ɛ|n|t|audio=LL-Q1860 (eng)-Vealhurl-Tashkent.wav"
+  "raw": "t|æ|ʃ|ˈ|k|ɛ|n|t|audio=LL-Q1860 (eng)-Vealhurl-Tashkent.wav|#|USalso|t|ɑː|ʃ|ˈ|k|ɛ|n|t|#|t|ɒ|ʃ|ˈ|k|ɛ|n|t"
  },
  "Tasman Sea": null,
  "Tbilisi": {
@@ -1407,7 +1407,7 @@
  },
  "Tegucigalpa": {
   "title": "Tegucigalpa, Honduras",
-  "raw": "UK|t|ɛ|ˌ|ɡ|uː|s|ᵻ|ˈ|ɡ|æ|l|p|ə\n"
+  "raw": "UK|t|ɛ|ˌ|ɡ|uː|s|ᵻ|ˈ|ɡ|æ|l|p|ə\n|#|US|t|ə|ˌ|-\n"
  },
  "Tehran": {
   "title": "Tehran, Iran",
@@ -1415,7 +1415,7 @@
  },
  "Thailand": {
   "title": "Thailand",
-  "raw": "ˈ|t|aɪ|l|æ|n|d|,_|-|l|ə|n|d|audio=LL-Q1860 (eng)-Flame, not lame-Thailand.wav"
+  "raw": "ˈ|t|aɪ|l|æ|n|d|,_|-|l|ə|n|d|audio=LL-Q1860 (eng)-Flame, not lame-Thailand.wav|#|s|aɪ|'|æ|m|,_|ˈ|s|aɪ|æ|m"
  },
  "The Bahamas": {
   "title": "The Bahamas",
@@ -1429,7 +1429,7 @@
  "Timor Sea": null,
  "Timor-Leste": {
   "title": "Timor-Leste",
-  "raw": ",|t|iː|m|ɔːr|ˈ|l|ɛ|s|t|eɪ|,_|-|l|E|s|t"
+  "raw": ",|t|iː|m|ɔːr|ˈ|l|ɛ|s|t|eɪ|,_|-|l|E|s|t|#|audio=En-us-East Timor.ogg|ˈ|t|iː|m|ɔːr"
  },
  "Tirana": {
   "title": "Tirana, Albania",
@@ -1446,12 +1446,12 @@
  },
  "Tonga": {
   "title": "Tonga",
-  "raw": "ˈ|t|ɒ|ŋ|ə"
+  "raw": "ˈ|t|ɒ|ŋ|ə|#|ˈ|t|ɒ|ŋ|g|ə|audio=En-us-Tonga.ogg"
  },
  "Transnistria": null,
  "Trinidad and Tobago": {
   "title": "Trinidad and Tobago",
-  "raw": "audio=En-us-Trinidad and Tobago.ogg|ˈ|t|r|ɪ|n|ᵻ|d|æ|d|...|t|ə|ˈ|b|eɪ|ɡ|oʊ"
+  "raw": "audio=En-us-Trinidad and Tobago.ogg|ˈ|t|r|ɪ|n|ᵻ|d|æ|d|...|t|ə|ˈ|b|eɪ|ɡ|oʊ|#|-|_|t|oʊ|-"
  },
  "Tripoli": {
   "title": "Tripoli, Libya",
@@ -1461,16 +1461,16 @@
  "Tunis": null,
  "Tunisia": {
   "title": "Tunisia",
-  "raw": "UK|tj|uː|ˈ|n|ɪ|z|i|ə|,_|-|ˈ|n|ɪ|s|-"
+  "raw": "UK|tj|uː|ˈ|n|ɪ|z|i|ə|,_|-|ˈ|n|ɪ|s|-|#|US|-|ˈ|n|iː|ʒ|ə|,_|-|ˈ|n|iː|ʃ|ə|,_|-|ˈ|n|ɪ|ʒ|ə|,_|-|ˈ|n|ɪ|ʃ|ə"
  },
  "Turkey": null,
  "Turkmenistan": {
   "title": "Turkmenistan",
-  "raw": "audio=En-us-Turkmenistan.ogg|t|ɜːr|k|ˈ|m|ɛ|n|ᵻ|s|t|æ|n"
+  "raw": "audio=En-us-Turkmenistan.ogg|t|ɜːr|k|ˈ|m|ɛ|n|ᵻ|s|t|æ|n|#|audio=En-us-Turkmenistan-2.ogg|ˌ|t|ɜːr|k|m|ɛ|n|ᵻ|ˈ|s|t|ɑː|n"
  },
  "Turks and Caicos Islands": {
   "title": "Turks and Caicos Islands",
-  "raw": "'|t|ɜːr|k|s"
+  "raw": "'|t|ɜːr|k|s|#|ˈ|k|eɪ|k|ə|s|,_|-|k|oʊ|s|,_|-|k|ɒ|s"
  },
  "Tuvalu": {
   "title": "Tuvalu",
@@ -1496,7 +1496,7 @@
  },
  "Uzbekistan": {
   "title": "Uzbekistan",
-  "raw": "UK|ʊ|z|ˌ|b|ɛ|k|ᵻ|ˈ|s|t|ɑː|n|,_|ʌ|z|-|,_|-|ˈ|s|t|æ|n"
+  "raw": "UK|ʊ|z|ˌ|b|ɛ|k|ᵻ|ˈ|s|t|ɑː|n|,_|ʌ|z|-|,_|-|ˈ|s|t|æ|n|#|US|ʊ|z|ˈ|b|ɛ|k|ᵻ|s|t|æ|n|,_|-|s|t|ɑː|n|audio=En-us-Uzbekistan.ogg|#|ˌ|ʊ|z|b|ɛ|k|ᵻ|ˈ|s|t|ɑː|n|,_|ʌ|z|-|,_|-|ˈ|s|t|æ|n|#|ʊ|z|ˌ|b|ɛ|k|-|#|ʊ|z|ˈ|b|ɛ|k|ᵻ|s|t|ɑː|n|#|-|ˈ|s|t|æ|n"
  },
  "Vaduz": {
   "title": "Vaduz, Liechtenstein",
@@ -1508,7 +1508,7 @@
  },
  "Vanuatu": {
   "title": "Vanuatu",
-  "raw": "lang|audio=en-us-Vanuatu.ogg|ˌ|v|ɑː|n|u|ˈ|ɑː|t|uː"
+  "raw": "lang|audio=en-us-Vanuatu.ogg|ˌ|v|ɑː|n|u|ˈ|ɑː|t|uː|#|v|æ|n|ˈ|w|ɑː|t|uː"
  },
  "Vatican City": {
   "title": "Vatican City",
@@ -1561,7 +1561,7 @@
  },
  "Yaoundé": {
   "title": "Yaoundé, Cameroon",
-  "raw": "uk|j|ɑː|ˈ|ʊ|n|d|eɪ|,_|-|ˈ|uː|n|-"
+  "raw": "uk|j|ɑː|ˈ|ʊ|n|d|eɪ|,_|-|ˈ|uː|n|-|#|us|ˌ|j|ɑː|ʊ|n|ˈ|d|eɪ"
  },
  "Yaren": null,
  "Yellow Sea": null,
@@ -1571,7 +1571,7 @@
  },
  "Yerevan": {
   "title": "Yerevan, Armenia",
-  "raw": "UK|ˌ|j|ɛr|ə|ˈ|v|æ|n"
+  "raw": "UK|ˌ|j|ɛr|ə|ˈ|v|æ|n|#|US|-|ˈ|v|ɑː|n"
  },
  "Zagreb": {
   "title": "Zagreb, Croatia",

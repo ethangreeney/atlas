@@ -29,7 +29,7 @@ Every name has a pre-recorded pronunciation in a US or British voice, picked fro
 | `space` | Flip, or Good when flipped |
 | `1` `2` `3` `4` | Again, Hard, Good, Easy |
 | `z` | Undo |
-| `s` | Pronounce |
+| `s` | Pronounce the answer (or tap either name to hear it) |
 | `m` | Show map |
 | `g` | Open in Google Maps |
 

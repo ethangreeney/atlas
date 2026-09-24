@@ -36,8 +36,9 @@ for text in texts:
         if not wt or wt.lstrip().lower().startswith('#redirect') : continue
         if '{{disambiguation' in wt.lower() or 'may refer to' in wt[:600]: continue
         lead=wt.split('\n==',1)[0]
-        m=re.search(r'\{\{\s*IPAc-en\s*\|([^{}]*)\}\}', lead)
-        if m: found={'title':t,'raw':m.group(1)}; break
+        # Keep every template: articles often give UK and US forms in separate ones.
+        m=re.findall(r'\{\{\s*IPAc-en\s*\|([^{}]*)\}\}', lead)
+        if m: found={'title':t,'raw':'|#|'.join(m)}; break
     out[text]=found
 json.dump(out,open('scripts/pronunciation/wiki_ipac.json','w'),ensure_ascii=False,indent=1)
 print('with IPAc-en:',sum(1 for v in out.values() if v),'of',len(out))

@@ -27,6 +27,7 @@ def variants(raw):
     for t in toks:
         if '=' in t or t=='' : continue
         if t in ('US','UK'): push(); label=t; continue
+        if t=='#': push(); label=None; continue
         if t in ('-','...','…') or t.startswith('-') or t.endswith('-'): bad=True; continue
         if t in LABELS: continue
         if t in (',_',';','_or_',',',', '): push(); continue

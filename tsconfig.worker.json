@@ -11,5 +11,5 @@
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo"
   },
-  "include": ["worker", "functions"]
+  "include": ["worker", "functions", "reminders"]
 }

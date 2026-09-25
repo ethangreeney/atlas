@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { CARD_TYPES, KINDS, REGIONS, regionLabel, type CardType, type Kind } from '../lib/deck'
 import { countMatching } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
+import { Reminders } from './Reminders'
 
 const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button
@@ -114,6 +115,7 @@ export function Filters({ onClose }: { onClose: () => void }) {
         <Switch on={s.autoplay} onClick={() => setSettings({ autoplay: !s.autoplay })}>
           Auto-play pronunciation
         </Switch>
+        <Reminders />
       </div>
     </motion.div>
   )

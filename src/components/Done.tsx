@@ -4,6 +4,7 @@ import { db } from '../lib/db'
 import { CARD_BY_ID } from '../lib/deck'
 import { dayEnd, formatInterval, GRADES, matchesFilters, State, type Queue } from '../lib/scheduler'
 import { useSettings, type Settings } from '../lib/settings'
+import { KeepProgress } from './KeepProgress'
 
 const GRADE_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
 
@@ -93,6 +94,7 @@ export function Done({ queue, learned, grades, onLearnMore }: Props) {
         </div>
       )}
       {queue.remainingNew > 0 && <Action onClick={onLearnMore}>Learn {Math.min(20, queue.remainingNew)} more</Action>}
+      <KeepProgress learned={learned} />
     </Screen>
   )
 }

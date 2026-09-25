@@ -1,7 +1,8 @@
 /// <reference types="@cloudflare/workers-types" />
 // Atlas API: Google sign-in and sync. Cards are last-write-wins, the review log is append-only (undo deletes and
 // leaves a tombstone), and day rows only carry `extraNew`, merged by max. Every row records `synced` (server receipt
-// time) so a pull with `since` catches rows that were written offline and pushed late.
+// time) so a pull with `since` catches rows that were written offline and pushed late. /api/push stores daily reminder
+// subscriptions; the separate worker in reminders/ sends them.
 import deck from '../src/data/deck.json'
 
 export interface Env {
@@ -170,6 +171,74 @@ async function push(env: Env, uid: string, req: Request) {
   return json({ ok: true, count: stmts.length, skipped })
 }
 
+const MAX_PUSH_BODY = 4000
+const MAX_SUBS = 5 // per user; the oldest browser drops off beyond this
+/** Web Push services the browsers we support use. Anything else could make the sender call arbitrary URLs. */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)notify\.windows\.com$/, /(^|\.)push\.apple\.com$/]
+const isB64url = (v: unknown, max: number): v is string => typeof v === 'string' && v.length <= max && /^[A-Za-z0-9_-]+=*$/.test(v)
+const isTimeZone = (v: unknown): v is string => {
+  if (typeof v !== 'string' || v.length > 64) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: v })
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function readSmallJson(req: Request): Promise<Record<string, unknown> | Response> {
+  if (Number(req.headers.get('content-length') ?? 0) > MAX_PUSH_BODY) return json({ error: 'Too large' }, 413)
+  const text = await req.text()
+  if (text.length > MAX_PUSH_BODY) return json({ error: 'Too large' }, 413)
+  try {
+    const body = JSON.parse(text)
+    return body && typeof body === 'object' && !Array.isArray(body) ? body : json({ error: 'Bad JSON' }, 400)
+  } catch {
+    return json({ error: 'Bad JSON' }, 400)
+  }
+}
+
+/** The endpoint if it's an https URL on a known push service, else null. */
+const pushEndpoint = (v: unknown) => {
+  if (typeof v !== 'string' || v.length > 1000) return null
+  try {
+    const u = new URL(v)
+    return u.protocol === 'https:' && !u.port && !u.username && PUSH_HOSTS.some((h) => h.test(u.hostname)) ? v : null
+  } catch {
+    return null
+  }
+}
+
+/** Turn on or update the daily reminder for this browser. */
+async function subscribe(env: Env, uid: string, req: Request) {
+  const body = await readSmallJson(req)
+  if (body instanceof Response) return body
+  const endpoint = pushEndpoint(body.endpoint)
+  const keys = (body.keys ?? {}) as { p256dh?: unknown; auth?: unknown }
+  const { tz, hour } = body
+  if (!endpoint || !isB64url(keys.p256dh, 200) || !isB64url(keys.auth, 100) || !isTimeZone(tz) || !Number.isInteger(hour) || (hour as number) < 0 || (hour as number) > 23)
+    return json({ error: 'Invalid subscription' }, 400)
+  await env.DB.batch([
+    // A browser belongs to whoever signed in on it last.
+    env.DB.prepare('DELETE FROM push_subs WHERE endpoint = ?1 AND user_id != ?2').bind(endpoint, uid),
+    env.DB.prepare(
+      'INSERT INTO push_subs (user_id, endpoint, p256dh, auth, tz, hour, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ON CONFLICT(user_id, endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth, tz = excluded.tz, hour = excluded.hour',
+    ).bind(uid, endpoint, keys.p256dh, keys.auth, tz, hour, Date.now()),
+    env.DB.prepare(
+      'DELETE FROM push_subs WHERE user_id = ?1 AND endpoint NOT IN (SELECT endpoint FROM push_subs WHERE user_id = ?1 ORDER BY created DESC LIMIT ?2)',
+    ).bind(uid, MAX_SUBS),
+  ])
+  return json({ ok: true })
+}
+
+async function unsubscribe(env: Env, uid: string, req: Request) {
+  const body = await readSmallJson(req)
+  if (body instanceof Response) return body
+  if (typeof body.endpoint !== 'string' || body.endpoint.length > 1000) return json({ error: 'Invalid endpoint' }, 400)
+  await env.DB.prepare('DELETE FROM push_subs WHERE user_id = ?1 AND endpoint = ?2').bind(uid, body.endpoint).run()
+  return json({ ok: true })
+}
+
 export async function handleApi(req: Request, env: Env): Promise<Response> {
   {
     const url = new URL(req.url)
@@ -186,6 +255,8 @@ export async function handleApi(req: Request, env: Env): Promise<Response> {
     }
     if (url.pathname === '/api/sync' && req.method === 'GET') return pull(env, uid, Math.max(0, Number(url.searchParams.get('since')) || 0))
     if (url.pathname === '/api/sync' && req.method === 'POST') return push(env, uid, req)
+    if (url.pathname === '/api/push' && req.method === 'POST') return subscribe(env, uid, req)
+    if (url.pathname === '/api/push' && req.method === 'DELETE') return unsubscribe(env, uid, req)
     return json({ error: 'Not found' }, 404)
   }
 }

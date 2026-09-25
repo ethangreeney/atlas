@@ -1,0 +1,16 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  // Sends the daily reminders. Deployed separately from the Pages site, which can't run cron.
+  "name": "atlas-reminders",
+  "main": "index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "triggers": { "crons": ["0 * * * *"] },
+  // The site's database (same id as ../wrangler.jsonc).
+  "d1_databases": [{ "binding": "DB", "database_name": "atlas", "database_id": "38bb35ed-a8f3-40e8-8989-eff4c5f8c11c", "migrations_dir": "../migrations" }],
+  // VAPID_PRIVATE_KEY is a secret: npx wrangler secret put VAPID_PRIVATE_KEY (locally it goes in reminders/.dev.vars).
+  "vars": {
+    "VAPID_PUBLIC_KEY": "BPK1JQVfHvNaTorlUjKgTsm90UFfqGwRs94jKrYwtzIE2zsnn4MNBjQkVMLcW3hEu4DPf-0LnXDFm_JlW5t0OZE",
+    "VAPID_SUBJECT": "mailto:ethan@greene.nz"
+  }
+}

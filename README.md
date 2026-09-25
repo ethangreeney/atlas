@@ -70,6 +70,15 @@ pnpm build && npx wrangler pages deploy dist --project-name atlasgeo --branch ma
 
 Production needs `SESSION_SECRET` and `GOOGLE_CLIENT_ID` set as Pages secrets.
 
+### Daily reminders
+
+Signed-in users can turn on a daily Web Push reminder. The site stores subscriptions (`/api/push`); a separate Worker in `reminders/` runs hourly, because Pages Functions can't run cron, and sends a payload-less push to anyone whose chosen local hour has come and who hasn't studied that day. The VAPID public key is `VITE_VAPID_PUBLIC_KEY` in `.env` and `VAPID_PUBLIC_KEY` in `reminders/wrangler.jsonc`; the private key is a secret on the reminders Worker only (locally, `reminders/.dev.vars`).
+
+```bash
+pnpm test:reminders   # local end-to-end test against a fake push service
+cd reminders && npx wrangler secret put VAPID_PRIVATE_KEY && npx wrangler deploy
+```
+
 ## Credits
 
 [Ultimate Geography](https://github.com/anki-geo/ultimate-geography) by anki-geo. Deck content is public domain (Unlicense); images are CC BY-SA / CC BY / CC0 / public domain, see [sources.csv](https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv).

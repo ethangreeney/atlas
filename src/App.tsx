@@ -221,7 +221,7 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative flex h-full touch-manipulation flex-col bg-white">
+      <div className="relative flex h-full touch-manipulation flex-col bg-page">
         <TopBar
           queue={queue}
           learned={learned}

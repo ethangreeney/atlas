@@ -103,7 +103,7 @@ export function Welcome() {
         {open && (
           <motion.div
             key="welcome"
-            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-white/70 pad-safe backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-page/70 pad-safe backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -114,7 +114,7 @@ export function Welcome() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="welcome-title"
-              className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-white p-6 text-left sm:p-8"
+              className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-surface p-6 text-left sm:p-8"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -177,10 +177,10 @@ export function Welcome() {
 
               <button
                 onClick={close}
-                className="mt-5 flex h-11 w-full sm:mt-7 items-center justify-center gap-2.5 rounded-2xl bg-ink text-[14px] font-medium text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 active:scale-[0.98]"
+                className="mt-5 flex h-11 w-full sm:mt-7 items-center justify-center gap-2.5 rounded-2xl bg-ink text-[14px] font-medium text-on-ink outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.98]"
               >
                 Start learning
-                <span className="hidden rounded-[5px] border border-white/20 pointer-fine:inline px-[5px] py-[3px] text-[10.5px] leading-none text-white/60">space</span>
+                <span className="hidden rounded-[5px] border border-on-ink/20 pointer-fine:inline px-[5px] py-[3px] text-[10.5px] leading-none text-on-ink/60">space</span>
               </button>
               <p className="mt-3 text-center text-[12px] text-ink-3">Free. No account needed<span className="hidden sm:inline">, sign in only to sync devices</span>.</p>
             </motion.div>

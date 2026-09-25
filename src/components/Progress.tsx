@@ -45,7 +45,7 @@ const Thumb = ({ note }: { note: Note }) => {
 
 const Row = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
   <li>
-    <button onClick={onClick} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-neutral-50">
+    <button onClick={onClick} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle">
       {children}
     </button>
   </li>
@@ -67,7 +67,7 @@ function MasteryMap({ levels, onPick }: { levels: Map<string, Mastery>; onPick: 
     () =>
       Object.entries(WORLD.shapes).map(([id, d]) => {
         const l = levels.get(id)?.level ?? 0
-        return <path key={id} d={d} data-id={id} className={`cursor-pointer ${l ? 'fill-good' : 'fill-neutral-200'}`} fillOpacity={l ? SHADE[l] : undefined} />
+        return <path key={id} d={d} data-id={id} className={`cursor-pointer ${l ? 'fill-good' : 'fill-muted-2'}`} fillOpacity={l ? SHADE[l] : undefined} />
       }),
     [levels],
   )
@@ -79,7 +79,7 @@ function MasteryMap({ levels, onPick }: { levels: Map<string, Mastery>; onPick: 
     <section className="mt-5">
       <svg
         viewBox={`0 0 ${WORLD.width} ${WORLD.height}`}
-        className="block h-auto w-full stroke-white [stroke-width:0.6px] [&_path]:[vector-effect:non-scaling-stroke]"
+        className="block h-auto w-full stroke-surface [stroke-width:0.6px] [&_path]:[vector-effect:non-scaling-stroke]"
         role="img"
         aria-label={`World map: ${mastered} of ${COUNTRIES.length} countries mastered`}
         onPointerOver={(e) => setHover(idOf(e))}
@@ -91,7 +91,7 @@ function MasteryMap({ levels, onPick }: { levels: Map<string, Mastery>; onPick: 
           onPick(id)
         }}
       >
-        <path d={WORLD.rest} className="fill-neutral-200" />
+        <path d={WORLD.rest} className="fill-muted-2" />
         {paths}
         {hover && WORLD.shapes[hover] && <path d={WORLD.shapes[hover]} className="pointer-events-none fill-none stroke-ink [stroke-width:1px]" />}
       </svg>
@@ -108,7 +108,7 @@ function MasteryMap({ levels, onPick }: { levels: Map<string, Mastery>; onPick: 
         <span className="flex shrink-0 items-center gap-1" aria-hidden>
           <span className="mr-0.5">Less</span>
           {SHADE.map((o, l) => (
-            <span key={l} className={`h-2.5 w-2.5 rounded-[3px] ${l ? 'bg-good' : 'bg-neutral-200'}`} style={l ? { opacity: o } : undefined} />
+            <span key={l} className={`h-2.5 w-2.5 rounded-[3px] ${l ? 'bg-good' : 'bg-muted-2'}`} style={l ? { opacity: o } : undefined} />
           ))}
           <span className="ml-0.5">More</span>
         </span>
@@ -123,7 +123,7 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
   const info = [note.countryInfo, note.capitalInfo].filter(Boolean).join(' ')
   return (
     <div>
-      <button onClick={onBack} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-neutral-100 hover:text-ink">
+      <button onClick={onBack} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
         <ChevronLeft size={16} strokeWidth={1.75} /> Back
       </button>
       <div className="mt-2 flex flex-col items-center gap-3 text-center">
@@ -139,7 +139,7 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
           )}
         </div>
         {info && <p className="max-w-[40ch] text-balance text-[13px] leading-snug text-ink-3">{info}</p>}
-        {note.map && <img src={mediaUrl(note.map)} alt={`Map of ${note.country}`} draggable={false} className="img-shadow mt-1 w-[min(320px,100%)] rounded-xl" />}
+        {note.map && <img src={mediaUrl(note.map)} alt={`Map of ${note.country}`} draggable={false} className="img-shadow img-dim mt-1 w-[min(320px,100%)] rounded-xl" />}
       </div>
       <ul className="mt-6 divide-y divide-line border-y border-line">
         {(CARDS_BY_NOTE.get(note.id) ?? []).map((c) => {
@@ -306,7 +306,7 @@ export default function Progress({ onClose, onDrill }: Props) {
                   onDrill(hard.map((r) => r.id))
                   close()
                 }}
-                className="mt-3 rounded-full border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-neutral-50 pointer-coarse:py-3"
+                className="mt-3 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
               >
                 Drill these {hard.length}
               </button>
@@ -320,7 +320,7 @@ export default function Progress({ onClose, onDrill }: Props) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 pad-safe backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-page/70 pad-safe backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -333,7 +333,7 @@ export default function Progress({ onClose, onDrill }: Props) {
         aria-modal="true"
         aria-label="Progress"
         tabIndex={-1}
-        className="card-shadow flex h-full w-[min(560px,100%)] flex-col overflow-hidden rounded-3xl bg-white outline-none sm:h-[min(780px,100%)]"
+        className="card-shadow flex h-full w-[min(560px,100%)] flex-col overflow-hidden rounded-3xl bg-surface outline-none sm:h-[min(780px,100%)]"
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -355,14 +355,14 @@ export default function Progress({ onClose, onDrill }: Props) {
               aria-label="Search a country or capital"
               autoComplete="off"
               spellCheck={false}
-              className="h-10 w-full rounded-full border border-line bg-white pl-9 pr-4 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-ink-3 [&::-webkit-search-cancel-button]:hidden"
+              className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-4 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-ink-3 [&::-webkit-search-cancel-button]:hidden"
             />
           </label>
           <button
             onClick={close}
             aria-label="Close (Esc)"
             title="Close (Esc)"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink"
           >
             <X size={17} strokeWidth={1.75} />
           </button>

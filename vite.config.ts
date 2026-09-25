@@ -16,6 +16,7 @@ export default defineConfig({
         name: 'Atlas',
         short_name: 'Atlas',
         description: 'Learn every country, capital, flag and map with spaced repetition.',
+        // A manifest can't follow the system theme; the theme-color metas in index.html take over in dark mode.
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',

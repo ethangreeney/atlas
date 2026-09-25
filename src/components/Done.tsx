@@ -26,7 +26,7 @@ const Title = ({ children }: { children: React.ReactNode }) => (
 const Action = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
   <button
     onClick={onClick}
-    className="mt-3 rounded-full border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-neutral-50 pointer-coarse:py-3"
+    className="mt-3 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
   >
     {children}
   </button>

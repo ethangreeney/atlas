@@ -47,7 +47,7 @@ const IconButton = ({
     disabled={disabled}
     aria-controls={controls}
     aria-expanded={controls ? !!active : undefined}
-    className={`relative flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink disabled:pointer-events-none disabled:opacity-30 ${active ? 'bg-neutral-100 text-ink' : ''}`}
+    className={`relative flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30 ${active ? 'bg-muted text-ink' : ''}`}
   >
     {children}
   </button>

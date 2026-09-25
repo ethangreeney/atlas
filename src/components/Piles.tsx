@@ -24,11 +24,10 @@ export function Piles({ counts, refs }: Props) {
               {Array.from({ length: layers }, (_, layer) => layers - 1 - layer).map((depth) => (
                 <div
                   key={depth}
-                  className="absolute inset-0 rounded-lg bg-white transition-opacity duration-300"
+                  className="pile-shadow absolute inset-0 rounded-lg bg-surface transition-opacity duration-300"
                   style={{
                     transform: `translateY(${-depth * 2}px) rotate(${depth % 2 ? 0.8 : -0.6}deg)`,
                     opacity: n === 0 ? 0.5 : 1,
-                    boxShadow: '0 0 0 1px rgba(15,15,16,0.07), 0 1px 2px rgba(15,15,16,0.05)',
                   }}
                 />
               ))}

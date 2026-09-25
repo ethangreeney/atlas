@@ -114,7 +114,7 @@ const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string
     src={mediaUrl(file)}
     alt={alt}
     draggable={false}
-    className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)]' : 'w-[min(190px,40vw)] short:w-[min(130px,40vw)]'} rounded-xl img-shadow`}
+    className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)]' : 'w-[min(190px,40vw)] short:w-[min(130px,40vw)]'} rounded-xl img-shadow img-dim`}
   />
 )
 
@@ -301,7 +301,7 @@ export const mapsUrl = (card: DeckCard) => {
 
 const Action = ({ label, onClick, href, children }: { label: string; onClick?: () => void; href?: string; children: React.ReactNode }) => {
   const cls =
-    'relative flex h-8 w-8 items-center justify-center rounded-full text-ink-3 transition-colors after:absolute after:-inset-1.5 hover:bg-neutral-100 hover:text-ink'
+    'relative flex h-8 w-8 items-center justify-center rounded-full text-ink-3 transition-colors after:absolute after:-inset-1.5 hover:bg-muted hover:text-ink'
   return href ? (
     <a href={href} target="_blank" rel="noreferrer" aria-label={label} title={label} className={cls} onClick={(e) => e.stopPropagation()}>
       {children}
@@ -322,7 +322,7 @@ const Action = ({ label, onClick, href, children }: { label: string; onClick?: (
 }
 
 /** Both faces stay mounted for the 3D flip; the one facing away is inert, so it's neither read out nor tabbable. */
-const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-white text-center'
+const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-surface text-center'
 /** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen. */
 const body = (shown: boolean) => `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 ${shown ? 'overflow-y-auto' : ''}`
 

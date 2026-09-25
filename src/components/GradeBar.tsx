@@ -13,7 +13,7 @@ type Props = {
 }
 
 const button =
-  'rounded-2xl bg-white text-ink shadow-[0_0_0_1px_rgba(15,15,16,0.07),0_1px_2px_rgba(15,15,16,0.04)] transition-[box-shadow,transform,background-color] duration-100 hover:bg-neutral-50 hover:shadow-[0_0_0_1px_rgba(15,15,16,0.12),0_1px_2px_rgba(15,15,16,0.04)] active:scale-[0.98] disabled:pointer-events-none'
+  'rounded-2xl bg-surface text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)] transition-[box-shadow,transform,background-color] duration-100 hover:bg-subtle hover:shadow-[0_0_0_1px_var(--color-edge-strong),0_1px_2px_var(--color-drop)] active:scale-[0.98] disabled:pointer-events-none'
 
 /** Ring and label colour for the suggested grade (important, to beat the base and hover styles). */
 const SUGGESTED = [

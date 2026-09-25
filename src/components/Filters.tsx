@@ -9,7 +9,7 @@ const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; chi
     onClick={onClick}
     aria-pressed={on}
     className={`relative rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors after:absolute after:-inset-1 pointer-coarse:py-1.5 ${
-      on ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink-2 hover:border-ink-3 hover:text-ink'
+      on ? 'border-ink bg-ink text-on-ink' : 'border-line bg-surface text-ink-2 hover:border-ink-3 hover:text-ink'
     }`}
   >
     {children}
@@ -27,8 +27,8 @@ const Group = ({ children }: { children: React.ReactNode }) => (
 const Switch = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button role="switch" aria-checked={on} onClick={onClick} className="flex min-h-9 w-full items-center justify-between text-left">
     {children}
-    <span className={`relative h-5 w-8 shrink-0 rounded-full transition-colors ${on ? 'bg-ink' : 'bg-neutral-200'}`}>
-      <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-3' : ''}`} />
+    <span className={`relative h-5 w-8 shrink-0 rounded-full transition-colors ${on ? 'bg-ink' : 'bg-muted-2'}`}>
+      <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow-sm transition-transform ${on ? 'translate-x-3 bg-on-ink' : 'bg-knob'}`} />
     </span>
   </button>
 )
@@ -56,7 +56,7 @@ export function Filters({ onClose }: { onClose: () => void }) {
     <motion.div
       ref={ref}
       id="filters"
-      className="card-shadow absolute right-4 top-14 z-40 max-h-[calc(100%-4.5rem)] w-[min(380px,calc(100%-32px))] overflow-y-auto rounded-2xl bg-white p-4 sm:right-6"
+      className="card-shadow absolute right-4 top-14 z-40 max-h-[calc(100%-4.5rem)] w-[min(380px,calc(100%-32px))] overflow-y-auto rounded-2xl bg-surface p-4 sm:right-6"
       initial={{ opacity: 0, y: -6, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -6, scale: 0.98 }}

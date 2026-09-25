@@ -57,7 +57,7 @@ export function Account({ onSynced }: Props) {
       <button
         onClick={signIn}
         disabled={busy}
-        className="h-8 rounded-full px-2 text-[13px] sm:px-3 font-medium text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink disabled:opacity-50"
+        className="h-8 rounded-full px-2 text-[13px] sm:px-3 font-medium text-ink-2 transition-colors hover:bg-muted hover:text-ink disabled:opacity-50"
       >
         {busy ? 'Signing in…' : 'Sign in'}
       </button>
@@ -65,11 +65,11 @@ export function Account({ onSynced }: Props) {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} aria-label="Account" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100">
+      <button onClick={() => setOpen((o) => !o)} aria-label="Account" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
         {auth.user.picture ? (
           <img src={auth.user.picture} alt="" referrerPolicy="no-referrer" className="h-6 w-6 rounded-full" />
         ) : (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-on-ink">
             {(auth.user.name || auth.user.email).slice(0, 1).toUpperCase()}
           </span>
         )}
@@ -77,7 +77,7 @@ export function Account({ onSynced }: Props) {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="card-shadow absolute right-0 top-11 z-40 w-56 rounded-2xl bg-white p-1.5"
+            className="card-shadow absolute right-0 top-11 z-40 w-56 rounded-2xl bg-surface p-1.5"
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
@@ -88,7 +88,7 @@ export function Account({ onSynced }: Props) {
             <button
               onClick={leave}
               disabled={busy}
-              className="w-full rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-ink hover:bg-neutral-100 disabled:opacity-50"
+              className="w-full rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-ink hover:bg-muted disabled:opacity-50"
             >
               Sign out
             </button>

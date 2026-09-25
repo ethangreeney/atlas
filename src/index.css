@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
 
+/* Semantic colours. Components use these (bg-page, bg-surface, text-on-ink…) rather than white or neutral-*,
+ * so dark mode only has to redefine them below. */
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --color-ink: #0f0f10;
@@ -11,6 +13,53 @@
   --color-hard: #f5a524;
   --color-good: #30a46c;
   --color-easy: #3e63dd;
+  /* The page behind everything. */
+  --color-page: #fff;
+  /* Cards, panels, dialogs, buttons and piles. */
+  --color-surface: #fff;
+  /* Hover on a surface (neutral-50). */
+  --color-subtle: oklch(98.5% 0 none);
+  /* Hover and pressed state of quiet buttons (neutral-100). */
+  --color-muted: oklch(97% 0 none);
+  /* Switch track, land on the map (neutral-200). */
+  --color-muted-2: oklch(92.2% 0 none);
+  /* Text and marks on an ink background: primary buttons, selected chips. */
+  --color-on-ink: #fff;
+  /* Switch knob when off. */
+  --color-knob: #fff;
+  /* Hairline ring around buttons and piles, and its hover; the soft drop beneath them. */
+  --color-edge: rgba(15, 15, 16, 0.07);
+  --color-edge-strong: rgba(15, 15, 16, 0.12);
+  --color-drop: rgba(15, 15, 16, 0.04);
+}
+
+/* Follows the system setting. A warm near-black page with slightly lifted surfaces; where shadows vanish, a faint
+ * light ring does the work. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink: #ededeb;
+    --color-ink-2: #a1a19b;
+    --color-ink-3: #75756f;
+    --color-line: rgba(255, 255, 250, 0.09);
+    --color-again: #ec5d5e;
+    --color-hard: #f0a431;
+    --color-good: #3dab72;
+    --color-easy: #6f8cf0;
+    --color-page: #161615;
+    --color-surface: #1e1e1c;
+    --color-subtle: #252523;
+    --color-muted: #2a2a28;
+    --color-muted-2: #353532;
+    --color-on-ink: #161615;
+    --color-knob: #d6d6d2;
+    --color-edge: rgba(255, 255, 250, 0.08);
+    --color-edge-strong: rgba(255, 255, 250, 0.15);
+    --color-drop: rgba(0, 0, 0, 0.25);
+  }
+}
+
+:root {
+  color-scheme: light dark;
 }
 
 /* Phones in landscape and short windows. */
@@ -36,7 +85,7 @@ body,
 
 body {
   margin: 0;
-  background: #fff;
+  background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-feature-settings: 'cv11', 'ss01', 'tnum';
@@ -65,6 +114,12 @@ body {
     0 2px 10px rgba(15, 15, 16, 0.08);
 }
 
+.pile-shadow {
+  box-shadow:
+    0 0 0 1px var(--color-edge),
+    0 1px 2px rgba(15, 15, 16, 0.05);
+}
+
 kbd {
   font-family: var(--font-sans);
   font-size: 10.5px;
@@ -73,5 +128,32 @@ kbd {
   border-radius: 5px;
   border: 1px solid var(--color-line);
   color: var(--color-ink-3);
-  background: #fff;
+  background: var(--color-surface);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-shadow {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 250, 0.07),
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 24px 60px -24px rgba(0, 0, 0, 0.7);
+  }
+
+  .pile-shadow {
+    box-shadow:
+      0 0 0 1px var(--color-edge),
+      0 1px 2px var(--color-drop);
+  }
+
+  /* A faint light outline keeps the white parts of flags from bleeding into the page. */
+  .img-shadow {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 250, 0.12),
+      0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  /* The deck's maps are light; take the glare off without changing their colours. */
+  .img-dim {
+    filter: brightness(0.88);
+  }
 }

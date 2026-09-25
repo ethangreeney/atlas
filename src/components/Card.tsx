@@ -122,29 +122,34 @@ const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string
 const LookAlikes = ({ card }: { card: DeckCard }) => {
   const items = lookAlikes(card.note)
   if (!items.length) return null
+  const flag = (l: (typeof items)[number]) =>
+    l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow max-h-full max-w-full rounded-[2px]" />
+  const note = (text: string) => <span className="text-balance text-[12.5px] text-ink-2 first-letter:uppercase short:text-[12px]">{text}</span>
+  // Under a hairline: a centred "Looks like", then one look-alike centred on its own, or two as aligned rows.
   return (
-    // One quiet panel: the card's own label style, then a line per look-alike (at most two).
-    <div className="w-fit max-w-full rounded-2xl bg-muted px-3.5 py-3 text-left sm:px-4 short:px-3 short:py-2">
-      <div className="mb-1.5 text-[12px] font-medium text-ink-3 short:mb-1">Looks like</div>
-      <div className="flex flex-col gap-2 short:gap-1.5">
-        {items.map((l) => (
-          <div key={l.name} className="flex items-start gap-2.5 text-[13px] leading-snug short:text-[12px]">
-            <span className="flex h-[1.375em] w-8 shrink-0 items-center justify-center">
-              {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow max-h-full max-w-full rounded-[2px]" />}
-            </span>
-            {/* Phones: name, then the difference on its own line. Wider screens: one line. */}
-            <span className="flex min-w-0 flex-col sm:block">
-              <span className="font-medium text-ink">{l.name}</span>
-              {l.note && (
-                <span className="text-balance text-ink-3 first-letter:uppercase">
-                  <span className="hidden sm:inline"> · </span>
-                  {l.note}
-                </span>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
+    <div className="flex w-full max-w-[400px] flex-col items-center border-t border-line pt-3 text-[13.5px] leading-snug short:pt-2 short:text-[12.5px]">
+      <div className="mb-2 text-[12.5px] text-ink-3 short:mb-1">Looks like</div>
+      {items.length === 1 ? (
+        <div className="flex flex-col items-center gap-0.5 text-center">
+          <span className="flex items-center gap-2">
+            <span className="flex h-[1.25em] w-7 items-center justify-center">{flag(items[0])}</span>
+            <span className="font-medium text-ink">{items[0].name}</span>
+          </span>
+          {items[0].note && note(items[0].note)}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5 short:gap-1.5">
+          {items.map((l) => (
+            <div key={l.name} className="flex items-start gap-3 text-left">
+              <span className="flex h-[1.375em] w-9 shrink-0 items-center justify-center">{flag(l)}</span>
+              <span className="flex min-w-0 flex-col">
+                <span className="font-medium text-ink">{l.name}</span>
+                {l.note && note(l.note)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

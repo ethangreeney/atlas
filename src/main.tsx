@@ -17,8 +17,8 @@ const update = registerSW({
 })
 void update
 
-// Clips used to live in an 'audio' cache before pronunciations were redone; drop it so nobody hears the old ones.
-if ('caches' in window) void caches.delete('audio').catch(() => {})
+// Clip caches from older builds: bump the name in vite.config.ts whenever the clips are re-rendered.
+if ('caches' in window) for (const old of ['audio', 'voice']) void caches.delete(old).catch(() => {})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

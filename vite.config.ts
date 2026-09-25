@@ -34,7 +34,7 @@ export default defineConfig({
           {
             urlPattern: /\/voice\/.*\.mp3$/,
             handler: 'CacheFirst',
-            options: { cacheName: 'voice', expiration: { maxEntries: 2000, maxAgeSeconds: 365 * 86400 } },
+            options: { cacheName: 'voice-2', expiration: { maxEntries: 2000, maxAgeSeconds: 365 * 86400 } },
           },
         ],
       },

@@ -127,11 +127,12 @@ const LookAlikes = ({ card }: { card: DeckCard }) => {
       <div>Not to be confused with</div>
       <div className="flex flex-col items-start gap-1.5 short:gap-1">
         {items.map((l) => (
-          <div key={l.name} className="flex items-center gap-2 text-left">
+          <div key={l.name} className="flex items-center gap-2.5 text-left">
             {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow w-9 shrink-0 rounded-[2px] short:w-7" />}
-            <span>
+            {/* Name on its own line, the difference under it, balanced so a long note never leaves one word alone. */}
+            <span className="flex flex-col">
               <span className="font-medium text-ink-2">{l.name}</span>
-              {l.note && ` — ${l.note}`}
+              {l.note && <span className="max-w-[32ch] text-balance">{l.note[0].toUpperCase() + l.note.slice(1)}</span>}
             </span>
           </div>
         ))}

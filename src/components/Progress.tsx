@@ -5,6 +5,7 @@ import world from '../data/world.json'
 import { db, type CardRow } from '../lib/db'
 import { ALL_CARDS, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type Note } from '../lib/deck'
 import { CARDS_BY_NOTE, forecast, hardest, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
+import { Reminders } from './Reminders'
 import { formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
@@ -262,7 +263,9 @@ export default function Progress({ onClose, onDrill }: Props) {
               {streak === 0 ? ' · study today to start a streak' : ''}
             </p>
           </div>
-          {/* Reminders toggle goes here */}
+        </div>
+        <div className="mt-2 text-[12.5px] text-ink-3">
+          <Reminders />
         </div>
 
         <MasteryMap levels={levels} onPick={(id) => open(NOTE_BY_ID.get(id))} />

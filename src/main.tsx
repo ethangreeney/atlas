@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App'
+import { refreshReminder } from './lib/push'
 
 // New versions install in the background and the page reloads once they take over,
 // so nobody keeps running a stale build. Also re-check when the tab comes back into view.
@@ -22,6 +23,7 @@ const update = registerSW({
   },
 })
 void update
+void refreshReminder().catch(() => {})
 
 // Clip caches from older builds: bump the name in vite.config.ts whenever the clips are re-rendered.
 if ('caches' in window) for (const old of ['audio', 'voice']) void caches.delete(old).catch(() => {})

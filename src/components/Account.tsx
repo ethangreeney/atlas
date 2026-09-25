@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { getGoogleClientId, signInWithGoogle, signOut, useAuth } from '../lib/auth'
+import { disableReminders } from '../lib/push'
 import { clearLocal, flush, syncNow } from '../lib/sync'
 
 type Props = { onSynced: () => void }
@@ -45,6 +46,7 @@ export function Account({ onSynced }: Props) {
   const leave = async () => {
     setBusy(true)
     if (!(await flush()) && !confirm("Some progress hasn't synced yet and will be lost. Sign out anyway?")) return setBusy(false)
+    await disableReminders().catch(() => {})
     signOut()
     setOpen(false)
     await clearLocal().catch(() => {})

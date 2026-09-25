@@ -105,7 +105,7 @@ export default function App() {
     speak(text ?? answerOf(card))
   }, [card, flipped])
 
-  /** Sends the card to a pile. `known`: skipped from the front with "I know this". */
+  /** Sends the card to a pile. `known`: skipped from the front with "I already know this". */
   const send = useCallback(
     (g: Grade, known = false) => {
       if (!card || busy || busyRef.current) return

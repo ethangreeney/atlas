@@ -123,17 +123,15 @@ const LookAlikes = ({ card }: { card: DeckCard }) => {
   const items = lookAlikes(card.note)
   if (!items.length) return null
   return (
-    <div className="flex max-w-[42ch] flex-col items-center gap-1.5 text-[12.5px] leading-snug text-ink-3 short:gap-1 short:text-[12px]">
+    <div className="flex flex-col items-center gap-2 text-[12.5px] leading-snug text-ink-3 short:gap-1 short:text-[12px]">
       <div>Not to be confused with</div>
-      <div className="flex flex-col items-start gap-1.5 short:gap-1">
+      {/* One centred tile per look-alike (at most two): flag, name, then what tells them apart. */}
+      <div className="flex justify-center gap-6 short:gap-4">
         {items.map((l) => (
-          <div key={l.name} className="flex items-center gap-2.5 text-left">
-            {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow w-9 shrink-0 rounded-[2px] short:w-7" />}
-            {/* Name on its own line, the difference under it, balanced so a long note never leaves one word alone. */}
-            <span className="flex flex-col">
-              <span className="font-medium text-ink-2">{l.name}</span>
-              {l.note && <span className="max-w-[32ch] text-balance">{l.note[0].toUpperCase() + l.note.slice(1)}</span>}
-            </span>
+          <div key={l.name} className={`flex flex-col items-center gap-1 text-center ${items.length > 1 ? 'w-[19ch]' : 'max-w-[30ch]'}`}>
+            {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow mb-0.5 h-6 w-auto rounded-[2px] short:h-5" />}
+            <span className="text-balance font-medium text-ink-2">{l.name}</span>
+            {l.note && <span className="text-balance">{l.note[0].toUpperCase() + l.note.slice(1)}</span>}
           </div>
         ))}
       </div>
@@ -368,14 +366,14 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
           </div>
           {onKnow && (
             <button
-              title="I know this (K)"
+              title="I already know this (K)"
               className="absolute bottom-4 right-5 text-[11px] font-medium text-ink-3 transition-colors after:absolute after:-inset-2 hover:text-ink"
               onClick={(e) => {
                 e.stopPropagation()
                 onKnow()
               }}
             >
-              I know this
+              I already know this
             </button>
           )}
         </div>

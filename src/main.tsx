@@ -6,8 +6,14 @@ import App from './App'
 
 // New versions install in the background and the page reloads once they take over,
 // so nobody keeps running a stale build. Also re-check when the tab comes back into view.
+// The reload waits until the tab is hidden, so it never lands mid-card.
+const reloadWhenHidden = () => document.visibilityState === 'hidden' && location.reload()
 const update = registerSW({
   immediate: true,
+  onNeedReload() {
+    reloadWhenHidden()
+    document.addEventListener('visibilitychange', reloadWhenHidden)
+  },
   onRegisteredSW(_url, reg) {
     if (!reg) return
     const check = () => reg.update().catch(() => {})

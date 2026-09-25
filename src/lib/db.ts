@@ -1,9 +1,9 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { Card, ReviewLog } from 'ts-fsrs'
 
-/** `updated` is a ms timestamp used for last-write-wins sync. */
-export type CardRow = Card & { id: string; noteId: string; leech?: boolean; updated: number }
-export type RevlogRow = ReviewLog & { id?: number; cardId: string }
+/** `updated` is a ms timestamp used for last-write-wins sync. `dirty` marks rows written here and not yet pushed. */
+export type CardRow = Card & { id: string; noteId: string; leech?: boolean; updated: number; dirty?: 1 }
+export type RevlogRow = ReviewLog & { id?: number; cardId: string; dirty?: 1 }
 /** Per-day counters (day = local date string with Anki's 4am rollover). */
 export type DayRow = {
   day: string
@@ -14,6 +14,7 @@ export type DayRow = {
   /** Answers given today per grade: [again, hard, good, easy]. */
   grades: [number, number, number, number]
   updated: number
+  dirty?: 1
 }
 
 export const db = new Dexie('atlas') as Dexie & {
@@ -45,3 +46,24 @@ db.version(2)
       }),
     ])
   })
+
+// Dirty flags replace the old push timestamp. Everything starts dirty: pushes are idempotent, and it re-sends
+// anything the timestamp may have skipped.
+db.version(3)
+  .stores({
+    cards: 'id, noteId, state, due, updated, dirty',
+    revlog: '++id, cardId, review, dirty',
+    days: 'day, updated, dirty',
+  })
+  .upgrade((tx) =>
+    Promise.all(
+      ['cards', 'revlog', 'days'].map((t) =>
+        tx
+          .table(t)
+          .toCollection()
+          .modify((r: { dirty?: 1 }) => {
+            r.dirty = 1
+          }),
+      ),
+    ),
+  )

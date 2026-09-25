@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { getGoogleClientId, signInWithGoogle, signOut, useAuth } from '../lib/auth'
-import { resetSyncMarks, syncNow } from '../lib/sync'
+import { clearLocal, flush, syncNow } from '../lib/sync'
 
 type Props = { onSynced: () => void }
 
@@ -32,7 +32,6 @@ export function Account({ onSynced }: Props) {
     setBusy(true)
     try {
       await signInWithGoogle()
-      resetSyncMarks()
       await syncNow()
       onSynced()
     } catch {
@@ -40,6 +39,17 @@ export function Account({ onSynced }: Props) {
     } finally {
       setBusy(false)
     }
+  }
+
+  /** Push what's pending, then leave nothing of this account's progress on the device. */
+  const leave = async () => {
+    setBusy(true)
+    if (!(await flush()) && !confirm("Some progress hasn't synced yet and will be lost. Sign out anyway?")) return setBusy(false)
+    signOut()
+    setOpen(false)
+    await clearLocal().catch(() => {})
+    setBusy(false)
+    onSynced()
   }
 
   if (!auth)
@@ -76,12 +86,9 @@ export function Account({ onSynced }: Props) {
             <div className="truncate px-2.5 py-2 text-[12px] text-ink-3">{auth.user.email}</div>
             <div className="px-2.5 pb-2 text-[11px] text-ink-3">Progress syncs to this account.</div>
             <button
-              onClick={() => {
-                signOut()
-                resetSyncMarks()
-                setOpen(false)
-              }}
-              className="w-full rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-ink hover:bg-neutral-100"
+              onClick={leave}
+              disabled={busy}
+              className="w-full rounded-xl px-2.5 py-2 text-left text-[13px] font-medium text-ink hover:bg-neutral-100 disabled:opacity-50"
             >
               Sign out
             </button>

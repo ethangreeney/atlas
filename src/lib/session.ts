@@ -14,6 +14,8 @@ export function useSession() {
   const [day, setDay] = useState<DayRow | null>(null)
   const [tick, setTick] = useState(0)
   const [undo, setUndo] = useState<Undo | null>(null)
+  /** An IndexedDB read or write failed: progress shown may not be saved. */
+  const [saveError, setSaveError] = useState(false)
   /** Card pinned to the front of the queue after an undo. */
   const pinned = useRef<string | null>(null)
   /**
@@ -32,7 +34,9 @@ export function useSession() {
     const d = emptyDay(key)
     d.extraNew = stored?.extraNew ?? 0
     d.updated = stored?.updated ?? 0
-    const logs = await db.revlog.where('review').aboveOrEqual(new Date(+dayEnd(now) - 86_400_000)).toArray()
+    const start = dayEnd(now)
+    start.setDate(start.getDate() - 1)
+    const logs = await db.revlog.where('review').aboveOrEqual(start).toArray()
     const seen = new Set<string>()
     for (const l of logs) {
       if (dayKey(new Date(l.review)) !== key) continue
@@ -49,11 +53,19 @@ export function useSession() {
 
   useEffect(() => {
     let cancelled = false
+    // Ask to keep storage from being evicted (Safari clears idle sites after 7 days). Firefox would show a prompt, so skip it there.
+    if (!navigator.userAgent.includes('Firefox')) void navigator.storage?.persisted?.().then((p) => p || navigator.storage.persist()).catch(() => {})
     ;(async () => {
-      const all = await db.cards.toArray()
-      if (cancelled) return
-      rows.current = new Map(all.map((r) => [r.id, r]))
-      await loadDay(new Date())
+      try {
+        const all = await db.cards.toArray()
+        if (cancelled) return
+        rows.current = new Map(all.map((r) => [r.id, r]))
+        await loadDay(new Date())
+      } catch {
+        if (cancelled) return
+        setSaveError(true)
+        setDay(emptyDay(dayKey(new Date())))
+      }
     })()
     return () => {
       cancelled = true
@@ -116,11 +128,24 @@ export function useSession() {
     async (card: DeckCard, g: Grade) => {
       if (!day) return
       const now = new Date()
-      const d = dayKey(now) === day.day ? day : await loadDay(now)
+      let d = day
+      try {
+        if (dayKey(now) !== day.day) d = await loadDay(now)
+      } catch {
+        setSaveError(true)
+        d = emptyDay(dayKey(now))
+      }
       const before = rows.current.get(card.id)
       const prev = before ?? freshRow(card, now)
       const { card: next, log } = scheduler.next(prev, now, g)
-      const row: CardRow = { ...next, id: card.id, noteId: card.note.id, leech: before?.leech || becomesLeech(g, next.lapses), updated: +now }
+      const row: CardRow = {
+        ...next,
+        id: card.id,
+        noteId: card.note.id,
+        leech: before?.leech || becomesLeech(g, next.lapses),
+        updated: +now,
+        dirty: 1,
+      }
 
       const nd: DayRow = {
         ...d,
@@ -129,16 +154,23 @@ export function useSession() {
         seenNotes: d.seenNotes.includes(card.note.id) ? d.seenNotes : [...d.seenNotes, card.note.id],
         grades: d.grades.map((n, i) => n + (i === g - 1 ? 1 : 0)) as DayRow['grades'],
         updated: +now,
+        dirty: 1,
       }
 
       rows.current.set(card.id, row)
       pinned.current = null
       setDay(nd)
-      const logId = await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
-        await db.cards.put(row)
-        await db.days.put(nd)
-        return (await db.revlog.add({ ...log, cardId: card.id })) as number
-      })
+      let logId: number
+      try {
+        logId = await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
+          await db.cards.put(row)
+          await db.days.put(nd)
+          return (await db.revlog.add({ ...log, cardId: card.id, dirty: 1 })) as number
+        })
+      } catch {
+        setSaveError(true)
+        return
+      }
       setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review })
       schedulePush()
     },
@@ -148,20 +180,27 @@ export function useSession() {
   const undoLast = useCallback(async () => {
     if (!undo) return
     const now = Date.now()
-    // Restore the previous state but stamp it as new, so a synced copy elsewhere is overwritten too.
-    const row = undo.row ? { ...undo.row, updated: now } : undefined
-    const day = { ...undo.day, updated: now }
-    if (row) rows.current.set(undo.cardId, row)
-    else rows.current.delete(undo.cardId)
+    // Restore the previous state (a fresh card if this was its first grade) but stamp it as new, so a synced copy
+    // elsewhere is overwritten too.
+    const deckCard = CARD_BY_ID.get(undo.cardId)
+    const prev = undo.row ?? (deckCard && freshRow(deckCard, new Date(now)))
+    if (!prev) return
+    const row: CardRow = { ...prev, updated: now, dirty: 1 }
+    const day: DayRow = { ...undo.day, updated: now, dirty: 1 }
+    rows.current.set(undo.cardId, row)
     pinned.current = undo.cardId
     setDay(day)
     setUndo(null)
-    await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
-      if (row) await db.cards.put(row)
-      else await db.cards.delete(undo.cardId)
-      await db.days.put(day)
-      await db.revlog.delete(undo.logId)
-    })
+    try {
+      await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
+        await db.cards.put(row)
+        await db.days.put(day)
+        await db.revlog.delete(undo.logId)
+      })
+    } catch {
+      setSaveError(true)
+      return
+    }
     recordUndo(undo.cardId, undo.review)
     schedulePush()
   }, [undo])
@@ -169,9 +208,14 @@ export function useSession() {
   const learnMore = useCallback(
     async (n = 20) => {
       if (!day) return
-      const nd = { ...day, extraNew: day.extraNew + n, updated: Date.now() }
+      const nd: DayRow = { ...day, extraNew: day.extraNew + n, updated: Date.now(), dirty: 1 }
       setDay(nd)
-      await db.days.put(nd)
+      try {
+        await db.days.put(nd)
+      } catch {
+        setSaveError(true)
+        return
+      }
       schedulePush()
     },
     [day],
@@ -181,13 +225,17 @@ export function useSession() {
 
   /** Re-read everything from IndexedDB (after a sync pull). */
   const reload = useCallback(async () => {
-    const all = await db.cards.toArray()
-    rows.current = new Map(all.map((r) => [r.id, r]))
-    pinned.current = null
-    setUndo(null)
-    await loadDay(new Date())
+    try {
+      const all = await db.cards.toArray()
+      rows.current = new Map(all.map((r) => [r.id, r]))
+      pinned.current = null
+      setUndo(null)
+      await loadDay(new Date())
+    } catch {
+      setSaveError(true)
+    }
     setTick((t) => t + 1)
   }, [loadDay])
 
-  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload, saveError }
 }

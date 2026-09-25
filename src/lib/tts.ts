@@ -30,19 +30,28 @@ export function preload(text: string) {
 }
 
 let playing: HTMLAudioElement | null = null
+/** Bumped by every speak and stop, so a late failure from an older clip never talks over a newer one. */
+let turn = 0
 
 export function speak(text: string) {
   if (!text) return
   stopSpeaking()
+  const mine = turn
   preload(text)
   const a = cache.get(text)
   if (!a) return fallback(text)
   playing = a
   a.currentTime = 0
-  a.play().catch(() => fallback(text))
+  a.play().catch((e: DOMException) => {
+    // AbortError just means a newer play or a stop interrupted this one. Only a clip that can't load falls back.
+    if (e.name !== 'NotSupportedError') return
+    cache.delete(text)
+    if (mine === turn) fallback(text)
+  })
 }
 
 export function stopSpeaking() {
+  turn++
   if (playing) {
     playing.pause()
     playing = null

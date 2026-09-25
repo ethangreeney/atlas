@@ -1,17 +1,17 @@
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, MotionConfig } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
 import { Card, mapsUrl, type ExitTarget } from './components/Card'
 import { Welcome } from './components/Welcome'
-import { Done } from './components/Done'
+import { Done, Empty } from './components/Done'
 import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
 import { Piles } from './components/Piles'
 import { TopBar } from './components/TopBar'
 import { answerOf, DECK_VERSION } from './lib/deck'
-import { previewIntervals, Rating } from './lib/scheduler'
+import { countMatching, previewIntervals, Rating } from './lib/scheduler'
 import { useSession } from './lib/session'
-import { useSettings } from './lib/settings'
+import { setSettings, useSettings } from './lib/settings'
 import { preload, speak, stopSpeaking } from './lib/tts'
 import { useAuth } from './lib/auth'
 import { syncNow } from './lib/sync'
@@ -20,7 +20,7 @@ const PILE_ROTATE = [-10, -3, 3, 10]
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, reload } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, reload, saveError } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
 
@@ -35,6 +35,19 @@ export default function App() {
   const stageRef = useRef<HTMLDivElement>(null)
   const pileRefs = useRef<(HTMLDivElement | null)[]>([])
   const busyRef = useRef(false)
+  /** Focus last moved with Tab, so Space/Enter belong to the focused control rather than the card. */
+  const tabbing = useRef(false)
+
+  // A card swapped in by anything but grading or undo (filters, a sync) starts face down, and the old one just fades.
+  const [shown, setShown] = useState({ id: card?.id, seq })
+  if (shown.id !== card?.id || shown.seq !== seq) {
+    setShown({ id: card?.id, seq })
+    if (shown.seq === seq) {
+      setFlipped(false)
+      setShowMap(false)
+      setExitTarget(null)
+    }
+  }
 
   // Pull the latest progress when the app opens signed in, and whenever it comes back into view.
   useEffect(() => {
@@ -71,7 +84,8 @@ export default function App() {
   const flip = useCallback(() => {
     if (!card || flipped || busy) return
     setFlipped(true)
-  }, [card, flipped, busy])
+    if (settings.autoplay) speak(answerOf(card))
+  }, [card, flipped, busy, settings.autoplay])
 
   const say = useCallback((text?: string) => {
     if (!card || !flipped) return
@@ -97,10 +111,11 @@ export default function App() {
       setShowMap(false)
       setSeq((s) => s + 1)
       void grade(card, g)
+      // Long enough that a quick double tap on a grade doesn't land on "Show answer" for the next card.
       setTimeout(() => {
         busyRef.current = false
         setBusy(false)
-      }, 220)
+      }, 400)
     },
     [card, flipped, busy, grade],
   )
@@ -115,18 +130,25 @@ export default function App() {
   }, [canUndo, busy, undo])
 
   useEffect(() => {
+    const onPointer = () => {
+      tabbing.current = false
+    }
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') tabbing.current = true
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
-      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return
+      if (t.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key === 'Escape') return setFiltersOpen(false)
-      if (filtersOpen) return
-      // A focused button would also fire on space/enter; we handle those ourselves.
-      if (t.tagName === 'BUTTON') t.blur()
+      if (filtersOpen || e.repeat) return
       switch (e.code === 'Space' ? ' ' : e.key) {
         case ' ':
         case 'Spacebar':
         case 'Enter':
+          // A button, link or name reached with Tab keeps its own Space/Enter; one that was just clicked hands them back.
+          if (t !== document.body) {
+            if (tabbing.current) return
+            t.blur()
+          }
           e.preventDefault()
           if (flipped) doGrade(Rating.Good)
           else flip()
@@ -156,81 +178,98 @@ export default function App() {
       }
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer, true)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer, true)
+    }
   }, [flip, doGrade, doUndo, say, card, flipped, filtersOpen])
 
-  const filtersActive = settings.regions.length > 0 || settings.types.length > 0
+  const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
+  const empty = useMemo(() => countMatching(settings) === 0, [settings])
   const progress = queue && queue.total > 0 ? queue.done / queue.total : 0
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      <TopBar
-        queue={queue}
-        learned={learned}
-        canUndo={canUndo}
-        filtersOpen={filtersOpen}
-        filtersActive={filtersActive}
-        onUndo={doUndo}
-        onToggleFilters={() => setFiltersOpen((o) => !o)}
-        onSynced={reload}
-      />
-      <div className="mx-4 h-px bg-line sm:mx-6">
-        <div className="h-full bg-ink transition-[width] duration-500 ease-out" style={{ width: `${progress * 100}%` }} />
-      </div>
+    <MotionConfig reducedMotion="user">
+      <div className="relative flex h-full touch-manipulation flex-col bg-white">
+        <TopBar
+          queue={queue}
+          learned={learned}
+          canUndo={canUndo}
+          filtersOpen={filtersOpen}
+          filtersActive={filtersActive}
+          onUndo={doUndo}
+          onToggleFilters={() => setFiltersOpen((o) => !o)}
+          onSynced={reload}
+        />
+        <div className="mx-4 h-px bg-line sm:mx-6">
+          <div className="h-full bg-ink transition-[width] duration-500 ease-out" style={{ width: `${progress * 100}%` }} />
+        </div>
 
-      <AnimatePresence>{filtersOpen && <Filters key="filters" onClose={() => setFiltersOpen(false)} />}</AnimatePresence>
+        {saveError && (
+          <div role="alert" className="mx-4 mt-3 rounded-xl bg-again/10 px-3 py-2 text-center text-[12.5px] text-again sm:mx-6">
+            This browser couldn't save your progress. Grades from now on may be lost when you close the page.
+          </div>
+        )}
 
-      <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4">
-        <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)]">
-          <AnimatePresence custom={exitTarget} initial={false}>
-            {ready && card && currentRow && (
-              <Card key={`${card.id}:${seq}`} card={card} row={currentRow} flipped={flipped}
-                showMap={showMap}
-                onFlip={flip}
-                onSpeak={say}
-                onToggleMap={() => setShowMap((v) => !v)}
-              />
+        <AnimatePresence>{filtersOpen && <Filters key="filters" onClose={() => setFiltersOpen(false)} />}</AnimatePresence>
+
+        <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 short:gap-3">
+          <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)] short:h-[min(420px,60dvh)]">
+            <AnimatePresence custom={exitTarget} initial={false}>
+              {ready && card && currentRow && (
+                <Card key={`${card.id}:${seq}`} card={card} row={currentRow} flipped={flipped}
+                  showMap={showMap}
+                  onFlip={flip}
+                  onGrade={doGrade}
+                  onSpeak={say}
+                  onToggleMap={() => setShowMap((v) => !v)}
+                />
+              )}
+              {ready && queue && !card && empty && <Empty key="empty" onReset={() => setSettings({ types: [], kinds: [], regions: [] })} />}
+              {ready && queue && !card && !empty && (
+                <Done key="done" queue={queue} learned={learned} grades={day?.grades ?? [0, 0, 0, 0]} onLearnMore={() => learnMore(20)} />
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="w-[min(560px,100%)]">
+            {card ? (
+              <GradeBar flipped={flipped} intervals={intervals} onFlip={flip} onGrade={doGrade} disabled={busy} />
+            ) : (
+              <div className="h-16" />
             )}
-            {ready && queue && !card && <Done key="done" queue={queue} learned={learned} onLearnMore={() => learnMore(20)} />}
-          </AnimatePresence>
-        </div>
-        <div className="w-[min(560px,100%)]">
-          {card ? (
-            <GradeBar flipped={flipped} intervals={intervals} onFlip={flip} onGrade={doGrade} disabled={busy} />
-          ) : (
-            <div className="h-16" />
-          )}
-        </div>
-      </main>
+          </div>
+        </main>
 
-      <div className="mx-auto w-[min(720px,100%)] px-6 pb-2">
-        <Piles counts={pileCounts} refs={pileRefs} />
+        <div className="mx-auto w-[min(720px,100%)] px-6 pb-2">
+          <Piles counts={pileCounts} refs={pileRefs} />
+        </div>
+
+        <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
+          <div className="flex shrink-0 items-center gap-2">
+            <Welcome />
+            <span className="mx-1 hidden lg:inline">·</span>
+            <span className="hidden items-center gap-2 lg:flex">
+            <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
+            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
+            </span>
+          </div>
+          <div className="truncate">
+            <a href="https://github.com/anki-geo/ultimate-geography" className="hover:text-ink" target="_blank" rel="noreferrer">
+              Ultimate Geography {DECK_VERSION}
+            </a>
+            <span className="hidden md:inline"> · deck public domain · images CC BY-SA / CC0,</span>{' '}
+            <a
+              href="https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv"
+              className="hover:text-ink"
+              target="_blank"
+              rel="noreferrer"
+            >
+              sources
+            </a>
+          </div>
+        </footer>
       </div>
-
-      <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
-        <div className="flex shrink-0 items-center gap-2">
-          <Welcome />
-          <span className="mx-1 hidden lg:inline">·</span>
-          <span className="hidden items-center gap-2 lg:flex">
-          <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-          <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
-          </span>
-        </div>
-        <div className="truncate">
-          <a href="https://github.com/anki-geo/ultimate-geography" className="hover:text-ink" target="_blank" rel="noreferrer">
-            Ultimate Geography {DECK_VERSION}
-          </a>
-          <span className="hidden md:inline"> · deck public domain · images CC BY-SA / CC0,</span>{' '}
-          <a
-            href="https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv"
-            className="hover:text-ink"
-            target="_blank"
-            rel="noreferrer"
-          >
-            sources
-          </a>
-        </div>
-      </footer>
-    </div>
+    </MotionConfig>
   )
 }

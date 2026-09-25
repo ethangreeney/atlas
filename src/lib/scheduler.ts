@@ -1,5 +1,5 @@
 import { createEmptyCard, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs'
-import { ALL_CARDS, type DeckCard } from './deck'
+import { ALL_CARDS, kindOf, type DeckCard } from './deck'
 import type { CardRow, DayRow } from './db'
 import type { Settings } from './settings'
 
@@ -21,9 +21,11 @@ const LEARN_AHEAD_MS = 20 * 60_000 // Anki: learn ahead limit 20m
 const pad = (n: number) => String(n).padStart(2, '0')
 /** Local calendar day, with the day rolling over at 4am like Anki. */
 export const dayKey = (d: Date) => {
-  const t = new Date(d.getTime() - ROLLOVER_HOURS * 3_600_000)
+  const t = new Date(d)
+  if (t.getHours() < ROLLOVER_HOURS) t.setDate(t.getDate() - 1)
   return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`
 }
+/** Local 4am that ends the day containing `d`; the day starts at the previous local 4am, which isn't always 24h earlier. */
 export const dayEnd = (d: Date) => {
   const t = new Date(d)
   t.setHours(ROLLOVER_HOURS, 0, 0, 0)
@@ -76,11 +78,15 @@ export type Queue = {
 
 const isLearning = (s: State) => s === State.Learning || s === State.Relearning
 
+/** Any of the chosen options within a group, and every group. */
 export function matchesFilters(c: DeckCard, s: Settings) {
   if (s.types.length && !s.types.includes(c.type)) return false
+  if (s.kinds.length && !s.kinds.includes(kindOf(c.note))) return false
   if (s.regions.length && !c.note.tags.some((t) => s.regions.includes(t))) return false
   return true
 }
+
+export const countMatching = (s: Settings) => ALL_CARDS.filter((c) => matchesFilters(c, s)).length
 
 export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Settings, day: DayRow): Queue {
   const end = dayEnd(now)

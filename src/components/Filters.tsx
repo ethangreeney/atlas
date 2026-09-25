@@ -1,12 +1,14 @@
 import { motion } from 'motion/react'
-import { useEffect, useRef } from 'react'
-import { CARD_TYPES, REGIONS, regionLabel, type CardType } from '../lib/deck'
+import { useEffect, useMemo, useRef } from 'react'
+import { CARD_TYPES, KINDS, REGIONS, regionLabel, type CardType, type Kind } from '../lib/deck'
+import { countMatching } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
 
 const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button
     onClick={onClick}
-    className={`rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors ${
+    aria-pressed={on}
+    className={`relative rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors after:absolute after:-inset-1 pointer-coarse:py-1.5 ${
       on ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink-2 hover:border-ink-3 hover:text-ink'
     }`}
   >
@@ -14,15 +16,37 @@ const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   </button>
 )
 
+const Heading = ({ children }: { children: React.ReactNode }) => (
+  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">{children}</div>
+)
+
+const Group = ({ children }: { children: React.ReactNode }) => (
+  <div className="mb-4 flex flex-wrap gap-1.5 pointer-coarse:gap-y-2">{children}</div>
+)
+
+const Switch = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button role="switch" aria-checked={on} onClick={onClick} className="flex min-h-9 w-full items-center justify-between text-left">
+    {children}
+    <span className={`relative h-5 w-8 shrink-0 rounded-full transition-colors ${on ? 'bg-ink' : 'bg-neutral-200'}`}>
+      <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-3' : ''}`} />
+    </span>
+  </button>
+)
+
 const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
+/** Card types, kinds of place and regions: any chip within a group, and every group. */
 export function Filters({ onClose }: { onClose: () => void }) {
   const s = useSettings()
   const ref = useRef<HTMLDivElement>(null)
+  const count = useMemo(() => countMatching(s), [s])
 
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+      const t = e.target as Element
+      // The toggle button closes the panel itself; treating it as outside would close and reopen it.
+      if (ref.current?.contains(t) || t.closest?.('[aria-controls="filters"]')) return
+      onClose()
     }
     document.addEventListener('pointerdown', onDown)
     return () => document.removeEventListener('pointerdown', onDown)
@@ -31,14 +55,20 @@ export function Filters({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
       ref={ref}
-      className="card-shadow absolute right-4 top-14 z-40 w-[min(380px,calc(100vw-32px))] rounded-2xl bg-white p-4 sm:right-6"
+      id="filters"
+      className="card-shadow absolute right-4 top-14 z-40 max-h-[calc(100%-4.5rem)] w-[min(380px,calc(100%-32px))] overflow-y-auto rounded-2xl bg-white p-4 sm:right-6"
       initial={{ opacity: 0, y: -6, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -6, scale: 0.98 }}
       transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
     >
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">Cards</div>
-      <div className="mb-4 flex flex-wrap gap-1.5">
+      <div className="flex items-baseline justify-between">
+        <Heading>Cards</Heading>
+        <span aria-live="polite" className={`text-[12px] tabular-nums ${count ? 'text-ink-3' : 'text-again'}`}>
+          {count ? `${count.toLocaleString()} card${count === 1 ? '' : 's'}` : 'No cards match'}
+        </span>
+      </div>
+      <Group>
         <Chip on={s.types.length === 0} onClick={() => setSettings({ types: [] })}>
           All
         </Chip>
@@ -47,9 +77,20 @@ export function Filters({ onClose }: { onClose: () => void }) {
             {t.label}
           </Chip>
         ))}
-      </div>
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">Regions</div>
-      <div className="flex flex-wrap gap-1.5">
+      </Group>
+      <Heading>Places</Heading>
+      <Group>
+        <Chip on={s.kinds.length === 0} onClick={() => setSettings({ kinds: [] })}>
+          All
+        </Chip>
+        {KINDS.map((k) => (
+          <Chip key={k.id} on={s.kinds.includes(k.id)} onClick={() => setSettings({ kinds: toggle<Kind>(s.kinds, k.id) })}>
+            {k.label}
+          </Chip>
+        ))}
+      </Group>
+      <Heading>Regions</Heading>
+      <Group>
         <Chip on={s.regions.length === 0} onClick={() => setSettings({ regions: [] })}>
           All
         </Chip>
@@ -58,16 +99,21 @@ export function Filters({ onClose }: { onClose: () => void }) {
             {regionLabel(r)}
           </Chip>
         ))}
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-[12px] text-ink-3">
-        <span>New cards per day</span>
-        <div className="flex items-center gap-1">
-          {[10, 20, 40].map((n) => (
-            <Chip key={n} on={s.newPerDay === n} onClick={() => setSettings({ newPerDay: n })}>
-              {n}
-            </Chip>
-          ))}
+      </Group>
+      <div className="border-t border-line pt-2 text-[12px] text-ink-3">
+        <div className="flex min-h-9 items-center justify-between">
+          <span>New cards per day</span>
+          <div className="flex items-center gap-1">
+            {[10, 20, 40].map((n) => (
+              <Chip key={n} on={s.newPerDay === n} onClick={() => setSettings({ newPerDay: n })}>
+                {n}
+              </Chip>
+            ))}
+          </div>
         </div>
+        <Switch on={s.autoplay} onClick={() => setSettings({ autoplay: !s.autoplay })}>
+          Auto-play pronunciation
+        </Switch>
       </div>
     </motion.div>
   )

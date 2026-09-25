@@ -13,10 +13,25 @@
   --color-easy: #3e63dd;
 }
 
+/* Phones in landscape and short windows. */
+@custom-variant short (@media (max-height: 600px));
+
 html,
 body,
 #root {
   height: 100%;
+}
+
+/* Stay clear of the notch and home indicator (viewport-fit=cover). */
+#root {
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.pad-safe {
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
 }
 
 body {

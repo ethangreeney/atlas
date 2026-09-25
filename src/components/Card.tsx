@@ -1,7 +1,7 @@
 import { ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
-import { motion, type Variants } from 'motion/react'
-import { State } from 'ts-fsrs'
-import { mediaUrl, type DeckCard } from '../lib/deck'
+import { motion, useDragControls, type Variants } from 'motion/react'
+import { Rating, State, type Grade } from 'ts-fsrs'
+import { answerOf, mediaUrl, type DeckCard } from '../lib/deck'
 import type { CardRow } from '../lib/db'
 
 export type ExitTarget = { x: number; y: number; rotate: number }
@@ -9,6 +9,8 @@ export type ExitTarget = { x: number; y: number; rotate: number }
 const EASE = [0.2, 0.8, 0.2, 1] as const
 // Debug/filming: ?slow=4 stretches the flip and fly-away animations 4x.
 const SLOW = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('slow')) || 1 : 1
+/** How far a flipped card has to be swiped (plus a bit for a flick) to grade it. */
+const SWIPE = 90
 
 const variants: Variants = {
   enter: { opacity: 0, scale: 0.97, y: 12, x: 0, rotate: 0, zIndex: 10 },
@@ -44,49 +46,72 @@ const Label = ({ children }: { children: React.ReactNode }) => (
   <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">{children}</div>
 )
 const Big = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-balance text-[clamp(28px,4.6vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-ink">{children}</div>
+  <div className="text-balance text-[clamp(28px,4.6vw,40px)] font-semibold short:text-[24px] leading-[1.1] tracking-[-0.02em] text-ink">{children}</div>
 )
 const Small = ({ children }: { children: React.ReactNode }) => (
   <div className="text-[15px] font-medium text-ink-2">{children}</div>
 )
-/** A name on the answer side: tap it to hear just that name. */
-const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => void; big?: boolean }) => (
-  <button
-    type="button"
-    title={`Hear “${text}”`}
-    className="group relative cursor-pointer text-inherit transition-colors hover:text-ink"
-    onClick={(e) => {
-      e.stopPropagation()
-      onSay(text)
-    }}
-  >
-    {text}
-    <Volume2
-      size={big ? 18 : 13}
-      strokeWidth={2}
-      aria-hidden
-      className={`absolute left-full top-1/2 -translate-y-1/2 text-ink-3 opacity-60 transition-opacity group-hover:opacity-100 ${big ? 'ml-2' : 'ml-1.5'}`}
-    />
-  </button>
-)
+/** A name on the answer side: tap it to hear just that name. The speaker icon sits inline, balanced by an
+ * equal spacer on the left so the name stays centred; an absolutely positioned icon makes Safari wrap the name
+ * at every space ("St. / John's") when it's set in Inter. */
+const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => void; big?: boolean }) => {
+  const size = big ? 18 : 13
+  const gap = big ? 'ml-2' : 'ml-1.5'
+  const cut = text.lastIndexOf(' ') + 1
+  const [head, last] = [text.slice(0, cut), text.slice(cut)]
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      title={`Hear “${text}”`}
+      className="group cursor-pointer transition-colors hover:text-ink"
+      onClick={(e) => {
+        e.stopPropagation()
+        onSay(text)
+      }}
+      // A tap shouldn't leave focus here, or Space would replay the name instead of grading.
+      onMouseDown={(e) => e.preventDefault()}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        e.stopPropagation()
+        onSay(text)
+      }}
+    >
+      <span aria-hidden className={`inline-block ${gap}`} style={{ width: size }} />
+      {head}
+      {/* The icon stays glued to the last word, so a long name never leaves it alone on its own line. */}
+      <span className="whitespace-nowrap">
+        {last}
+        <Volume2
+          size={size}
+          strokeWidth={2}
+          aria-hidden
+          className={`inline-block align-middle -translate-y-[0.08em] text-ink-3 opacity-60 transition-opacity group-hover:opacity-100 ${gap}`}
+        />
+      </span>
+    </span>
+  )
+}
 
 const Info = ({ children }: { children: React.ReactNode }) =>
-  children ? <div className="max-w-[34ch] text-balance text-[13px] leading-snug text-ink-3">{children}</div> : null
+  children ? <div className="max-w-[34ch] text-balance text-[13px] leading-snug text-ink-3 short:max-w-[42ch] short:text-[12px]">{children}</div> : null
 
-const Flag = ({ file, size }: { file: string; size: 'lg' | 'sm' }) => (
+/** The question side says only what the picture is; the answer side can name it. */
+const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
   <img
     src={mediaUrl(file)}
-    alt=""
+    alt={alt}
     draggable={false}
-    className={`${size === 'lg' ? 'max-h-[min(190px,26vh)] max-w-[min(300px,70vw)]' : 'max-h-16 max-w-[110px]'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+    className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
   />
 )
-const Map = ({ file, size }: { file: string; size: 'lg' | 'sm' }) => (
+const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
   <img
     src={mediaUrl(file)}
-    alt=""
+    alt={alt}
     draggable={false}
-    className={`${size === 'lg' ? 'w-[min(400px,74vw)]' : 'w-[min(190px,40vw)]'} rounded-xl img-shadow`}
+    className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)]' : 'w-[min(190px,40vw)] short:w-[min(130px,40vw)]'} rounded-xl img-shadow`}
   />
 )
 
@@ -113,14 +138,14 @@ function Front({ card }: { card: DeckCard }) {
       return (
         <>
           <Label>Flag</Label>
-          <Flag file={n.flag!} size="lg" />
+          <Flag file={n.flag!} size="lg" alt="Flag" />
         </>
       )
     case 'map':
       return (
         <>
           <Label>Location</Label>
-          <Map file={n.map!} size="lg" />
+          <Map file={n.map!} size="lg" alt="Map" />
         </>
       )
   }
@@ -128,7 +153,7 @@ function Front({ card }: { card: DeckCard }) {
 
 function Back({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSay: (t: string) => void }) {
   const n = card.note
-  const map = showMap && n.map && card.type !== 'map' ? <Map file={n.map} size="sm" /> : null
+  const map = showMap && n.map && card.type !== 'map' ? <Map file={n.map} size="sm" alt={`Map of ${n.country}`} /> : null
   switch (card.type) {
     case 'capital':
       return (
@@ -159,7 +184,7 @@ function Back({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSa
     case 'flag':
       return (
         <>
-          {map ?? <Flag file={n.flagBack ?? n.flag!} size="sm" />}
+          {map ?? <Flag file={n.flagBack ?? n.flag!} size="sm" alt={`Flag of ${n.country}`} />}
           <Big>
             <Say text={n.country!} onSay={onSay} big />
           </Big>
@@ -170,7 +195,7 @@ function Back({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSa
     case 'map':
       return (
         <>
-          <Map file={n.map!} size="sm" />
+          <Map file={n.map!} size="sm" alt={`Map of ${n.country}`} />
           <Big>
             <Say text={n.country!} onSay={onSay} big />
           </Big>
@@ -186,6 +211,7 @@ type Props = {
   flipped: boolean
   showMap: boolean
   onFlip: () => void
+  onGrade: (g: Grade) => void
   onSpeak: (text?: string) => void
   onToggleMap: () => void
 }
@@ -197,7 +223,8 @@ export const mapsUrl = (card: DeckCard) => {
 }
 
 const Action = ({ label, onClick, href, children }: { label: string; onClick?: () => void; href?: string; children: React.ReactNode }) => {
-  const cls = 'flex h-8 w-8 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-neutral-100 hover:text-ink'
+  const cls =
+    'relative flex h-8 w-8 items-center justify-center rounded-full text-ink-3 transition-colors after:absolute after:-inset-1.5 hover:bg-neutral-100 hover:text-ink'
   return href ? (
     <a href={href} target="_blank" rel="noreferrer" aria-label={label} title={label} className={cls} onClick={(e) => e.stopPropagation()}>
       {children}
@@ -217,32 +244,51 @@ const Action = ({ label, onClick, href, children }: { label: string; onClick?: (
   )
 }
 
-export function Card({ card, row, flipped, showMap, onFlip, onSpeak, onToggleMap }: Props) {
+/** Both faces stay mounted for the 3D flip; the one facing away is inert, so it's neither read out nor tabbable. */
+const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-white text-center'
+/** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen. */
+const body = (shown: boolean) => `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 ${shown ? 'overflow-y-auto' : ''}`
+
+export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap }: Props) {
   const tag = stateTag(row)
+  const drag = useDragControls()
   return (
     <motion.div
-      className="absolute inset-0 [perspective:1400px]"
+      className={`absolute inset-0 [perspective:1400px] ${flipped ? 'touch-pan-y' : ''}`}
       variants={variants}
       initial="enter"
       animate="center"
       exit="exit"
+      // Swipe a flipped card by touch: left for Again, right for Good. It flies to the pile from where it's let go.
+      drag={flipped ? 'x' : false}
+      dragControls={drag}
+      dragListener={false}
+      dragSnapToOrigin
+      onPointerDown={(e) => flipped && e.pointerType !== 'mouse' && drag.start(e)}
+      onDragEnd={(_, { offset, velocity }) => {
+        const dx = offset.x + velocity.x * 0.15
+        if (dx > SWIPE) onGrade(Rating.Good)
+        else if (dx < -SWIPE) onGrade(Rating.Again)
+      }}
     >
       <motion.div
-        className="relative h-full w-full cursor-pointer select-none [transform-style:preserve-3d]"
+        className={`relative h-full w-full select-none [transform-style:preserve-3d] ${flipped ? '' : 'cursor-pointer'}`}
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ duration: 0.38 * SLOW, ease: [0.3, 0.7, 0.2, 1] }}
         onClick={() => !flipped && onFlip()}
-        role="button"
-        aria-label={flipped ? 'Answer' : 'Show answer'}
       >
-        <div className="backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-white px-8 text-center">
+        <div className={face} inert={flipped}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          <Front card={card} />
+          <div className={body(!flipped)}>
+            <Front card={card} />
+          </div>
         </div>
-        <div className="backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-white px-8 text-center [transform:rotateY(180deg)]">
+        <div className={`${face} [transform:rotateY(180deg)]`} inert={!flipped}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          <Back card={card} showMap={showMap} onSay={onSpeak} />
-          <div className="absolute bottom-3 right-3 flex items-center gap-0.5">
+          <div className={body(flipped)}>
+            <Back card={card} showMap={showMap} onSay={onSpeak} />
+          </div>
+          <div className="absolute bottom-3 right-3 flex items-center gap-3">
             {card.type !== 'map' && card.note.map && (
               <Action label={showMap ? 'Hide map (M)' : 'Show map (M)'} onClick={onToggleMap}>
                 <MapIcon size={16} strokeWidth={1.75} className={showMap ? 'text-ink' : ''} />
@@ -254,6 +300,9 @@ export function Card({ card, row, flipped, showMap, onFlip, onSpeak, onToggleMap
           </div>
         </div>
       </motion.div>
+      <div aria-live="polite" className="sr-only">
+        {flipped ? `Answer: ${answerOf(card)}` : ''}
+      </div>
     </motion.div>
   )
 }

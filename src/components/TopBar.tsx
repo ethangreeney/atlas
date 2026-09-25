@@ -25,12 +25,15 @@ const IconButton = ({
   label,
   active,
   disabled,
+  controls,
   children,
 }: {
   onClick: () => void
   label: string
   active?: boolean
   disabled?: boolean
+  /** Id of the panel this button opens and closes. */
+  controls?: string
   children: React.ReactNode
 }) => (
   <button
@@ -38,6 +41,8 @@ const IconButton = ({
     aria-label={label}
     title={label}
     disabled={disabled}
+    aria-controls={controls}
+    aria-expanded={controls ? !!active : undefined}
     className={`relative flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-neutral-100 hover:text-ink disabled:pointer-events-none disabled:opacity-30 ${active ? 'bg-neutral-100 text-ink' : ''}`}
   >
     {children}
@@ -79,7 +84,7 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
         <IconButton onClick={onUndo} label="Undo (Z)" disabled={!canUndo}>
           <Undo2 size={17} strokeWidth={1.75} />
         </IconButton>
-        <IconButton onClick={onToggleFilters} label="Filters" active={filtersOpen}>
+        <IconButton onClick={onToggleFilters} label="Filters" active={filtersOpen} controls="filters">
           <SlidersHorizontal size={17} strokeWidth={1.75} />
           {filtersActive && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-ink" />}
         </IconButton>

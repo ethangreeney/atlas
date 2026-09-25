@@ -93,14 +93,17 @@ export function Welcome() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-[11px] text-ink-3 transition-colors hover:text-ink">
+      <button
+        onClick={() => setOpen(true)}
+        className="relative text-[11px] text-ink-3 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3.5 hover:text-ink"
+      >
         How it works
       </button>
       <AnimatePresence>
         {open && (
           <motion.div
             key="welcome"
-            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-white/70 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-white/70 pad-safe backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

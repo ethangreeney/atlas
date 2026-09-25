@@ -24,8 +24,19 @@ export const CARD_TYPES: { id: CardType; label: string; prompt: string }[] = [
 
 export type DeckCard = { id: string; type: CardType; note: Note }
 
+/** What a note is, from the deck's tags. Everything that isn't a sovereign state, sea or continent is a territory. */
+export type Kind = 'sovereign' | 'territory' | 'sea' | 'continent'
+export const KINDS: { id: Kind; label: string; tag?: string }[] = [
+  { id: 'sovereign', label: 'Countries', tag: 'Sovereign_State' },
+  { id: 'territory', label: 'Territories' },
+  { id: 'sea', label: 'Seas & oceans', tag: 'Oceans+Seas' },
+  { id: 'continent', label: 'Continents', tag: 'Continents' },
+]
+export const kindOf = (n: Note): Kind => KINDS.find((k) => k.tag && n.tags.includes(k.tag))?.id ?? 'territory'
+
 export const NOTES = raw.notes as Note[]
-export const REGIONS = raw.regions as string[]
+/** Geographic regions only; the kind tags are filtered separately. */
+export const REGIONS = (raw.regions as string[]).filter((r) => !KINDS.some((k) => k.tag === r))
 export const DECK_VERSION = raw.version as string
 
 /** Every card in the deck: up to four per note, mirroring the Anki templates' conditionals. */

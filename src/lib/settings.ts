@@ -1,19 +1,28 @@
 import { useSyncExternalStore } from 'react'
-import type { CardType } from './deck'
+import { KINDS, type CardType, type Kind } from './deck'
 
 export type Settings = {
   regions: string[] // empty = all
+  kinds: Kind[] // empty = all
   types: CardType[] // empty = all
   newPerDay: number
   reviewsPerDay: number
+  autoplay: boolean
 }
 
 const KEY = 'atlas.settings'
-const DEFAULTS: Settings = { regions: [], types: [], newPerDay: 20, reviewsPerDay: 200 }
+const DEFAULTS: Settings = { regions: [], kinds: [], types: [], newPerDay: 20, reviewsPerDay: 200, autoplay: false }
 
 let current: Settings = (() => {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }
+    const s: Settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }
+    // Sovereign states, seas and continents used to be region chips; they're kinds now.
+    const moved = KINDS.filter((k) => k.tag && s.regions.includes(k.tag))
+    if (moved.length) {
+      s.regions = s.regions.filter((r) => !moved.some((k) => k.tag === r))
+      s.kinds = [...new Set([...s.kinds, ...moved.map((k) => k.id)])]
+    }
+    return s
   } catch {
     return DEFAULTS
   }

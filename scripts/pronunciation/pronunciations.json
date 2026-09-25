@@ -125,9 +125,9 @@
   "source": "wikipedia"
  },
  "Antigua and Barbuda": {
-  "us": "æntˈiɡwə ənd bɑɹbjˈudə",
-  "gb": "antˈiːɡwə ənd bɑːbjˈuːdə",
-  "source": "dictionary"
+  "us": "æntˈiɡə ənd bɑɹbjˈudə",
+  "gb": "antˈiːɡə ənd bɑːbjˈuːdə",
+  "source": "wikipedia+dictionary"
  },
  "Apia": {
   "us": "ɑpˈiə",
@@ -377,7 +377,7 @@
  "Bern": {
   "us": "bˈɜɹn",
   "gb": "bˈɜːn",
-  "source": "dictionary"
+  "source": "wiktionary"
  },
  "Bhutan": {
   "us": "butˈɑn",
@@ -410,9 +410,9 @@
   "source": "wikipedia"
  },
  "Bosnia and Herzegovina": {
-  "us": "bˈɑzniə ənd hˌɜɹtsəɡˈOvinə",
-  "gb": "bˈɒznɪə ənd hˌɛːtsəɡˈɒvɪnə",
-  "source": "dictionary"
+  "us": "bˈɑzniə ənd hˌɛɹtsəɡOvˈinə",
+  "gb": "bˈɒzniə ənd hˌɛːtsəɡQvˈiːnə",
+  "source": "wikipedia+dictionary"
  },
  "Botswana": {
   "us": "bɑtswˈɑnə",
@@ -2022,7 +2022,7 @@
  "Saint Vincent and the Grenadines": {
   "us": "sˈAnt vˈɪnsənt ənd ðə ɡɹˌɛnədˈinz",
   "gb": "sˈAnt vˈɪnsənt ənd ðə ɡɹˌɛnədˈiːnz",
-  "source": "wikipedia+dictionary"
+  "source": "wikipedia+wiktionary+dictionary"
  },
  "Samoa": {
   "us": "səmˈOə",

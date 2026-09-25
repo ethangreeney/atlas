@@ -35,7 +35,7 @@ Every name has a pre-recorded pronunciation in a US or British voice, picked fro
 
 ## Stack
 
-Vite, React, TypeScript, Tailwind, Motion, [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), Dexie (IndexedDB). Hosted on Cloudflare Pages with a small Pages Function and D1 for sync. Pronunciation clips are rendered once with [Kokoro](https://github.com/hexgrad/kokoro), an open-source neural voice, from phonemes built out of Wikipedia's English IPA, a pronunciation dictionary and hand-checked overrides, and shipped as static files.
+Vite, React, TypeScript, Tailwind, Motion, [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), Dexie (IndexedDB). Hosted on Cloudflare Pages with a small Pages Function and D1 for sync. Pronunciation clips are rendered once with [Kokoro](https://github.com/hexgrad/kokoro)'s best voice (af_heart), an open-source neural voice, from phonemes built out of Wikipedia's English IPA, Wiktionary, a pronunciation dictionary and hand-checked overrides, in American and British English, and shipped as static files.
 
 ## Scheduling
 

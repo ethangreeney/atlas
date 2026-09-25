@@ -271,7 +271,14 @@ export default function App() {
               )}
               {ready && queue && !card && empty && <Empty key="empty" onReset={() => setSettings({ types: [], kinds: [], regions: [] })} />}
               {ready && queue && !card && !empty && (
-                <Done key="done" queue={queue} learned={learned} grades={day?.grades ?? [0, 0, 0, 0]} onLearnMore={() => learnMore(20)} />
+                <Done
+                  key="done"
+                  queue={queue}
+                  learned={learned}
+                  grades={day?.grades ?? [0, 0, 0, 0]}
+                  onLearnMore={() => learnMore(20)}
+                  onOpenProgress={() => setProgressOpen(true)}
+                />
               )}
             </AnimatePresence>
           </div>
@@ -291,13 +298,6 @@ export default function App() {
         <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
           <div className="flex shrink-0 items-center gap-2">
             <Welcome />
-            <span className="mx-1 sm:hidden">·</span>
-            <button
-              onClick={() => setProgressOpen(true)}
-              className="relative text-[11px] text-ink-3 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3.5 hover:text-ink sm:hidden"
-            >
-              Progress
-            </button>
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
             <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}

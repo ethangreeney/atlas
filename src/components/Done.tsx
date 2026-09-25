@@ -58,9 +58,9 @@ function useUpcoming(settings: Settings) {
   return upcoming
 }
 
-type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: () => void }
+type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: () => void; onOpenProgress: () => void }
 
-export function Done({ queue, learned, grades, onLearnMore }: Props) {
+export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Props) {
   const settings = useSettings()
   const upcoming = useUpcoming(settings)
   const [now, setNow] = useState(Date.now)
@@ -90,10 +90,15 @@ export function Done({ queue, learned, grades, onLearnMore }: Props) {
     <Screen>
       <Title>{queue.nextLearningAt ? 'Take a breath.' : 'Done for today.'}</Title>
       <div className="text-balance text-[14px] text-ink-3">
-        {queue.done} card{queue.done === 1 ? '' : 's'} answered
-        {next ? ` · ${next}` : ''}
-        {` · ${learned} learned in total`}
-        {streak > 1 ? ` · ${streak}-day streak` : ''}
+        {/* Wrap only between phrases, never inside one. */}
+        {[`${queue.done} card${queue.done === 1 ? '' : 's'} answered`, next, `${learned} learned in total`, streak > 1 && `${streak}-day streak`]
+          .filter(Boolean)
+          .map((t, i) => (
+            <span key={i}>
+              {i > 0 && ' · '}
+              <span className="whitespace-nowrap">{t}</span>
+            </span>
+          ))}
       </div>
       {queue.done > 0 && (
         <div className="flex items-baseline gap-3 text-[13px]">
@@ -104,6 +109,14 @@ export function Done({ queue, learned, grades, onLearnMore }: Props) {
             </span>
           ))}
         </div>
+      )}
+      {learned > 0 && (
+        <button
+          onClick={onOpenProgress}
+          className="relative text-[13px] text-ink-3 underline decoration-line underline-offset-4 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-ink hover:decoration-ink-3"
+        >
+          See your progress
+        </button>
       )}
       {queue.remainingNew > 0 && <Action onClick={onLearnMore}>Learn {Math.min(20, queue.remainingNew)} more</Action>}
       <KeepProgress learned={learned} />

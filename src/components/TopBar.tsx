@@ -1,4 +1,4 @@
-import { SlidersHorizontal, Undo2 } from 'lucide-react'
+import { Earth, SlidersHorizontal, Undo2 } from 'lucide-react'
 import type { Queue } from '../lib/scheduler'
 import { Account } from './Account'
 
@@ -20,7 +20,8 @@ type Props = {
 const Count = ({ n, label, cls }: { n: number; label: string; cls: string }) => (
   <span className="flex items-baseline gap-1">
     <span className={`text-[13px] font-semibold tabular-nums ${cls}`}>{n}</span>
-    <span className="text-[12px] text-ink-3">{label}</span>
+    {/* The narrowest phones keep the colours and drop the words, so the buttons still fit. */}
+    <span className="text-[12px] text-ink-3 max-[359px]:sr-only">{label}</span>
   </span>
 )
 
@@ -47,7 +48,7 @@ const IconButton = ({
     disabled={disabled}
     aria-controls={controls}
     aria-expanded={controls ? !!active : undefined}
-    className={`relative flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30 ${active ? 'bg-muted text-ink' : ''}`}
+    className={`relative flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9 rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30 ${active ? 'bg-muted text-ink' : ''}`}
   >
     {children}
   </button>
@@ -89,7 +90,7 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
           <button
             onClick={onOpenProgress}
             className="relative hidden text-[12px] text-ink-3 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-ink sm:inline"
-            title="Progress (P)"
+            title="Progress (p)"
           >
             <span className="tabular-nums">{learned}</span> learned
           </button>
@@ -109,6 +110,9 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
       <div className="flex shrink-0 items-center sm:gap-1">
         <IconButton onClick={onUndo} label="Undo (Z)" disabled={!canUndo}>
           <Undo2 size={17} strokeWidth={1.75} />
+        </IconButton>
+        <IconButton onClick={onOpenProgress} label="Progress (p)">
+          <Earth size={17} strokeWidth={1.75} />
         </IconButton>
         <IconButton onClick={onToggleFilters} label="Filters" active={filtersOpen} controls="filters">
           <SlidersHorizontal size={17} strokeWidth={1.75} />

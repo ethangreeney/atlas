@@ -6,6 +6,9 @@ import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, matchesFi
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
 
+/** A card marked "I know this" comes back in 30 to 60 days. */
+const KNOWN_DAYS = 30
+
 type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string; review: Date }
 
 export function useSession() {
@@ -40,7 +43,7 @@ export function useSession() {
     const seen = new Set<string>()
     for (const l of logs) {
       if (dayKey(new Date(l.review)) !== key) continue
-      if (l.state === State.New) d.newCount++
+      if (l.state === State.New && !l.known) d.newCount++
       else if (l.state === State.Review) d.reviewCount++
       if (l.rating >= 1 && l.rating <= 4) d.grades[l.rating - 1]++
       const note = CARD_BY_ID.get(l.cardId)?.note.id
@@ -125,7 +128,8 @@ export function useSession() {
   }, [queue])
 
   const grade = useCallback(
-    async (card: DeckCard, g: Grade) => {
+    /** `known`: skipped with "I know this". Scheduled well out and free of the day's new-card limit. */
+    async (card: DeckCard, g: Grade, known = false) => {
       if (!day) return
       const now = new Date()
       let d = day
@@ -137,7 +141,12 @@ export function useSession() {
       }
       const before = rows.current.get(card.id)
       const prev = before ?? freshRow(card, now)
-      const { card: next, log } = scheduler.next(prev, now, g)
+      let { card: next, log } = scheduler.next(prev, now, g)
+      if (known) {
+        const days = KNOWN_DAYS + Math.round(Math.random() * KNOWN_DAYS)
+        next = { ...next, stability: Math.max(next.stability, days), scheduled_days: days, due: new Date(+now + days * 86_400_000) }
+        log = { ...log, scheduled_days: days }
+      }
       const row: CardRow = {
         ...next,
         id: card.id,
@@ -149,7 +158,7 @@ export function useSession() {
 
       const nd: DayRow = {
         ...d,
-        newCount: d.newCount + (prev.state === State.New ? 1 : 0),
+        newCount: d.newCount + (prev.state === State.New && !known ? 1 : 0),
         reviewCount: d.reviewCount + (prev.state === State.Review ? 1 : 0),
         seenNotes: d.seenNotes.includes(card.note.id) ? d.seenNotes : [...d.seenNotes, card.note.id],
         grades: d.grades.map((n, i) => n + (i === g - 1 ? 1 : 0)) as DayRow['grades'],
@@ -165,7 +174,7 @@ export function useSession() {
         logId = await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
           await db.cards.put(row)
           await db.days.put(nd)
-          return (await db.revlog.add({ ...log, cardId: card.id, dirty: 1 })) as number
+          return (await db.revlog.add({ ...log, cardId: card.id, ...(known && { known: 1 as const }), dirty: 1 })) as number
         })
       } catch {
         setSaveError(true)

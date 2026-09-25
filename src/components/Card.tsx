@@ -1,8 +1,11 @@
-import { ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
+import { Check, ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
 import { motion, useDragControls, type Variants } from 'motion/react'
+import { useEffect, useRef } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
-import { answerOf, mediaUrl, type DeckCard } from '../lib/deck'
+import type { Verdict } from '../lib/answer'
+import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
 import type { CardRow } from '../lib/db'
+import { lookAlikes } from '../lib/lookalike'
 
 export type ExitTarget = { x: number; y: number; rotate: number }
 
@@ -115,6 +118,74 @@ const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string
   />
 )
 
+/** Flags easily mistaken for this one, small, each with how it differs. */
+const LookAlikes = ({ card }: { card: DeckCard }) => {
+  const items = lookAlikes(card.note)
+  if (!items.length) return null
+  return (
+    <div className="flex max-w-[42ch] flex-col items-center gap-1.5 text-[12.5px] leading-snug text-ink-3 short:gap-1 short:text-[12px]">
+      <div>Not to be confused with</div>
+      <div className="flex flex-col items-start gap-1.5 short:gap-1">
+        {items.map((l) => (
+          <div key={l.name} className="flex items-center gap-2 text-left">
+            {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow w-9 shrink-0 rounded-[2px] short:w-7" />}
+            <span>
+              <span className="font-medium text-ink-2">{l.name}</span>
+              {l.note && ` — ${l.note}`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export type Typed = { kind: Verdict; text: string }
+
+/** What the learner typed, in the corner of the answer: a tick, a near miss, or their answer struck out. */
+const Result = ({ typed }: { typed: Typed }) => (
+  <span className="absolute right-5 top-4 max-w-[45%] truncate text-[11px] font-medium">
+    {typed.kind === 'right' && <Check size={14} strokeWidth={2.5} aria-label="Correct" className="text-good" />}
+    {typed.kind === 'close' && <span className="text-hard">Close — {typed.text}</span>}
+    {typed.kind === 'wrong' && <s className="text-again">{typed.text}</s>}
+  </span>
+)
+
+type Input = { value: string; onChange: (v: string) => void; onSubmit: () => void }
+
+/** A single underline to type the answer into. Focused straight away only where there's a real keyboard. */
+const AnswerInput = ({ card, input }: { card: DeckCard; input: Input }) => {
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!matchMedia('(pointer: fine)').matches || document.activeElement?.closest('#filters')) return
+    ref.current?.focus({ preventScroll: true })
+  }, [])
+  const kind = kindOf(card.note)
+  const placeholder = card.type === 'capital' ? 'Capital…' : kind === 'sea' || kind === 'continent' ? 'Name…' : 'Country…'
+  return (
+    <input
+      ref={ref}
+      value={input.value}
+      onChange={(e) => input.onChange(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          input.onSubmit()
+        } else if (e.key === 'Escape') e.currentTarget.blur()
+      }}
+      placeholder={placeholder}
+      aria-label="Your answer"
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="words"
+      spellCheck={false}
+      enterKeyHint="done"
+      className="mt-1 w-[min(260px,80%)] select-text border-b border-line bg-transparent pb-1 text-center text-[17px] font-medium text-ink outline-none transition-colors placeholder:font-normal placeholder:text-ink-3 focus:border-ink-3 short:mt-0"
+    />
+  )
+}
+
 function Front({ card }: { card: DeckCard }) {
   const n = card.note
   switch (card.type) {
@@ -189,7 +260,7 @@ function Back({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSa
             <Say text={n.country!} onSay={onSay} big />
           </Big>
           <Info>{n.countryInfo}</Info>
-          <Info>{n.flagSimilar ? `Similar to ${n.flagSimilar}` : ''}</Info>
+          <LookAlikes card={card} />
         </>
       )
     case 'map':
@@ -214,6 +285,12 @@ type Props = {
   onGrade: (g: Grade) => void
   onSpeak: (text?: string) => void
   onToggleMap: () => void
+  /** Type-answers mode: the text box on the front. */
+  input?: Input
+  /** Type-answers mode: how the submitted answer compared. */
+  typed?: Typed | null
+  /** New cards only: skip it as already known. */
+  onKnow?: () => void
 }
 
 /** Google Maps search for the place this card is about. */
@@ -249,9 +326,14 @@ const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-c
 /** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen. */
 const body = (shown: boolean) => `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 ${shown ? 'overflow-y-auto' : ''}`
 
-export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap }: Props) {
+export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed, onKnow }: Props) {
   const tag = stateTag(row)
   const drag = useDragControls()
+  const front = useRef<HTMLDivElement>(null)
+  // Once turned over, the answer box lets go of the keyboard so Enter and the number keys grade.
+  useEffect(() => {
+    if (flipped && front.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur()
+  }, [flipped])
   return (
     <motion.div
       className={`absolute inset-0 [perspective:1400px] ${flipped ? 'touch-pan-y' : ''}`}
@@ -277,14 +359,28 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
         transition={{ duration: 0.38 * SLOW, ease: [0.3, 0.7, 0.2, 1] }}
         onClick={() => !flipped && onFlip()}
       >
-        <div className={face} inert={flipped}>
+        <div ref={front} className={face} inert={flipped}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
           <div className={body(!flipped)}>
             <Front card={card} />
+            {input && <AnswerInput card={card} input={input} />}
           </div>
+          {onKnow && (
+            <button
+              title="I know this (K)"
+              className="absolute bottom-4 right-5 text-[11px] font-medium text-ink-3 transition-colors after:absolute after:-inset-2 hover:text-ink"
+              onClick={(e) => {
+                e.stopPropagation()
+                onKnow()
+              }}
+            >
+              I know this
+            </button>
+          )}
         </div>
         <div className={`${face} [transform:rotateY(180deg)]`} inert={!flipped}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
+          {typed && <Result typed={typed} />}
           <div className={body(flipped)}>
             <Back card={card} showMap={showMap} onSay={onSpeak} />
           </div>

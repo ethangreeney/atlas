@@ -8,10 +8,11 @@ export type Settings = {
   newPerDay: number
   reviewsPerDay: number
   autoplay: boolean
+  typeAnswers: boolean
 }
 
 const KEY = 'atlas.settings'
-const DEFAULTS: Settings = { regions: [], kinds: [], types: [], newPerDay: 20, reviewsPerDay: 200, autoplay: false }
+const DEFAULTS: Settings = { regions: [], kinds: [], types: [], newPerDay: 20, reviewsPerDay: 200, autoplay: false, typeAnswers: false }
 
 let current: Settings = (() => {
   try {

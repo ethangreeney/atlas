@@ -3,7 +3,8 @@ import type { Card, ReviewLog } from 'ts-fsrs'
 
 /** `updated` is a ms timestamp used for last-write-wins sync. `dirty` marks rows written here and not yet pushed. */
 export type CardRow = Card & { id: string; noteId: string; leech?: boolean; updated: number; dirty?: 1 }
-export type RevlogRow = ReviewLog & { id?: number; cardId: string; dirty?: 1 }
+/** `known`: marked "I know this" when new, so it doesn't count against the day's new cards. */
+export type RevlogRow = ReviewLog & { id?: number; cardId: string; known?: 1; dirty?: 1 }
 /** Per-day counters (day = local date string with Anki's 4am rollover). */
 export type DayRow = {
   day: string

@@ -1,15 +1,16 @@
 import { AnimatePresence, MotionConfig } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
-import { Card, mapsUrl, type ExitTarget } from './components/Card'
+import { Card, mapsUrl, type ExitTarget, type Typed } from './components/Card'
 import { Welcome } from './components/Welcome'
 import { Done, Empty } from './components/Done'
 import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
 import { Piles } from './components/Piles'
 import { TopBar } from './components/TopBar'
+import { check } from './lib/answer'
 import { answerOf, DECK_VERSION } from './lib/deck'
-import { countMatching, previewIntervals, Rating } from './lib/scheduler'
+import { countMatching, previewIntervals, Rating, State } from './lib/scheduler'
 import { useSession } from './lib/session'
 import { setSettings, useSettings } from './lib/settings'
 import { preload, speak, stopSpeaking } from './lib/tts'
@@ -17,6 +18,8 @@ import { useAuth } from './lib/auth'
 import { syncNow } from './lib/sync'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
+/** The grade a typed answer points to. */
+const SUGGEST = { right: Rating.Good, close: Rating.Hard, wrong: Rating.Again } as const
 
 export default function App() {
   const settings = useSettings()
@@ -31,6 +34,8 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [pileCounts, setPileCounts] = useState<[number, number, number, number]>([0, 0, 0, 0])
+  const [answer, setAnswer] = useState('')
+  const [typed, setTyped] = useState<Typed | null>(null)
 
   const stageRef = useRef<HTMLDivElement>(null)
   const pileRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -42,6 +47,8 @@ export default function App() {
   const [shown, setShown] = useState({ id: card?.id, seq })
   if (shown.id !== card?.id || shown.seq !== seq) {
     setShown({ id: card?.id, seq })
+    setAnswer('')
+    setTyped(null)
     if (shown.seq === seq) {
       setFlipped(false)
       setShowMap(false)
@@ -81,20 +88,25 @@ export default function App() {
 
   const intervals = useMemo(() => (currentRow ? previewIntervals(currentRow, new Date()) : []), [currentRow])
 
+  /** Turns the card over, marking what was typed if anything. */
   const flip = useCallback(() => {
     if (!card || flipped || busy) return
+    const text = settings.typeAnswers ? answer.trim() : ''
+    if (text) setTyped({ kind: check(text, card), text })
     setFlipped(true)
     if (settings.autoplay) speak(answerOf(card))
-  }, [card, flipped, busy, settings.autoplay])
+  }, [card, flipped, busy, settings.autoplay, settings.typeAnswers, answer])
+  const suggested = typed ? SUGGEST[typed.kind] : null
 
   const say = useCallback((text?: string) => {
     if (!card || !flipped) return
     speak(text ?? answerOf(card))
   }, [card, flipped])
 
-  const doGrade = useCallback(
-    (g: Grade) => {
-      if (!card || !flipped || busy || busyRef.current) return
+  /** Sends the card to a pile. `known`: skipped from the front with "I know this". */
+  const send = useCallback(
+    (g: Grade, known = false) => {
+      if (!card || busy || busyRef.current) return
       busyRef.current = true
       const stage = stageRef.current?.getBoundingClientRect()
       const pile = pileRefs.current[g - 1]?.getBoundingClientRect()
@@ -110,15 +122,18 @@ export default function App() {
       setFlipped(false)
       setShowMap(false)
       setSeq((s) => s + 1)
-      void grade(card, g)
+      void grade(card, g, known)
       // Long enough that a quick double tap on a grade doesn't land on "Show answer" for the next card.
       setTimeout(() => {
         busyRef.current = false
         setBusy(false)
       }, 400)
     },
-    [card, flipped, busy, grade],
+    [card, busy, grade],
   )
+  const doGrade = useCallback((g: Grade) => flipped && send(g), [flipped, send])
+  const canKnow = !flipped && currentRow?.state === State.New
+  const know = useCallback(() => canKnow && send(Rating.Easy, true), [canKnow, send])
 
   const doUndo = useCallback(() => {
     if (!canUndo || busy) return
@@ -150,7 +165,7 @@ export default function App() {
             t.blur()
           }
           e.preventDefault()
-          if (flipped) doGrade(Rating.Good)
+          if (flipped) doGrade(suggested ?? Rating.Good)
           else flip()
           break
         case '1':
@@ -162,6 +177,10 @@ export default function App() {
         case 'z':
         case 'Z':
           doUndo()
+          break
+        case 'k':
+        case 'K':
+          know()
           break
         case 's':
         case 'S':
@@ -175,7 +194,11 @@ export default function App() {
         case 'G':
           if (card && flipped) window.open(mapsUrl(card), '_blank', 'noopener')
           break
+        default:
+          return
       }
+      // The next card's answer box may take focus before this key would be typed; keep it out.
+      e.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('pointerdown', onPointer, true)
@@ -183,7 +206,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, doUndo, say, card, flipped, filtersOpen])
+  }, [flip, doGrade, doUndo, know, say, card, flipped, filtersOpen, suggested])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -224,6 +247,9 @@ export default function App() {
                   onGrade={doGrade}
                   onSpeak={say}
                   onToggleMap={() => setShowMap((v) => !v)}
+                  input={settings.typeAnswers ? { value: answer, onChange: setAnswer, onSubmit: flip } : undefined}
+                  typed={typed}
+                  onKnow={canKnow ? know : undefined}
                 />
               )}
               {ready && queue && !card && empty && <Empty key="empty" onReset={() => setSettings({ types: [], kinds: [], regions: [] })} />}
@@ -234,7 +260,7 @@ export default function App() {
           </div>
           <div className="w-[min(560px,100%)]">
             {card ? (
-              <GradeBar flipped={flipped} intervals={intervals} onFlip={flip} onGrade={doGrade} disabled={busy} />
+              <GradeBar flipped={flipped} intervals={intervals} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} />
             ) : (
               <div className="h-16" />
             )}
@@ -251,7 +277,7 @@ export default function App() {
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
             <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
+            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
             </span>
           </div>
           <div className="truncate">

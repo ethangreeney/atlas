@@ -114,6 +114,9 @@ export function Filters({ onClose }: { onClose: () => void }) {
         <Switch on={s.autoplay} onClick={() => setSettings({ autoplay: !s.autoplay })}>
           Auto-play pronunciation
         </Switch>
+        <Switch on={s.typeAnswers} onClick={() => setSettings({ typeAnswers: !s.typeAnswers })}>
+          Type answers
+        </Switch>
       </div>
     </motion.div>
   )

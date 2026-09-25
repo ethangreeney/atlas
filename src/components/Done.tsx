@@ -4,6 +4,7 @@ import { db } from '../lib/db'
 import { CARD_BY_ID } from '../lib/deck'
 import { dayEnd, formatInterval, GRADES, matchesFilters, State, type Queue } from '../lib/scheduler'
 import { useSettings, type Settings } from '../lib/settings'
+import { loadStreak } from '../lib/streak'
 
 const GRADE_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
 
@@ -62,6 +63,16 @@ export function Done({ queue, learned, grades, onLearnMore }: Props) {
   const settings = useSettings()
   const upcoming = useUpcoming(settings)
   const [now, setNow] = useState(Date.now)
+  const [streak, setStreak] = useState(0)
+  useEffect(() => {
+    let live = true
+    loadStreak()
+      .then((n) => live && setStreak(n))
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [queue.done])
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 10_000)
     return () => clearInterval(t)
@@ -81,6 +92,7 @@ export function Done({ queue, learned, grades, onLearnMore }: Props) {
         {queue.done} card{queue.done === 1 ? '' : 's'} answered
         {next ? ` · ${next}` : ''}
         {` · ${learned} learned in total`}
+        {streak > 1 ? ` · ${streak}-day streak` : ''}
       </div>
       {queue.done > 0 && (
         <div className="flex items-baseline gap-3 text-[13px]">

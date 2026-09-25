@@ -54,7 +54,7 @@ const Small = ({ children }: { children: React.ReactNode }) => (
 /** A name on the answer side: tap it to hear just that name. The speaker icon sits inline, balanced by an
  * equal spacer on the left so the name stays centred; an absolutely positioned icon makes Safari wrap the name
  * at every space ("St. / John's") when it's set in Inter. */
-const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => void; big?: boolean }) => {
+export const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => void; big?: boolean }) => {
   const size = big ? 18 : 13
   const gap = big ? 'ml-2' : 'ml-1.5'
   const cut = text.lastIndexOf(' ') + 1

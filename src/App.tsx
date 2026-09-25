@@ -1,5 +1,5 @@
 import { AnimatePresence, MotionConfig } from 'motion/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
 import { Card, mapsUrl, type ExitTarget } from './components/Card'
 import { Welcome } from './components/Welcome'
@@ -17,10 +17,11 @@ import { useAuth } from './lib/auth'
 import { syncNow } from './lib/sync'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
+const Progress = lazy(() => import('./components/Progress'))
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, reload, saveError } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, reload, saveError, drilling, startDrill, exitDrill } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
 
@@ -30,6 +31,7 @@ export default function App() {
   const [exitTarget, setExitTarget] = useState<ExitTarget | null>(null)
   const [busy, setBusy] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [progressOpen, setProgressOpen] = useState(false)
   const [pileCounts, setPileCounts] = useState<[number, number, number, number]>([0, 0, 0, 0])
 
   const stageRef = useRef<HTMLDivElement>(null)
@@ -139,7 +141,7 @@ export default function App() {
       const t = e.target as HTMLElement
       if (t.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key === 'Escape') return setFiltersOpen(false)
-      if (filtersOpen || e.repeat) return
+      if (filtersOpen || progressOpen || e.repeat) return
       switch (e.code === 'Space' ? ' ' : e.key) {
         case ' ':
         case 'Spacebar':
@@ -175,6 +177,11 @@ export default function App() {
         case 'G':
           if (card && flipped) window.open(mapsUrl(card), '_blank', 'noopener')
           break
+        case 'p':
+        case 'P':
+          setFiltersOpen(false)
+          setProgressOpen(true)
+          break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -183,7 +190,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, doUndo, say, card, flipped, filtersOpen])
+  }, [flip, doGrade, doUndo, say, card, flipped, filtersOpen, progressOpen])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -201,6 +208,9 @@ export default function App() {
           onUndo={doUndo}
           onToggleFilters={() => setFiltersOpen((o) => !o)}
           onSynced={reload}
+          onOpenProgress={() => setProgressOpen(true)}
+          drilling={drilling}
+          onExitDrill={exitDrill}
         />
         <div className="mx-4 h-px bg-line sm:mx-6">
           <div className="h-full bg-ink transition-[width] duration-500 ease-out" style={{ width: `${progress * 100}%` }} />
@@ -213,6 +223,13 @@ export default function App() {
         )}
 
         <AnimatePresence>{filtersOpen && <Filters key="filters" onClose={() => setFiltersOpen(false)} />}</AnimatePresence>
+        <AnimatePresence>
+          {progressOpen && (
+            <Suspense key="progress" fallback={null}>
+              <Progress onClose={() => setProgressOpen(false)} onDrill={startDrill} />
+            </Suspense>
+          )}
+        </AnimatePresence>
 
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 short:gap-3">
           <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)] short:h-[min(420px,60dvh)]">
@@ -248,10 +265,17 @@ export default function App() {
         <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
           <div className="flex shrink-0 items-center gap-2">
             <Welcome />
+            <span className="mx-1 sm:hidden">·</span>
+            <button
+              onClick={() => setProgressOpen(true)}
+              className="relative text-[11px] text-ink-3 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3.5 hover:text-ink sm:hidden"
+            >
+              Progress
+            </button>
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
             <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map
+            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>p</kbd> progress
             </span>
           </div>
           <div className="truncate">

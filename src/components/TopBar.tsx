@@ -11,6 +11,10 @@ type Props = {
   onUndo: () => void
   onToggleFilters: () => void
   onSynced: () => void
+  onOpenProgress: () => void
+  /** Size of the drill under way, 0 when studying normally. */
+  drilling: number
+  onExitDrill: () => void
 }
 
 const Count = ({ n, label, cls }: { n: number; label: string; cls: string }) => (
@@ -58,21 +62,43 @@ const InlineCounts = ({ c }: { c: NonNullable<Queue['counts']> }) => (
   </div>
 )
 
-export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced }: Props) {
+/** Stands in for the counts while drilling the hardest cards. */
+const Drilling = ({ n, onExit }: { n: number; onExit: () => void }) => (
+  <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[12px] text-ink-3">
+    <span className="text-ink-2">Drilling {n} hardest</span>·
+    <button onClick={onExit} className="relative font-medium text-ink-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-ink">
+      Exit
+    </button>
+  </span>
+)
+
+export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced, onOpenProgress, drilling, onExitDrill }: Props) {
   const c = queue?.counts
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
-      {c && <InlineCounts c={c} />}
+      {drilling > 0 ? (
+        <span className="sm:hidden">
+          <Drilling n={drilling} onExit={onExitDrill} />
+        </span>
+      ) : (
+        c && <InlineCounts c={c} />
+      )}
       <div className="hidden shrink-0 items-baseline gap-3 sm:flex">
         <span className="text-[15px] font-semibold tracking-[-0.02em] text-ink">Atlas</span>
         {learned > 0 && (
-          <span className="hidden text-[12px] text-ink-3 sm:inline" title="Cards you have answered at least once">
+          <button
+            onClick={onOpenProgress}
+            className="relative hidden text-[12px] text-ink-3 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-ink sm:inline"
+            title="Progress (P)"
+          >
             <span className="tabular-nums">{learned}</span> learned
-          </span>
+          </button>
         )}
       </div>
       <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-4 sm:flex">
-        {c && (
+        {drilling > 0 ? (
+          <Drilling n={drilling} onExit={onExitDrill} />
+        ) : c && (
           <>
             <Count n={c.new} label="new" cls="text-easy" />
             <Count n={c.learn} label="learning" cls="text-again" />

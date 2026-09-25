@@ -12,14 +12,17 @@ export const CARDS_BY_NOTE = new Map<string, DeckCard[]>()
 for (const c of ALL_CARDS) CARDS_BY_NOTE.set(c.note.id, [...(CARDS_BY_NOTE.get(c.note.id) ?? []), c])
 export const NOTE_BY_ID = new Map(NOTES.map((n) => [n.id, n]))
 
-export type Mastery = { mature: number; total: number; /** 0 = nothing mature yet, 4 = every card mature. */ level: number }
+export type Mastery = { mature: number; total: number; /** 0 = not started, 1–3 = in progress, 4 = every card mature. */ level: number }
 
 /** How much of each note is mature, in four steps. */
 export function mastery(rows: Map<string, CardRow>) {
   const out = new Map<string, Mastery>()
   for (const [id, cards] of CARDS_BY_NOTE) {
     const mature = cards.filter((c) => isMature(rows.get(c.id))).length
-    out.set(id, { mature, total: cards.length, level: mature ? Math.ceil((mature / cards.length) * 4) : 0 })
+    // Cards still being learned count a little, so the map fills in from day one; full colour needs every card mature.
+    const learning = cards.filter((c) => { const r = rows.get(c.id); return !!r && r.state !== State.New && !isMature(r) }).length
+    const score = (mature + learning * 0.35) / cards.length
+    out.set(id, { mature, total: cards.length, level: mature === cards.length ? 4 : score ? Math.min(3, Math.ceil(score * 3)) : 0 })
   }
   return out
 }

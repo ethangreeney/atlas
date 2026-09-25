@@ -17,7 +17,7 @@ const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 )
 
 const Heading = ({ children }: { children: React.ReactNode }) => (
-  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">{children}</div>
+  <div className="mb-2 text-[12.5px] font-medium text-ink-3">{children}</div>
 )
 
 const Group = ({ children }: { children: React.ReactNode }) => (

@@ -165,7 +165,7 @@ export function Welcome() {
                 </div>
               </div>
 
-              <div className="mt-5 text-[11px] font-medium uppercase sm:mt-6 tracking-[0.12em] text-ink-3">Grade honestly</div>
+              <div className="mt-5 text-[12.5px] font-medium sm:mt-6 text-ink-3">Grade honestly</div>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13.5px] sm:mt-2.5 sm:gap-y-1.5 sm:text-[14px]">
                 {GUIDE.map((g) => (
                   <div key={g.label} className="contents">

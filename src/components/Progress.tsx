@@ -46,7 +46,7 @@ const TOKEN = Math.random().toString(36).slice(2)
 const TYPE_WORD: Record<CardType, string> = { capital: 'capital', country: 'from its capital', flag: 'flag', map: 'on the map' }
 
 const Heading = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">{children}</div>
+  <div className="text-[12.5px] font-medium text-ink-3">{children}</div>
 )
 
 /** Small flag beside a place's name, or an empty slot of the same size so names line up. */

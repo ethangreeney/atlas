@@ -26,6 +26,11 @@ export function useSession() {
    * for a learning card that fell due in the meantime, mid-view and already flipped.
    */
   const shown = useRef<{ id: string; at: number } | null>(null)
+  /**
+   * A short run over chosen cards (the hardest ones), whether due or not. Each is answered once through the normal
+   * grade path, so FSRS sees an ordinary early review; the run ends when none are left, or on exit.
+   */
+  const [drill, setDrill] = useState<{ ids: string[]; left: string[] } | null>(null)
 
   /**
    * Today's counters come from the review log, not the stored day row, so progress made on two devices
@@ -88,6 +93,11 @@ export function useSession() {
   const queue: Queue | null = useMemo(() => {
     if (!day) return null
     const q = buildQueue(new Date(), rows.current, settings, day)
+    if (drill) {
+      const c = CARD_BY_ID.get(pinned.current ?? drill.left[0])
+      shown.current = null
+      if (c) return { ...q, current: c, nextLearningAt: null, total: drill.ids.length, done: drill.ids.length - drill.left.length }
+    }
     if (pinned.current) {
       const c = CARD_BY_ID.get(pinned.current)
       if (c) {
@@ -104,7 +114,7 @@ export function useSession() {
     shown.current = q.current ? { id: q.current.id, at: keep?.id === q.current.id ? keep.at : Date.now() } : null
     return q
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day, settings, tick])
+  }, [day, settings, tick, drill])
 
   // Wake up when the next learning card becomes due.
   useEffect(() => {
@@ -168,6 +178,11 @@ export function useSession() {
 
       rows.current.set(card.id, row)
       pinned.current = null
+      setDrill((dr) => {
+        if (!dr) return dr
+        const left = dr.left.filter((id) => id !== card.id)
+        return left.length ? { ...dr, left } : null
+      })
       setDay(nd)
       let logId: number
       try {
@@ -198,6 +213,7 @@ export function useSession() {
     const day: DayRow = { ...undo.day, updated: now, dirty: 1 }
     rows.current.set(undo.cardId, row)
     pinned.current = undo.cardId
+    setDrill((dr) => (dr && dr.ids.includes(undo.cardId) && !dr.left.includes(undo.cardId) ? { ...dr, left: [undo.cardId, ...dr.left] } : dr))
     setDay(day)
     setUndo(null)
     try {
@@ -232,6 +248,19 @@ export function useSession() {
 
   const refresh = useCallback(() => setTick((t) => t + 1), [])
 
+  const startDrill = useCallback((ids: string[]) => {
+    const valid = ids.filter((id) => CARD_BY_ID.has(id))
+    if (!valid.length) return
+    pinned.current = null
+    shown.current = null
+    setDrill({ ids: valid, left: valid })
+  }, [])
+
+  const exitDrill = useCallback(() => {
+    shown.current = null
+    setDrill(null)
+  }, [])
+
   /** Re-read everything from IndexedDB (after a sync pull). */
   const reload = useCallback(async () => {
     try {
@@ -246,5 +275,5 @@ export function useSession() {
     setTick((t) => t + 1)
   }, [loadDay])
 
-  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload, saveError }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill }
 }

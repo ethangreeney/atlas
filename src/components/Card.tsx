@@ -123,15 +123,19 @@ const LookAlikes = ({ card }: { card: DeckCard }) => {
   const items = lookAlikes(card.note)
   if (!items.length) return null
   return (
-    <div className="flex flex-col items-center gap-2 text-[12.5px] leading-snug text-ink-3 short:gap-1 short:text-[12px]">
-      <div>Not to be confused with</div>
-      {/* One centred tile per look-alike (at most two): flag, name, then what tells them apart. */}
-      <div className="flex justify-center gap-6 short:gap-4">
+    // One quiet panel: the card's own label style, then a line per look-alike (at most two).
+    <div className="w-fit max-w-full rounded-2xl bg-muted px-4 py-3 text-left short:px-3 short:py-2">
+      <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-3 short:mb-1.5">Looks like</div>
+      <div className="flex flex-col gap-2 short:gap-1.5">
         {items.map((l) => (
-          <div key={l.name} className={`flex flex-col items-center gap-1 text-center ${items.length > 1 ? 'w-[19ch]' : 'max-w-[30ch]'}`}>
-            {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow mb-0.5 h-6 w-auto rounded-[2px] short:h-5" />}
-            <span className="text-balance font-medium text-ink-2">{l.name}</span>
-            {l.note && <span className="text-balance">{l.note[0].toUpperCase() + l.note.slice(1)}</span>}
+          <div key={l.name} className="flex items-start gap-2.5 text-[13px] leading-snug short:text-[12px]">
+            <span className="flex h-[1.375em] w-8 shrink-0 items-center justify-center">
+              {l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow max-h-full max-w-full rounded-[2px]" />}
+            </span>
+            <span className="min-w-0">
+              <span className="font-medium text-ink">{l.name}</span>
+              {l.note && <span className="text-ink-3"> · {l.note}</span>}
+            </span>
           </div>
         ))}
       </div>

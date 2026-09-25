@@ -291,7 +291,7 @@ export default function App() {
           </div>
         </main>
 
-        <div className="mx-auto w-[min(720px,100%)] px-6 pb-2">
+        <div className="mx-auto w-[min(592px,100%)] px-4 pb-4">
           <Piles counts={pileCounts} refs={pileRefs} />
         </div>
 

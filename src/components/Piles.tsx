@@ -5,15 +5,20 @@ type Props = { counts: [number, number, number, number]; refs: React.RefObject<(
 
 const MAX_LAYERS = 6
 
-/** Four small stacks the cards fly into. The stack grows with the count; the number ticks when a card lands. */
+const COUNT_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
+
+/**
+ * Four small stacks the cards fly into, each directly under its grade button, so they need no labels of their own.
+ * The stack grows with the count; the number takes the grade's colour and ticks when a card lands.
+ */
 export function Piles({ counts, refs }: Props) {
   return (
-    <div className="flex w-full items-end justify-between px-2">
+    <div className="grid w-full grid-cols-4 items-end gap-2">
       {GRADES.map((g, i) => {
         const n = counts[i]
         const layers = Math.max(1, Math.min(n, MAX_LAYERS))
         return (
-          <div key={g.key} className="flex flex-col items-center gap-2.5">
+          <div key={g.key} className="flex flex-col items-center" aria-label={`${g.label}: ${n}`}>
             <div
               ref={(el) => {
                 refs.current[i] = el
@@ -34,7 +39,7 @@ export function Piles({ counts, refs }: Props) {
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={n}
-                  className={`absolute inset-0 flex items-center justify-center text-[13px] font-semibold tabular-nums ${n === 0 ? 'text-ink-3' : 'text-ink'}`}
+                  className={`absolute inset-0 flex items-center justify-center text-[13px] font-semibold tabular-nums ${n === 0 ? 'text-ink-3' : COUNT_CLS[i]}`}
                   initial={{ scale: 1.3, opacity: 0.3 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -44,7 +49,6 @@ export function Piles({ counts, refs }: Props) {
                 </motion.span>
               </AnimatePresence>
             </div>
-            <div className="text-[11px] font-medium text-ink-3">{g.label}</div>
           </div>
         )
       })}

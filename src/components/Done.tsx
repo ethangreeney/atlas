@@ -95,7 +95,7 @@ export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Pr
           .filter(Boolean)
           .map((t, i) => (
             <span key={i}>
-              {i > 0 && ' · '}
+              {i > 0 && '\u00a0· '}
               <span className="whitespace-nowrap">{t}</span>
             </span>
           ))}

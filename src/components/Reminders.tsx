@@ -7,8 +7,8 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h)
 const hourLabel = (h: number) => new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).format(new Date(2000, 0, 1, h))
 
 const Track = ({ on }: { on: boolean }) => (
-  <span className={`relative h-5 w-8 shrink-0 rounded-full transition-colors ${on ? 'bg-ink' : 'bg-neutral-200'}`}>
-    <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-3' : ''}`} />
+  <span className={`relative h-5 w-8 shrink-0 rounded-full transition-colors ${on ? 'bg-ink' : 'bg-muted-2'}`}>
+    <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow-sm transition-transform ${on ? 'translate-x-3 bg-on-ink' : 'bg-knob'}`} />
   </span>
 )
 

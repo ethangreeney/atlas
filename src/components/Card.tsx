@@ -303,8 +303,6 @@ type Props = {
   input?: Input
   /** Type-answers mode: how the submitted answer compared. */
   typed?: Typed | null
-  /** New cards only: skip it as already known. */
-  onKnow?: () => void
 }
 
 /** Google Maps search for the place this card is about. */
@@ -340,7 +338,7 @@ const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-c
 /** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen. */
 const body = (shown: boolean) => `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 ${shown ? 'overflow-y-auto' : ''}`
 
-export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed, onKnow }: Props) {
+export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed }: Props) {
   const tag = stateTag(row)
   const drag = useDragControls()
   const front = useRef<HTMLDivElement>(null)
@@ -379,18 +377,6 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
             <Front card={card} />
             {input && <AnswerInput card={card} input={input} />}
           </div>
-          {onKnow && (
-            <button
-              title="I already know this (K)"
-              className="absolute bottom-4 right-5 text-[11px] font-medium text-ink-3 transition-colors after:absolute after:-inset-2 hover:text-ink"
-              onClick={(e) => {
-                e.stopPropagation()
-                onKnow()
-              }}
-            >
-              I already know this
-            </button>
-          )}
         </div>
         <div className={`${face} [transform:rotateY(180deg)]`} inert={!flipped}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>

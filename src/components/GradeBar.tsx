@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import type { Grade } from 'ts-fsrs'
-import { GRADES } from '../lib/scheduler'
+import { GRADES, Rating } from '../lib/scheduler'
 
 type Props = {
   flipped: boolean
@@ -10,6 +10,8 @@ type Props = {
   disabled: boolean
   /** The grade a typed answer points to; Enter picks it. */
   suggested?: Grade | null
+  /** First sight of the card: Easy means "knew it" and sends it a month or two out. */
+  isNew?: boolean
 }
 
 const button =
@@ -23,7 +25,7 @@ const SUGGESTED = [
   'text-easy! shadow-[0_0_0_1.5px_var(--color-easy)]!',
 ]
 
-export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested }: Props) {
+export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew }: Props) {
   return (
     <div className="relative h-16 w-full">
       <AnimatePresence mode="wait" initial={false}>
@@ -36,17 +38,20 @@ export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, sugges
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.12 }}
           >
-            {GRADES.map((g, i) => (
-              <button
-                key={g.key}
-                disabled={disabled}
-                onClick={() => onGrade(g.grade)}
-                className={`${button} flex flex-col items-center justify-center gap-0.5 ${suggested === g.grade ? SUGGESTED[i] : ''}`}
-              >
-                <span className="text-[14px] font-medium">{g.label}</span>
-                <span className="text-[12px] tabular-nums text-ink-3">{intervals[i]}</span>
-              </button>
-            ))}
+            {GRADES.map((g, i) => {
+              const knew = isNew && g.grade === Rating.Easy
+              return (
+                <button
+                  key={g.key}
+                  disabled={disabled}
+                  onClick={() => onGrade(g.grade)}
+                  className={`${button} flex flex-col items-center justify-center gap-0.5 ${suggested === g.grade ? SUGGESTED[i] : ''}`}
+                >
+                  <span className="text-[14px] font-medium">{knew ? 'Knew it' : g.label}</span>
+                  <span className="text-[12px] tabular-nums text-ink-3">{knew ? '1–2mo' : intervals[i]}</span>
+                </button>
+              )
+            })}
           </motion.div>
         ) : (
           <motion.button

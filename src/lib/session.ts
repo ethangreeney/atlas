@@ -6,7 +6,7 @@ import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, matchesFi
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
 
-/** A card marked "I know this" comes back in 30 to 60 days. */
+/** A new card marked "Knew it" comes back in 30 to 60 days. */
 const KNOWN_DAYS = 30
 
 type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string; review: Date }
@@ -138,7 +138,7 @@ export function useSession() {
   }, [queue])
 
   const grade = useCallback(
-    /** `known`: skipped with "I know this". Scheduled well out and free of the day's new-card limit. */
+    /** `known`: a new card the learner already knew. Scheduled well out and free of the day's new-card limit. */
     async (card: DeckCard, g: Grade, known = false) => {
       if (!day) return
       const now = new Date()

@@ -105,7 +105,7 @@ export default function App() {
     speak(text ?? answerOf(card))
   }, [card, flipped])
 
-  /** Sends the card to a pile. `known`: skipped from the front with "I already know this". */
+  /** Sends the card to a pile. `known`: a new card the learner already knew. */
   const send = useCallback(
     (g: Grade, known = false) => {
       if (!card || busy || busyRef.current) return
@@ -133,9 +133,10 @@ export default function App() {
     },
     [card, busy, grade],
   )
-  const doGrade = useCallback((g: Grade) => flipped && send(g), [flipped, send])
-  const canKnow = !flipped && currentRow?.state === State.New
-  const know = useCallback(() => canKnow && send(Rating.Easy, true), [canKnow, send])
+  const isNew = currentRow?.state === State.New
+  // Easy on a card seen for the first time can only mean it was already known.
+  const doGrade = useCallback((g: Grade) => flipped && send(g, isNew && g === Rating.Easy), [flipped, isNew, send])
+  const know = useCallback(() => isNew && send(Rating.Easy, true), [isNew, send])
 
   const doUndo = useCallback(() => {
     if (!canUndo || busy) return
@@ -266,7 +267,6 @@ export default function App() {
                   onToggleMap={() => setShowMap((v) => !v)}
                   input={settings.typeAnswers ? { value: answer, onChange: setAnswer, onSubmit: flip } : undefined}
                   typed={typed}
-                  onKnow={canKnow ? know : undefined}
                 />
               )}
               {ready && queue && !card && empty && <Empty key="empty" onReset={() => setSettings({ types: [], kinds: [], regions: [] })} />}
@@ -284,7 +284,7 @@ export default function App() {
           </div>
           <div className="w-[min(560px,100%)]">
             {card ? (
-              <GradeBar flipped={flipped} intervals={intervals} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} />
+              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} />
             ) : (
               <div className="h-16" />
             )}

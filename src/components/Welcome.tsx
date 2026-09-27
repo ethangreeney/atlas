@@ -1,7 +1,8 @@
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from 'motion/react'
 import { SlidersHorizontal } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ALL_CARDS, mediaUrl } from '../lib/deck'
+import { restoreFocus, trapTab } from '../lib/focus'
 
 const SEEN_KEY = 'atlas.welcomed'
 const seen = () => {
@@ -19,7 +20,8 @@ const GUIDE = [
   { label: 'Easy', cls: 'text-easy', text: 'Right, instantly.' },
 ]
 
-const link = 'text-ink underline decoration-line underline-offset-2 hover:decoration-ink'
+/** The ::after widens the tap target past the line of text without moving it. */
+const link = 'relative text-ink underline decoration-line underline-offset-2 hover:decoration-ink after:absolute after:-inset-x-1 after:-inset-y-2'
 
 const FLAGS = ['brazil', 'japan', 'canada', 'south_africa', 'bhutan']
 
@@ -67,6 +69,7 @@ function FlagFan({ tilt }: { tilt: Tilt }) {
 export function Welcome() {
   const [open, setOpen] = useState(() => !seen())
   const tilt = { x: useMotionValue(0), y: useMotionValue(0) }
+  const dialogRef = useRef<HTMLDivElement>(null)
   const close = () => {
     setOpen(false)
     try {
@@ -76,19 +79,29 @@ export function Welcome() {
     }
   }
 
-  // While open, swallow keys so they don't flip or grade the card underneath.
+  // While open, focus stays in the dialog and keys don't flip or grade the card underneath. Escape, Enter and Space
+  // start learning, except that links and the button keep their own Enter (and the button its Space).
+  // On closing, focus goes back to where it was.
   useEffect(() => {
     if (!open) return
+    const opener = document.activeElement
+    const box = dialogRef.current
+    box?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'Tab') return trapTab(e, box)
       e.stopImmediatePropagation()
-      if (e.key === 'Escape' || e.key === 'Enter' || e.code === 'Space') {
+      const own = e.target instanceof Element && box?.contains(e.target) ? e.target.closest('a, button') : null
+      if (e.key === 'Escape' || (e.key === 'Enter' && !own) || (e.code === 'Space' && own?.tagName !== 'BUTTON')) {
         e.preventDefault()
         close()
       }
     }
     window.addEventListener('keydown', onKey, { capture: true })
-    return () => window.removeEventListener('keydown', onKey, { capture: true })
+    return () => {
+      window.removeEventListener('keydown', onKey, { capture: true })
+      restoreFocus(opener, box)
+    }
   }, [open])
 
   return (
@@ -112,6 +125,9 @@ export function Welcome() {
           >
             <motion.div
               role="dialog"
+              ref={dialogRef}
+              tabIndex={-1}
+              style={{ outline: 'none' }}
               aria-modal="true"
               aria-labelledby="welcome-title"
               className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-surface p-6 text-left sm:p-8"

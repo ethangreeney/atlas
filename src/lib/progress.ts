@@ -102,24 +102,67 @@ const fold = (s: string) =>
   s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/[’'.]/g, '')
-    .replace(/-/g, ' ')
+    // Apostrophes of every kind (’ ʻ ' …, and the other modifier letters) and dots go; other punctuation becomes a space.
+    .replace(/[ʰ-˿'’‘`´′.]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .toLowerCase()
     .trim()
 
+/** Other names people search by: short forms, and former or local names. */
+const ALIASES: Record<string, string[]> = {
+  'United States of America': ['usa', 'us', 'united states', 'america'],
+  'United Kingdom': ['uk', 'great britain', 'britain'],
+  'United Arab Emirates': ['uae'],
+  'Democratic Republic of the Congo': ['drc', 'dr congo', 'congo kinshasa', 'zaire'],
+  'Republic of the Congo': ['congo brazzaville'],
+  'Ivory Coast': ["côte d'ivoire", 'cote d ivoire'],
+  'Timor-Leste': ['east timor'],
+  Myanmar: ['burma'],
+  'Czech Republic': ['czechia'],
+  Eswatini: ['swaziland'],
+  Netherlands: ['holland'],
+  'Cape Verde': ['cabo verde'],
+  Turkey: ['türkiye'],
+  'Vatican City': ['holy see'],
+  'Sahrawi Arab Democratic Republic': ['western sahara'],
+  'North Korea': ['dprk'],
+  China: ['prc'],
+  'New Zealand': ['nz', 'aotearoa'],
+  'Papua New Guinea': ['png'],
+  Ukraine: ['kiev'],
+  'United States Virgin Islands': ['usvi'],
+  'British Virgin Islands': ['bvi'],
+}
+
+/** A name folded, plus "St." spelled out as "Saint" and the other way round. */
+const forms = (name: string) => {
+  const f = fold(name)
+  return [...new Set([f, f.replace(/\bst /g, 'saint '), f.replace(/\bsaint /g, 'st ')])]
+}
+
 const INDEX = NOTES.map((note) => ({
   note,
-  country: fold(note.country),
-  capitals: note.capital ? note.capital.split(/,\s*/).map(fold) : [],
+  names: forms(note.country),
+  // "Washington, D.C." whole, and each of "Pretoria, Cape Town, Bloemfontein" on its own.
+  capitals: note.capital ? [note.capital, ...note.capital.split(/,\s*/)].flatMap(forms) : [],
+  aliases: (ALIASES[note.country] ?? []).map(fold),
 }))
 
-const rank = (hay: string, q: string) => (hay === q ? 0 : hay.startsWith(q) ? 1 : hay.includes(' ' + q) ? 2 : hay.includes(q) ? 3 : Infinity)
+/** Whole name, then prefix, then the start of a word, then anywhere (from three letters, so "us" doesn't find Belarus). */
+const rank = (hay: string, q: string) =>
+  hay === q ? 0 : hay.startsWith(q) ? 1 : hay.includes(' ' + q) ? 2 : q.length > 2 && hay.includes(q) ? 3 : Infinity
+/** Other names count whole, or as a prefix from two letters, just behind the real name. */
+const rankAlias = (hay: string, q: string) => (hay === q ? 0.25 : q.length > 1 && hay.startsWith(q) ? 1.25 : Infinity)
 
-/** Places whose name or capital matches, ignoring accents and punctuation: whole name, then prefix, then word, then anywhere. */
+/** Places whose name, capital or other name matches, ignoring case, accents and punctuation, best matches first. */
 export function search(query: string, limit = 30): Note[] {
-  const q = fold(query)
+  const q = fold(query).replace(/^the (?=.)/, '')
   if (!q) return []
-  return INDEX.map((x) => ({ note: x.note, score: Math.min(rank(x.country, q), ...x.capitals.map((c) => rank(c, q) + 0.5)) }))
+  return INDEX.map((x) => ({
+    note: x.note,
+    score: Math.min(...x.names.map((n) => rank(n, q)), ...x.aliases.map((a) => rankAlias(a, q)), ...x.capitals.map((c) => rank(c, q) + 0.5)),
+  }))
     .filter((x) => x.score < Infinity)
     .sort((a, b) => a.score - b.score || a.note.country.localeCompare(b.note.country))
     .slice(0, limit)

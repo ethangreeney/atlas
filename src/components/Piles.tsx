@@ -18,8 +18,10 @@ export function Piles({ counts, refs }: Props) {
         const n = counts[i]
         const layers = Math.max(1, Math.min(n, MAX_LAYERS))
         return (
-          <div key={g.key} className="flex flex-col items-center" aria-label={`${g.label}: ${n}`}>
+          <div key={g.key} className="flex flex-col items-center">
+            <span className="sr-only">{`${g.label}: ${n}`}</span>
             <div
+              aria-hidden
               ref={(el) => {
                 refs.current[i] = el
               }}

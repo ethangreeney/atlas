@@ -35,12 +35,17 @@ export function applyWeights(f: Fitted) {
   } catch {
     /* private mode: still use them for this visit */
   }
-  scheduler.parameters = { w: f.w }
+  // Setting parameters rebuilds the whole config from library defaults, so pass everything, not just the weights.
+  scheduler.parameters = { ...PARAMS, w: f.w }
 }
 /** Back to the stock weights (another account's history no longer applies). */
 export function resetWeights() {
-  localStorage.removeItem(WEIGHTS_KEY)
-  scheduler.parameters = { w: [...default_w] }
+  try {
+    localStorage.removeItem(WEIGHTS_KEY)
+  } catch {
+    /* storage blocked: nothing saved to remove */
+  }
+  scheduler.parameters = { ...PARAMS, w: [...default_w] }
 }
 
 export const LEECH_THRESHOLD = 8

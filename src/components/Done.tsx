@@ -1,9 +1,6 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { db } from '../lib/db'
-import { CARD_BY_ID } from '../lib/deck'
-import { dayEnd, formatInterval, GRADES, matchesFilters, State, type Queue } from '../lib/scheduler'
-import { useSettings, type Settings } from '../lib/settings'
+import { dayEnd, formatInterval, GRADES, type Queue } from '../lib/scheduler'
 import { loadStreak } from '../lib/streak'
 import { KeepProgress } from './KeepProgress'
 
@@ -32,37 +29,11 @@ const Action = ({ onClick, children }: { onClick: () => void; children: React.Re
   </button>
 )
 
-/** When reviews come back, among the cards the filters show: the soonest one, and how many fall due tomorrow. */
-function useUpcoming(settings: Settings) {
-  const [upcoming, setUpcoming] = useState<{ at: Date; tomorrow: number } | null>(null)
-  useEffect(() => {
-    let live = true
-    void db.cards.toArray().then((rows) => {
-      const now = new Date()
-      const end = dayEnd(now)
-      const tomorrowEnd = dayEnd(end)
-      let at: Date | null = null
-      let tomorrow = 0
-      for (const r of rows) {
-        const c = CARD_BY_ID.get(r.id)
-        if (r.state === State.New || !c || !matchesFilters(c, settings) || r.due <= now) continue
-        if (!at || r.due < at) at = r.due
-        if (r.due >= end && r.due < tomorrowEnd) tomorrow++
-      }
-      if (live) setUpcoming(at ? { at, tomorrow } : null)
-    })
-    return () => {
-      live = false
-    }
-  }, [settings])
-  return upcoming
-}
-
 type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: () => void; onOpenProgress: () => void }
 
 export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Props) {
-  const settings = useSettings()
-  const upcoming = useUpcoming(settings)
+  // Every answer today, the same ones the grade row and piles count (learning steps and Knew it included).
+  const answered = grades.reduce((a, b) => a + b, 0)
   const [now, setNow] = useState(Date.now)
   const [streak, setStreak] = useState(0)
   useEffect(() => {
@@ -82,16 +53,16 @@ export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Pr
   const waitMs = queue.nextLearningAt ? +queue.nextLearningAt - now : 0
   const next = queue.nextLearningAt
     ? waitMs > 0 && `next card in ${formatInterval(waitMs)}`
-    : upcoming &&
-      (upcoming.tomorrow && +upcoming.at >= +dayEnd(new Date(now))
-        ? `${upcoming.tomorrow} review${upcoming.tomorrow === 1 ? '' : 's'} tomorrow`
-        : `next review in ${formatInterval(+upcoming.at - now)}`)
+    : queue.nextDue &&
+      (queue.dueTomorrow && +queue.nextDue >= +dayEnd(new Date(now))
+        ? `${queue.dueTomorrow} review${queue.dueTomorrow === 1 ? '' : 's'} tomorrow`
+        : `next review in ${formatInterval(+queue.nextDue - now)}`)
   return (
     <Screen>
       <Title>{queue.nextLearningAt ? 'Take a breath.' : 'Done for today.'}</Title>
       <div className="text-balance text-[14px] text-ink-3">
         {/* Wrap only between phrases, never inside one. */}
-        {[`${queue.done} card${queue.done === 1 ? '' : 's'} answered`, next, `${learned} learned in total`, streak > 1 && `${streak}-day streak`]
+        {[`${answered} answer${answered === 1 ? '' : 's'}`, next, `${learned} learned in total`, streak > 1 && `${streak}-day streak`]
           .filter(Boolean)
           .map((t, i) => (
             <span key={i}>
@@ -100,7 +71,7 @@ export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Pr
             </span>
           ))}
       </div>
-      {queue.done > 0 && (
+      {answered > 0 && (
         <div className="flex items-baseline gap-3 text-[13px]">
           {GRADES.map((g, i) => (
             <span key={g.key} className="flex items-baseline gap-1">

@@ -1,7 +1,7 @@
 import { createEmptyCard, fsrs, type Card } from 'ts-fsrs'
 import type { CardRow } from './db'
 import { ALL_CARDS, CARD_BY_ID, NOTES, type DeckCard, type Note } from './deck'
-import { dayEnd, matchesFilters, PARAMS, Rating, State } from './scheduler'
+import { dayEnd, matchesFilters, Rating, scheduler, State } from './scheduler'
 import type { Settings } from './settings'
 
 /** Anki's line: a card whose interval has reached three weeks is mature. */
@@ -36,8 +36,6 @@ export function hardest(rows: Map<string, CardRow>, n = 10) {
 }
 
 const DAY_MS = 86_400_000
-/** Same parameters as the real scheduler, without the random fuzz, so the estimate is steady. */
-const steady = fsrs({ ...PARAMS, enable_fuzz: false })
 
 /**
  * A rough look ahead, assuming every answer is Good (real lapses add a little on top):
@@ -45,6 +43,9 @@ const steady = fsrs({ ...PARAMS, enable_fuzz: false })
  * and the busiest day of reviews between now and a month after that.
  */
 export function forecast(rows: Map<string, CardRow>, settings: Settings, now = new Date()) {
+  // Same parameters as the real scheduler (weights refitted since the page loaded too), without the random fuzz, so
+  // the estimate is steady.
+  const steady = fsrs({ ...scheduler.parameters, enable_fuzz: false })
   const cards = ALL_CARDS.filter((c) => matchesFilters(c, settings))
   const perNote = new Map<string, number>()
   for (const c of cards) {

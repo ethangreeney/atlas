@@ -1,4 +1,4 @@
-import { createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs'
+import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs'
 import { ALL_CARDS, kindOf, type DeckCard } from './deck'
 import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
@@ -7,10 +7,19 @@ import type { Settings } from './settings'
 /** Weights fitted to this learner's own review log by the FSRS optimizer (see optimize.ts), when there are any. */
 export const WEIGHTS_KEY = 'atlas.fsrs'
 export type Fitted = { w: number[]; at: number; reviews: number }
+/**
+ * Weights FSRS would have to clip (one relearning step, short-term on, as below) can't have come from a fit: a damaged
+ * or edited copy would schedule oddly. The optimizer works in float32, so allow for rounding at the bounds.
+ */
+export const validWeights = (w: unknown): w is number[] =>
+  Array.isArray(w) &&
+  w.length === 21 &&
+  w.every(Number.isFinite) &&
+  clipParameters(w, 1, true).every((x, i) => Math.abs(x - w[i]) <= 1e-6 * Math.max(1, Math.abs(w[i])))
 export const loadFitted = (): Fitted | null => {
   try {
     const f = JSON.parse(localStorage.getItem(WEIGHTS_KEY) ?? 'null') as Fitted | null
-    return f && Array.isArray(f.w) && f.w.length === 21 && f.w.every(Number.isFinite) ? f : null
+    return f && validWeights(f.w) ? f : null
   } catch {
     return null
   }
@@ -105,8 +114,13 @@ export type Queue = {
   nextLearningAt: Date | null
   total: number
   done: number
-  /** Unseen new cards left in the current filters, for 'learn more'. */
+  /** New cards in the current filters that could still come today (one per place), for 'learn more'. */
   remainingNew: number
+  /** How far today's new cards already run past their limits (one lowered since, say): 'learn more' makes it up first. */
+  newOver: number
+  /** For the done screen: the soonest a card in the filters comes back, and how many reviews come tomorrow. */
+  nextDue: Date | null
+  dueTomorrow: number
 }
 
 const isLearning = (s: State) => s === State.Learning || s === State.Relearning
@@ -144,45 +158,65 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   // would let one answer cue the next.
   reviews.sort((a, b) => rank(a) - rank(b))
 
-  const newBudget = Math.max(0, Math.min(settings.newPerDay + day.extraNew - day.newCount, reviewBudget - reviews.length))
+  // New cards count against the review limit too, as in Anki, so a heavy review day leaves room for fewer. 'Learn more'
+  // raises both limits, so it's honoured even once the reviews have used up the day.
+  const newLeft = Math.min(settings.newPerDay, reviewBudget - reviews.length) + day.extraNew - day.newCount
+  const newBudget = Math.max(0, newLeft)
+  const newOver = Math.max(0, -newLeft)
   const seenNew = new Set<string>()
   let graded = 0
   for (const r of rows.values()) if (r.state !== State.New) graded++
   const warmup = graded < WARMUP_CARDS
   const tier = (c: DeckCard) => (warmup && (c.type === 'flag' || c.type === 'map') && STARTERS.has(c.note.country) ? 0 : 1)
   const fameKey = (c: DeckCard) => (FAME.get(c.note.id) ?? FAME.size) + (rank(c) / 2 ** 32) * FAME_SPREAD
-  const fresh = cards
+  // One card per place a day, so this is also how many new cards could still come today.
+  const unseen = cards
     .filter((c) => row(c).state === State.New && !seen.has(c.note.id))
     .sort((a, b) => tier(a) - tier(b) || fameKey(a) - fameKey(b))
     .filter((c) => (seenNew.has(c.note.id) ? false : (seenNew.add(c.note.id), true)))
-    .slice(0, newBudget)
+  const fresh = unseen.slice(0, newBudget)
 
-  const remainingNew = cards.filter((c) => row(c).state === State.New && !seen.has(c.note.id)).length
   const counts = { new: fresh.length, learn: learning.length, due: reviews.length }
   const done = day.newCount + day.reviewCount
   const total = done + counts.new + counts.due
+  const base = { counts, total, done, remainingNew: unseen.length, newOver, nextDue: null, dueTomorrow: 0 }
+
+  /** For the done screen. A review due today that didn't make the queue (over the limit, or its place seen) waits for tomorrow. */
+  const upcoming = () => {
+    const tomorrowEnd = dayEnd(end)
+    let nextDue: Date | null = null
+    let dueTomorrow = 0
+    for (const c of cards) {
+      const r = rows.get(c.id)
+      if (!r || r.state === State.New) continue
+      const at = r.state === State.Review && r.due < end ? end : r.due
+      if (at <= now) continue
+      if (!nextDue || at < nextDue) nextDue = at
+      if (at >= end && at < tomorrowEnd) dueTomorrow++
+    }
+    return { nextDue, dueTomorrow: Math.min(dueTomorrow, settings.reviewsPerDay) }
+  }
 
   // 1. Learning cards that are due now come first.
   const dueLearning = learning.find((c) => row(c).due <= now)
-  if (dueLearning) return { current: dueLearning, counts, nextLearningAt: null, total, done, remainingNew }
+  if (dueLearning) return { ...base, current: dueLearning, nextLearningAt: null }
 
-  // 2. Reviews and new cards, new ones spread evenly through the reviews.
+  // 2. Reviews and new cards, new ones spread evenly through the day: new card k goes in the middle of its share.
+  // Counting from today's answers keeps the pattern steady from one answer to the next.
   if (reviews.length || fresh.length) {
-    const r = reviews.length
-    const n = fresh.length
-    const newRank = n ? (0.5 * (r + n)) / n : Infinity
-    const current = r === 0 || newRank < 1 ? fresh[0] : reviews[0]
-    return { current, counts, nextLearningAt: null, total, done, remainingNew }
+    const slot = ((day.newCount + 0.5) * total) / (day.newCount + fresh.length)
+    const current = fresh.length && (!reviews.length || done >= Math.floor(slot)) ? fresh[0] : reviews[0]
+    return { ...base, current, nextLearningAt: null }
   }
 
   // 3. Nothing else left: show a learning card slightly early, otherwise wait for it.
   const soonest = learning[0]
   if (soonest) {
     const due = row(soonest).due
-    if (+due - +now <= LEARN_AHEAD_MS) return { current: soonest, counts, nextLearningAt: null, total, done, remainingNew }
-    return { current: null, counts, nextLearningAt: due, total, done, remainingNew }
+    if (+due - +now <= LEARN_AHEAD_MS) return { ...base, current: soonest, nextLearningAt: null }
+    return { ...base, ...upcoming(), current: null, nextLearningAt: due }
   }
-  return { current: null, counts, nextLearningAt: null, total, done, remainingNew }
+  return { ...base, ...upcoming(), current: null, nextLearningAt: null }
 }
 
 /** Anki-style interval labels for the four answer buttons. */

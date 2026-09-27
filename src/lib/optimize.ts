@@ -1,6 +1,6 @@
 import { db, type RevlogRow } from './db'
 import type { FitRequest } from './optimize.worker'
-import { applyWeights, dayKey, loadFitted, State } from './scheduler'
+import { applyWeights, dayKey, loadFitted, State, validWeights } from './scheduler'
 
 /** Below this the optimizer mostly hands back the defaults it started from. */
 const MIN_REVIEWS = 400
@@ -64,7 +64,7 @@ export async function maybeOptimize() {
       worker.postMessage(items, [items.ratings.buffer, items.deltas.buffer, items.lengths.buffer])
     })
     worker.terminate()
-    if (w && w.length === 21 && w.every(Number.isFinite)) applyWeights({ w, at: Date.now(), reviews })
+    if (validWeights(w)) applyWeights({ w, at: Date.now(), reviews })
   } finally {
     running = false
   }

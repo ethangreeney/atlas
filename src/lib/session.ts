@@ -9,7 +9,9 @@ import { recordUndo, schedulePush } from './sync'
 /** A new card marked "Knew it" comes back in 30 to 60 days. */
 const KNOWN_DAYS = 30
 
-type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string; review: Date }
+type Drill = { ids: string[]; left: string[] }
+/** `drill`: the drill under way when the card was answered, so undoing puts it back as it was. */
+type Undo = { row: CardRow | undefined; day: DayRow; logId: number; cardId: string; review: Date; drill: Drill | null }
 
 export function useSession() {
   const settings = useSettings()
@@ -31,7 +33,7 @@ export function useSession() {
    * A short run over chosen cards (the hardest ones), whether due or not. Each is answered once through the normal
    * grade path, so FSRS sees an ordinary early review; the run ends when none are left, or on exit.
    */
-  const [drill, setDrill] = useState<{ ids: string[]; left: string[] } | null>(null)
+  const [drill, setDrill] = useState<Drill | null>(null)
 
   /**
    * Today's counters come from the review log, not the stored day row, so progress made on two devices
@@ -101,7 +103,7 @@ export function useSession() {
     }
     if (pinned.current) {
       const c = CARD_BY_ID.get(pinned.current)
-      if (c) {
+      if (c && matchesFilters(c, settings)) {
         shown.current = { id: c.id, rev: rows.current.get(c.id)?.updated ?? 0 }
         return { ...q, current: c }
       }
@@ -132,10 +134,10 @@ export function useSession() {
     [queue],
   )
 
-  /** Cards answered at least once, ever. */
+  /** Cards answered at least once, ever, among those still in the deck (as Progress counts them). */
   const learned = useMemo(() => {
     let n = 0
-    for (const r of rows.current.values()) if (r.state !== State.New) n++
+    for (const r of rows.current.values()) if (r.state !== State.New && CARD_BY_ID.has(r.id)) n++
     return n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue])
@@ -181,6 +183,8 @@ export function useSession() {
 
       rows.current.set(card.id, row)
       pinned.current = null
+      // Whatever comes next (this card again, even) is a fresh showing.
+      shown.current = null
       setDrill((dr) => {
         if (!dr) return dr
         const left = dr.left.filter((id) => id !== card.id)
@@ -198,10 +202,10 @@ export function useSession() {
         setSaveError(true)
         return
       }
-      setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review })
+      setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review, drill })
       schedulePush()
     },
-    [day, loadDay],
+    [day, loadDay, drill],
   )
 
   const undoLast = useCallback(async () => {
@@ -213,16 +217,18 @@ export function useSession() {
     const prev = undo.row ?? (deckCard && freshRow(deckCard, new Date(now)))
     if (!prev) return
     const row: CardRow = { ...prev, updated: now, dirty: 1 }
-    const day: DayRow = { ...undo.day, updated: now, dirty: 1 }
+    // Undo takes back the answer, not a 'learn more' asked for since.
+    const extraNew = Math.max(undo.day.extraNew, day?.day === undo.day.day ? day.extraNew : 0)
+    const nd: DayRow = { ...undo.day, extraNew, updated: now, dirty: 1 }
     rows.current.set(undo.cardId, row)
     pinned.current = undo.cardId
-    setDrill((dr) => (dr && dr.ids.includes(undo.cardId) && !dr.left.includes(undo.cardId) ? { ...dr, left: [undo.cardId, ...dr.left] } : dr))
-    setDay(day)
+    setDrill(undo.drill)
+    setDay(nd)
     setUndo(null)
     try {
       await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
         await db.cards.put(row)
-        await db.days.put(day)
+        await db.days.put(nd)
         await db.revlog.delete(undo.logId)
       })
     } catch {
@@ -231,12 +237,13 @@ export function useSession() {
     }
     recordUndo(undo.cardId, undo.review)
     schedulePush()
-  }, [undo])
+  }, [undo, day])
 
   const learnMore = useCallback(
     async (n = 20) => {
       if (!day) return
-      const nd: DayRow = { ...day, extraNew: day.extraNew + n, updated: Date.now(), dirty: 1 }
+      // Past a limit already (one lowered since, say)? Make that up too, so it brings as many as it offered.
+      const nd: DayRow = { ...day, extraNew: day.extraNew + n + (queue?.newOver ?? 0), updated: Date.now(), dirty: 1 }
       setDay(nd)
       try {
         await db.days.put(nd)
@@ -246,7 +253,7 @@ export function useSession() {
       }
       schedulePush()
     },
-    [day],
+    [day, queue],
   )
 
   const refresh = useCallback(() => setTick((t) => t + 1), [])
@@ -260,6 +267,8 @@ export function useSession() {
   }, [])
 
   const exitDrill = useCallback(() => {
+    // A drill card brought back by undo isn't due: don't carry it into normal study.
+    pinned.current = null
     shown.current = null
     setDrill(null)
   }, [])

@@ -34,7 +34,7 @@ function FlagFan({ tilt }: { tilt: Tilt }) {
   const rotateY = useSpring(useTransform(tilt.x, [-0.5, 0.5], [-8, 8]), { stiffness: 120, damping: 18 })
   const rotateX = useSpring(useTransform(tilt.y, [-0.5, 0.5], [6, -6]), { stiffness: 120, damping: 18 })
   return (
-    <div className="relative h-[60px] scale-[0.8] [perspective:700px] sm:h-[76px] sm:scale-100" aria-hidden>
+    <div className="relative h-[60px] scale-[0.8] [perspective:700px] sm:h-[76px] sm:scale-100 short:h-[60px] short:scale-[0.8]" aria-hidden>
       <motion.div className="absolute inset-0 [transform-style:preserve-3d]" style={still ? undefined : { rotateX, rotateY }}>
         {FLAGS.map((f, i) => {
           const o = i - mid
@@ -116,7 +116,7 @@ export function Welcome() {
         {open && (
           <motion.div
             key="welcome"
-            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-page/70 pad-safe backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-page/70 pad-safe backdrop-blur-sm sm:short:items-center-safe sm:short:overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -130,7 +130,8 @@ export function Welcome() {
               style={{ outline: 'none' }}
               aria-modal="true"
               aria-labelledby="welcome-title"
-              className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-surface p-6 text-left sm:p-8"
+              // A wide, short screen (a phone on its side) reads it in two columns, "Start learning" at the end of the second.
+              className="card-shadow max-h-full w-[min(420px,100%)] overflow-y-auto rounded-3xl bg-surface p-6 text-left sm:p-8 short:p-6 sm:short:max-h-none sm:short:w-[min(760px,100%)] sm:short:columns-2 sm:short:gap-10"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -147,12 +148,12 @@ export function Welcome() {
             >
               <FlagFan tilt={tilt} />
 
-              <h2 id="welcome-title" className="mt-3 text-balance text-[22px] font-semibold sm:mt-5 sm:text-[24px] leading-[1.15] tracking-[-0.025em] text-ink">
+              <h2 id="welcome-title" className="mt-3 text-balance text-[22px] font-semibold sm:mt-5 sm:text-[24px] leading-[1.15] tracking-[-0.025em] text-ink short:mt-3">
                 Learn every flag, capital and map.
               </h2>
               <p className="mt-1 text-[13.5px] text-ink-2 sm:mt-1.5 sm:text-[14px]">A few minutes a day is enough.</p>
 
-              <div className="mt-4 space-y-3 text-[13.5px] leading-snug sm:mt-5 sm:space-y-4 sm:text-[14px]">
+              <div className="mt-4 space-y-3 text-[13.5px] leading-snug sm:mt-5 sm:space-y-4 sm:text-[14px] short:mt-4 short:space-y-3 *:break-inside-avoid">
                 <div>
                   <div className="font-medium text-ink">The deck geography fans swear by</div>
                   <p className="mt-0.5 text-ink-2">
@@ -181,8 +182,8 @@ export function Welcome() {
                 </div>
               </div>
 
-              <div className="mt-5 text-[12.5px] font-medium sm:mt-6 text-ink-3">Grade honestly</div>
-              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13.5px] sm:mt-2.5 sm:gap-y-1.5 sm:text-[14px]">
+              <div className="mt-5 text-[12.5px] font-medium sm:mt-6 text-ink-3 short:mt-4 break-after-avoid">Grade honestly</div>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13.5px] sm:mt-2.5 sm:gap-y-1.5 sm:text-[14px] short:mt-2 short:gap-y-1 break-inside-avoid">
                 {GUIDE.map((g) => (
                   <div key={g.label} className="contents">
                     <dt className={`font-medium ${g.cls}`}>{g.label}</dt>
@@ -193,12 +194,12 @@ export function Welcome() {
 
               <button
                 onClick={close}
-                className="mt-5 flex h-11 w-full sm:mt-7 items-center justify-center gap-2.5 rounded-2xl bg-ink text-[14px] font-medium text-on-ink outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.98]"
+                className="mt-5 flex h-11 w-full sm:mt-7 short:mt-5 items-center justify-center gap-2.5 rounded-2xl bg-ink text-[14px] font-medium text-on-ink outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ink/20 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.98]"
               >
                 Start learning
                 <span className="hidden rounded-[5px] border border-on-ink/20 pointer-fine:inline px-[5px] py-[3px] text-[10.5px] leading-none text-on-ink/60">space</span>
               </button>
-              <p className="mt-3 text-center text-[12px] text-ink-3">Free. No account needed<span className="hidden sm:inline">, sign in only to sync devices</span>.</p>
+              <p className="mt-3 text-center text-[12px] text-ink-3 break-before-avoid">Free. No account needed<span className="hidden sm:inline">, sign in only to sync devices</span>.</p>
             </motion.div>
           </motion.div>
         )}

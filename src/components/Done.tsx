@@ -8,7 +8,7 @@ const GRADE_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
 
 const Screen = ({ children }: { children: React.ReactNode }) => (
   <motion.div
-    className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center"
+    className="scroll-fade absolute inset-0 flex flex-col items-center justify-center-safe gap-3 overflow-y-auto text-center short:gap-1.5"
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0 }}
@@ -18,7 +18,7 @@ const Screen = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 )
 const Title = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-balance text-[clamp(26px,4vw,34px)] font-semibold tracking-[-0.02em] text-ink">{children}</div>
+  <div className="text-balance text-[clamp(26px,4vw,34px)] font-semibold tracking-[-0.02em] text-ink short:text-[26px]">{children}</div>
 )
 const Action = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
   <button

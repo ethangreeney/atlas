@@ -106,7 +106,7 @@ const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: strin
     src={mediaUrl(file)}
     alt={alt}
     draggable={false}
-    className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+    className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)] short:max-h-[min(190px,100cqh_-_56px)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
   />
 )
 const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
@@ -114,7 +114,8 @@ const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string
     src={mediaUrl(file)}
     alt={alt}
     draggable={false}
-    className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)]' : 'w-[min(190px,40vw)] short:w-[min(130px,40vw)]'} rounded-xl img-shadow img-dim`}
+    // Short screens size maps by the card's height (cqh), so the answer beneath still fits.
+    className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)] short:max-w-[min(400px,74vw,100%)] short:max-h-[min(300px,100cqh_-_56px)]' : 'w-[min(190px,40vw)] short:max-w-[min(190px,40vw)] short:max-h-[clamp(24px,100cqh_-_110px,110px)]'} rounded-xl img-shadow img-dim short:w-auto`}
   />
 )
 
@@ -336,8 +337,10 @@ const Action = ({ label, onClick, href, children }: { label: string; onClick?: (
 
 /** Both faces stay mounted for the 3D flip; the one facing away is inert, so it's neither read out nor tabbable. */
 const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-surface text-center'
-/** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen. */
-const body = (shown: boolean) => `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 ${shown ? 'overflow-y-auto' : ''}`
+/** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen, and then fades at the
+ * edge with more to see. On a wide short screen it keeps clear of the corner tag and buttons. */
+const body = (shown: boolean) =>
+  `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 short:py-3 sm:short:px-24 ${shown ? 'overflow-y-auto scroll-fade' : ''}`
 
 export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed }: Props) {
   const tag = stateTag(row)
@@ -349,7 +352,7 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
   }, [flipped])
   return (
     <motion.div
-      className={`absolute inset-0 [perspective:1400px] ${flipped ? 'touch-pan-y' : ''}`}
+      className={`absolute inset-0 [perspective:1400px] short:[container-type:size] ${flipped ? 'touch-pan-y' : ''}`}
       variants={variants}
       initial="enter"
       animate="center"
@@ -382,7 +385,8 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
         <div className={`${face} [transform:rotateY(180deg)]`} inert={!flipped}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
           {typed && <Result typed={typed} />}
-          <div className={body(flipped)}>
+          {/* A scroller sets its own touch-action, so it needs pan-y too or a swipe starting on the answer is lost. */}
+          <div className={`${body(flipped)} touch-pan-y`}>
             <Back card={card} showMap={showMap} onSay={onSpeak} />
           </div>
           <div className="absolute bottom-3 right-3 flex items-center gap-3">

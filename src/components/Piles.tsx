@@ -13,7 +13,7 @@ const COUNT_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
  */
 export function Piles({ counts, refs }: Props) {
   return (
-    <div className="grid w-full grid-cols-4 items-end gap-2">
+    <div className="grid w-full grid-cols-4 items-end gap-2 short:h-[42px]">
       {GRADES.map((g, i) => {
         const n = counts[i]
         const layers = Math.max(1, Math.min(n, MAX_LAYERS))
@@ -25,7 +25,7 @@ export function Piles({ counts, refs }: Props) {
               ref={(el) => {
                 refs.current[i] = el
               }}
-              className="relative h-10 w-14"
+              className="relative h-10 w-14 short:h-8 short:w-12"
               style={{ marginTop: (layers - 1) * 2 }}
             >
               {Array.from({ length: layers }, (_, layer) => layers - 1 - layer).map((depth) => (

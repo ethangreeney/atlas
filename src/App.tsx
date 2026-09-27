@@ -260,7 +260,7 @@ export default function App() {
         </div>
 
         {saveError && (
-          <div role="alert" className="mx-4 mt-3 rounded-xl bg-again/10 px-3 py-2 text-center text-[12.5px] text-again sm:mx-6">
+          <div role="alert" className="mx-4 mt-3 rounded-xl bg-again/10 px-3 py-2 text-center text-[12.5px] text-again sm:mx-6 short:mt-2 short:py-1.5">
             This browser couldn't save your progress. Grades from now on may be lost when you close the page.
           </div>
         )}
@@ -274,8 +274,9 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 short:gap-3">
-          <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)] short:h-[min(420px,60dvh)]">
+        <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 short:gap-2 short:pt-2.5">
+          {/* On a short screen the card takes whatever height the bars leave it. */}
+          <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)] short:h-auto short:max-h-[420px] short:min-h-0 short:flex-1">
             <AnimatePresence custom={exitTarget} initial={false}>
               {ready && card && currentRow && (
                 <Card key={`${card.id}:${seq}`} card={card} row={currentRow} flipped={flipped}
@@ -305,16 +306,16 @@ export default function App() {
             {card ? (
               <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} />
             ) : (
-              <div className="h-16" />
+              <div className="h-16 short:hidden" />
             )}
           </div>
         </main>
 
-        <div className="mx-auto w-[min(592px,100%)] px-4 pb-4">
+        <div className="mx-auto w-[min(592px,100%)] px-4 pb-4 short:pb-1.5 short:pt-2">
           <Piles counts={pileCounts} refs={pileRefs} />
         </div>
 
-        <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6">
+        <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6 short:h-8">
           <div className="flex shrink-0 items-center gap-2">
             <Welcome />
             <span className="mx-1 hidden lg:inline">·</span>

@@ -121,6 +121,43 @@ body {
     0 1px 2px rgba(15, 15, 16, 0.05);
 }
 
+/* Something that scrolls only when it can't fit (a card face or the Done screen on a short screen) fades out at
+ * whichever edge has more to see. Driven by its own scroll position, so when it fits there's no fade at all. */
+@property --fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes scroll-fade {
+  from {
+    --fade-top: 0px;
+    --fade-bottom: 24px;
+    mask-image: linear-gradient(transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+  }
+  10% {
+    --fade-top: 24px;
+  }
+  90% {
+    --fade-bottom: 24px;
+  }
+  to {
+    --fade-top: 24px;
+    --fade-bottom: 0px;
+    mask-image: linear-gradient(transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .scroll-fade {
+    animation: scroll-fade linear both;
+    animation-timeline: scroll(self);
+  }
+}
+
 kbd {
   font-family: var(--font-sans);
   font-size: 10.5px;

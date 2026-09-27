@@ -29,6 +29,7 @@ const MAX_BODY = 1_000_000
 const MAX_ROWS = 1000 // per push, all kinds together; the client sends 500
 const MAX_DATA = 2000 // serialized length of one row's `data`
 const MAX_AHEAD = 5 * 60_000 // client clocks may run this far ahead of ours
+const MIN_TIME = Date.UTC(2000, 0, 1) // anything earlier is a broken clock or a bad value
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } })
@@ -65,8 +66,10 @@ async function readSession(env: Env, req: Request): Promise<string | null> {
 
 async function googleSignIn(env: Env, req: Request) {
   if (!env.GOOGLE_CLIENT_ID) return json({ error: 'Sign-in not configured' }, 503)
-  const { access_token } = (await req.json()) as { access_token?: string }
-  if (!access_token) return json({ error: 'Missing token' }, 400)
+  const body = await readSmallJson(req)
+  if (body instanceof Response) return body
+  const { access_token } = body
+  if (typeof access_token !== 'string' || !access_token) return json({ error: 'Missing token' }, 400)
   const info = (await (await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(access_token)}`)).json()) as {
     aud?: string
     sub?: string
@@ -111,6 +114,12 @@ const dataOf = (v: unknown) => {
   const s = JSON.stringify(v)
   return s.length <= MAX_DATA ? s : null
 }
+/** A local day key (YYYY-MM-DD) for a real date, not far from now. */
+const isDay = (v: unknown, now: number) => {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false
+  const t = Date.parse(`${v}T00:00:00Z`) // rolls 02-30 over to March, caught below
+  return t >= MIN_TIME && t <= now + 2 * 86_400_000 && new Date(t).toISOString().startsWith(v)
+}
 
 async function push(env: Env, uid: string, req: Request) {
   if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) return json({ error: 'Too large' }, 413)
@@ -131,7 +140,9 @@ async function push(env: Env, uid: string, req: Request) {
   const now = Date.now()
   // A clock that runs ahead would otherwise win every last-write-wins merge until real time catches up.
   const clamp = (t: number) => Math.min(t, now + MAX_AHEAD)
-  const isKey = (k: RevlogKey) => !!k && CARD_IDS.has(k.cardId) && isTime(k.review)
+  // A review time is part of the row's key, so it can't be clamped: one out of range is refused, and the client keeps
+  // it to try again. Past 8.64e15 it isn't even a valid Date, and would fail every pull after it.
+  const isKey = (k: RevlogKey) => !!k && CARD_IDS.has(k.cardId) && isTime(k.review) && k.review >= MIN_TIME && k.review <= now + MAX_AHEAD
   const stmts: D1PreparedStatement[] = []
   const upCard = env.DB.prepare(
     'INSERT INTO cards (user_id, id, data, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id, id) DO UPDATE SET data = excluded.data, updated = excluded.updated, synced = excluded.synced WHERE excluded.updated > cards.updated',
@@ -146,29 +157,35 @@ async function push(env: Env, uid: string, req: Request) {
   )
   const delLog = env.DB.prepare('DELETE FROM revlog WHERE user_id = ?1 AND card_id = ?2 AND review = ?3')
   const tomb = env.DB.prepare('INSERT OR REPLACE INTO revlog_deleted (user_id, card_id, review, synced) VALUES (?1, ?2, ?3, ?4)')
-  let skipped = 0
-  for (const c of cards) {
+  // Positions of the rows not stored, per kind, so the client keeps those to send again instead of marking them done.
+  const rejected = { cards: [] as number[], days: [] as number[], revlog: [] as number[], deleted: [] as number[] }
+  for (const [i, c] of cards.entries()) {
     const data = c && CARD_IDS.has(c.id) && isTime(c.updated) ? dataOf(c.data) : null
     if (data) stmts.push(upCard.bind(uid, c.id, data, clamp(c.updated), now))
-    else skipped++
+    else rejected.cards.push(i)
   }
-  for (const d of days) {
-    const data = d && /^\d{4}-\d{2}-\d{2}$/.test(d.day) && isTime(d.updated) ? dataOf(d.data) : null
-    if (data) stmts.push(upDay.bind(uid, d.day, data, clamp(d.updated), now))
-    else skipped++
+  for (const [i, d] of days.entries()) {
+    // Only `extraNew` is kept (and the key, which older clients read from `data`). Whole rows grew past MAX_DATA
+    // once a day's list of places seen got long.
+    const extraNew = (d?.data as { extraNew?: unknown } | null)?.extraNew ?? 0
+    if (d && isDay(d.day, now) && isTime(d.updated) && Number.isSafeInteger(extraNew) && (extraNew as number) >= 0)
+      stmts.push(upDay.bind(uid, d.day, JSON.stringify({ day: d.day, extraNew }), clamp(d.updated), now))
+    else rejected.days.push(i)
   }
-  for (const r of revlog) {
+  for (const [i, r] of revlog.entries()) {
     const data = isKey(r) ? dataOf(r.data) : null
     if (data) stmts.push(upLog.bind(uid, r.cardId, r.review, data, now))
-    else skipped++
+    else rejected.revlog.push(i)
   }
-  for (const k of deleted) {
+  for (const [i, k] of deleted.entries()) {
     if (isKey(k)) stmts.push(delLog.bind(uid, k.cardId, k.review), tomb.bind(uid, k.cardId, k.review, now))
-    else skipped++
+    else rejected.deleted.push(i)
   }
   // D1 batches are limited in size; chunk them.
   for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100))
-  return json({ ok: true, count: stmts.length, skipped })
+  const skipped = Object.values(rejected).reduce((n, a) => n + a.length, 0)
+  // `cap`: card times above it were stored as it, so the client can hold the same value and compare like for like.
+  return json({ ok: true, count: stmts.length, skipped, rejected, cap: now + MAX_AHEAD })
 }
 
 const MAX_PUSH_BODY = 4000

@@ -15,7 +15,7 @@ import { useSession } from './lib/session'
 import { setSettings, useSettings } from './lib/settings'
 import { preload, speak, stopSpeaking } from './lib/tts'
 import { useAuth } from './lib/auth'
-import { syncNow } from './lib/sync'
+import { pushNow, syncNow } from './lib/sync'
 import { maybeOptimize } from './lib/optimize'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
@@ -59,7 +59,7 @@ export default function App() {
     }
   }
 
-  // Pull the latest progress when the app opens signed in, and whenever it comes back into view.
+  // Pull the latest progress when the app opens signed in, and whenever it comes back into view or back online.
   useEffect(() => {
     if (!ready || !auth) return
     const run = () =>
@@ -69,14 +69,19 @@ export default function App() {
         })
         .catch(() => {})
     run()
-    const onVisible = () => document.visibilityState === 'visible' && run()
+    // Going out of view (or closing) sends answers still waiting on the push delay, while requests can still go out.
+    const onVisible = () => (document.visibilityState === 'visible' ? run() : pushNow())
     // Mobile Safari can restore a page from its back/forward cache without a visibility change.
     const onShow = (e: PageTransitionEvent) => e.persisted && run()
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('pageshow', onShow)
+    window.addEventListener('pagehide', pushNow)
+    window.addEventListener('online', run)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('pageshow', onShow)
+      window.removeEventListener('pagehide', pushNow)
+      window.removeEventListener('online', run)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, auth?.user.id])

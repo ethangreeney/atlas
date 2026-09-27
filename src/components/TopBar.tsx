@@ -76,7 +76,7 @@ const Drilling = ({ n, onExit }: { n: number; onExit: () => void }) => (
 export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced, onOpenProgress, drilling, onExitDrill }: Props) {
   const c = queue?.counts
   return (
-    <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
+    <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6 short:h-11">
       {drilling > 0 ? (
         <span className="sm:hidden">
           <Drilling n={drilling} onExit={onExitDrill} />

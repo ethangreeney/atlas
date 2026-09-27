@@ -27,7 +27,7 @@ const SUGGESTED = [
 
 export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew }: Props) {
   return (
-    <div className="relative h-16 w-full">
+    <div className="relative h-16 w-full short:h-12">
       <AnimatePresence mode="wait" initial={false}>
         {flipped ? (
           <motion.div

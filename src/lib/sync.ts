@@ -207,10 +207,16 @@ export async function flush() {
   if (timer) clearTimeout(timer)
   timer = null
   if (!getAuth()) return false
-  return push().then(
-    () => true,
-    () => false,
+  try {
+    await push()
+  } catch {
+    return false
+  }
+  // Rows the server refused are still waiting, so this didn't get everything through either.
+  const waiting = await db.transaction('r', db.cards, db.days, db.revlog, () =>
+    Promise.all([db.cards, db.days, db.revlog].map((t) => t.where('dirty').equals(1).count())),
   )
+  return !waiting.some(Boolean) && !pendingDeletes().length
 }
 
 let syncing: Promise<boolean> | null = null

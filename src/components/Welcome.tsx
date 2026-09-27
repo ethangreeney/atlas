@@ -86,7 +86,8 @@ export function Welcome() {
     if (!open) return
     const opener = document.activeElement
     const box = dialogRef.current
-    box?.focus()
+    // Without preventScroll, focusing scrolls the overlay on short screens and the dialog opens cut off.
+    box?.focus({ preventScroll: true })
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === 'Tab') return trapTab(e, box)
@@ -156,7 +157,7 @@ export function Welcome() {
               <div className="mt-4 space-y-3 text-[13.5px] leading-snug sm:mt-5 sm:space-y-4 sm:text-[14px] short:mt-4 short:space-y-3 *:break-inside-avoid">
                 <div>
                   <div className="font-medium text-ink">The deck geography fans swear by</div>
-                  <p className="mt-0.5 text-ink-2">
+                  <p className="mt-0.5 text-pretty text-ink-2">
                     <a href="https://github.com/anki-geo/ultimate-geography" target="_blank" rel="noreferrer" className={link}>
                       Ultimate Geography
                     </a>
@@ -165,7 +166,7 @@ export function Welcome() {
                 </div>
                 <div>
                   <div className="font-medium text-ink">The scheduler Anki switched to</div>
-                  <p className="mt-0.5 text-ink-2">
+                  <p className="mt-0.5 text-pretty text-ink-2">
                     <a href="https://github.com/open-spaced-repetition/fsrs4anki/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer" className={link}>
                       FSRS
                     </a>{' '}
@@ -174,7 +175,7 @@ export function Welcome() {
                 </div>
                 <div>
                   <div className="font-medium text-ink">Learn what you want</div>
-                  <p className="mt-0.5 text-ink-2">
+                  <p className="mt-0.5 text-pretty text-ink-2">
                     Stick to one region, or just flags, maps or capitals, with the{' '}
                     <SlidersHorizontal size={13} strokeWidth={2} className="inline-block -translate-y-px text-ink" aria-label="filters" /> filters
                     up top. Or learn everything.

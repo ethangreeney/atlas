@@ -23,9 +23,10 @@ export function useSession() {
   const pinned = useRef<string | null>(null)
   /**
    * The card on screen stays there until it's answered. Without this, coming back to the tab could swap it
-   * for a learning card that fell due in the meantime, mid-view and already flipped.
+   * for a learning card that fell due in the meantime, mid-view and already flipped. `rev` is the card's
+   * `updated` when it went on screen: any change after that, here or synced from another device, lets it go.
    */
-  const shown = useRef<{ id: string; at: number } | null>(null)
+  const shown = useRef<{ id: string; rev: number } | null>(null)
   /**
    * A short run over chosen cards (the hardest ones), whether due or not. Each is answered once through the normal
    * grade path, so FSRS sees an ordinary early review; the run ends when none are left, or on exit.
@@ -101,17 +102,19 @@ export function useSession() {
     if (pinned.current) {
       const c = CARD_BY_ID.get(pinned.current)
       if (c) {
-        shown.current = { id: c.id, at: Date.now() }
+        shown.current = { id: c.id, rev: rows.current.get(c.id)?.updated ?? 0 }
         return { ...q, current: c }
       }
     }
     const keep = shown.current
     if (keep && q.current?.id !== keep.id) {
       const c = CARD_BY_ID.get(keep.id)
-      const untouched = (rows.current.get(keep.id)?.updated ?? 0) <= keep.at
+      const untouched = (rows.current.get(keep.id)?.updated ?? 0) === keep.rev
       if (c && untouched && matchesFilters(c, settings)) return { ...q, current: c }
     }
-    shown.current = q.current ? { id: q.current.id, at: keep?.id === q.current.id ? keep.at : Date.now() } : null
+    shown.current = q.current
+      ? { id: q.current.id, rev: keep?.id === q.current.id ? keep.rev : (rows.current.get(q.current.id)?.updated ?? 0) }
+      : null
     return q
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day, settings, tick, drill])

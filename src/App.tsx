@@ -16,6 +16,7 @@ import { setSettings, useSettings } from './lib/settings'
 import { preload, speak, stopSpeaking } from './lib/tts'
 import { useAuth } from './lib/auth'
 import { syncNow } from './lib/sync'
+import { maybeOptimize } from './lib/optimize'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
 /** The grade a typed answer points to. */
@@ -69,10 +70,23 @@ export default function App() {
         .catch(() => {})
     run()
     const onVisible = () => document.visibilityState === 'visible' && run()
+    // Mobile Safari can restore a page from its back/forward cache without a visibility change.
+    const onShow = (e: PageTransitionEvent) => e.persisted && run()
     document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+    window.addEventListener('pageshow', onShow)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('pageshow', onShow)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, auth?.user.id])
+
+  // Now and then, refit the scheduler to this learner's own answers, once the app has settled.
+  useEffect(() => {
+    if (!ready) return
+    const t = setTimeout(() => void maybeOptimize().catch(() => {}), 5000)
+    return () => clearTimeout(t)
+  }, [ready])
 
   // Pile counters tick when the card lands, not when the key is pressed.
   useEffect(() => {

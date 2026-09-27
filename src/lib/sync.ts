@@ -1,4 +1,5 @@
 import { api, getAuth } from './auth'
+import { resetWeights } from './scheduler'
 import { db, type CardRow, type DayRow, type RevlogRow } from './db'
 
 const PULL_KEY = 'atlas.sync.pulled2' // server clock of the last pull (v2: also pulls the review log)
@@ -33,6 +34,7 @@ const reviveCard = (c: CardRow): CardRow => ({
 export async function clearLocal() {
   await db.transaction('rw', db.cards, db.days, db.revlog, () => Promise.all([db.cards.clear(), db.days.clear(), db.revlog.clear()]))
   for (const k of [PULL_KEY, DELETED_KEY, OWNER_KEY, 'atlas.sync.pushed']) localStorage.removeItem(k)
+  resetWeights()
 }
 
 /**

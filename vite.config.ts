@@ -5,6 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   server: { proxy: { '/api': 'http://localhost:8787' } },
+  // The FSRS optimizer loads its .wasm relative to its own module, which pre-bundling would break.
+  optimizeDeps: { exclude: ['fsrs-browser'] },
+  worker: { format: 'es' },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,7 +1,20 @@
-import { createEmptyCard, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs'
+import { createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs'
 import { ALL_CARDS, kindOf, type DeckCard } from './deck'
+import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
 import type { Settings } from './settings'
+
+/** Weights fitted to this learner's own review log by the FSRS optimizer (see optimize.ts), when there are any. */
+export const WEIGHTS_KEY = 'atlas.fsrs'
+export type Fitted = { w: number[]; at: number; reviews: number }
+export const loadFitted = (): Fitted | null => {
+  try {
+    const f = JSON.parse(localStorage.getItem(WEIGHTS_KEY) ?? 'null') as Fitted | null
+    return f && Array.isArray(f.w) && f.w.length === 21 && f.w.every(Number.isFinite) ? f : null
+  } catch {
+    return null
+  }
+}
 
 /** Mirrors the Anki preset chosen for this deck: FSRS, retention 0.90, one 10m learning/relearning step. */
 export const PARAMS = generatorParameters({
@@ -11,8 +24,24 @@ export const PARAMS = generatorParameters({
   enable_short_term: true,
   learning_steps: ['10m'],
   relearning_steps: ['10m'],
+  ...(loadFitted() && { w: loadFitted()!.w }),
 })
 export const scheduler = fsrs(PARAMS)
+
+/** Switch to newly fitted weights; cards already scheduled keep their dates, and the next answer uses the new ones. */
+export function applyWeights(f: Fitted) {
+  try {
+    localStorage.setItem(WEIGHTS_KEY, JSON.stringify(f))
+  } catch {
+    /* private mode: still use them for this visit */
+  }
+  scheduler.parameters = { w: f.w }
+}
+/** Back to the stock weights (another account's history no longer applies). */
+export function resetWeights() {
+  localStorage.removeItem(WEIGHTS_KEY)
+  scheduler.parameters = { w: [...default_w] }
+}
 
 export const LEECH_THRESHOLD = 8
 const ROLLOVER_HOURS = 4 // Anki: "next day starts at 4am"
@@ -62,8 +91,12 @@ const STARTERS = new Set([
   'France', 'Japan', 'United States of America', 'Brazil', 'Australia', 'Italy', 'Canada', 'Germany', 'China', 'India',
   'Egypt', 'Mexico', 'United Kingdom', 'Spain', 'Russia', 'New Zealand', 'South Africa', 'Argentina', 'Greece', 'Ireland',
 ])
-/** How many cards a learner grades before the warm-up ends and the order goes fully random. */
+/** How many cards a learner grades before the warm-up ends. */
 const WARMUP_CARDS = 6
+/** Places from famous to obscure (scripts/build-fame.ts), so new cards start with ones people have heard of. */
+const FAME = new Map((fame as string[]).map((id, i) => [id, i]))
+/** How far, in places, a new card can drift from its fame rank, so each day still mixes regions and card types. */
+const FAME_SPREAD = 40
 
 export type Queue = {
   current: DeckCard | null
@@ -100,10 +133,16 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
     .sort((a, b) => +row(a).due - +row(b).due)
 
   const reviewBudget = Math.max(0, settings.reviewsPerDay - day.reviewCount)
-  const reviews = cards
-    .filter((c) => row(c).state === State.Review && row(c).due < end && !seen.has(c.note.id))
-    .sort((a, b) => +row(a).due - +row(b).due || rank(a) - rank(b))
-    .slice(0, reviewBudget)
+  let reviews = cards.filter((c) => row(c).state === State.Review && row(c).due < end && !seen.has(c.note.id))
+  // More due than the day's limit: keep the ones most likely still remembered. They're the cheapest to save, and the
+  // rest need relearning either way (FSRS sort-order simulations).
+  if (reviews.length > reviewBudget) {
+    const recall = new Map(reviews.map((c) => [c.id, scheduler.get_retrievability(row(c), now, false)]))
+    reviews = reviews.sort((a, b) => recall.get(b.id)! - recall.get(a.id)!).slice(0, reviewBudget)
+  }
+  // Order doesn't matter for memory when everything gets done, so shuffle (the same way all day): a fixed order
+  // would let one answer cue the next.
+  reviews.sort((a, b) => rank(a) - rank(b))
 
   const newBudget = Math.max(0, Math.min(settings.newPerDay + day.extraNew - day.newCount, reviewBudget - reviews.length))
   const seenNew = new Set<string>()
@@ -111,9 +150,10 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   for (const r of rows.values()) if (r.state !== State.New) graded++
   const warmup = graded < WARMUP_CARDS
   const tier = (c: DeckCard) => (warmup && (c.type === 'flag' || c.type === 'map') && STARTERS.has(c.note.country) ? 0 : 1)
+  const fameKey = (c: DeckCard) => (FAME.get(c.note.id) ?? FAME.size) + (rank(c) / 2 ** 32) * FAME_SPREAD
   const fresh = cards
     .filter((c) => row(c).state === State.New && !seen.has(c.note.id))
-    .sort((a, b) => tier(a) - tier(b) || rank(a) - rank(b))
+    .sort((a, b) => tier(a) - tier(b) || fameKey(a) - fameKey(b))
     .filter((c) => (seenNew.has(c.note.id) ? false : (seenNew.add(c.note.id), true)))
     .slice(0, newBudget)
 

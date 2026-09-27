@@ -1,5 +1,5 @@
-import { api, getAuth } from './auth'
-import { resetWeights } from './scheduler'
+import { api, authChanged, getAuth, setBeforeSignIn } from './auth'
+import { emptyDay, resetWeights } from './scheduler'
 import { db, type CardRow, type DayRow, type RevlogRow } from './db'
 
 const PULL_KEY = 'atlas.sync.pulled2' // server clock of the last pull (v2: also pulls the review log)
@@ -7,6 +7,7 @@ const DELETED_KEY = 'atlas.sync.deleted' // undone reviews not yet deleted on th
 const OWNER_KEY = 'atlas.owner' // account whose progress is stored on this device; none = guest
 const OVERLAP = 60_000 // re-pull this much before the last pull, for pushes that were still committing
 const BATCH = 500 // rows per push request (the server takes up to 1000)
+const KEEPALIVE_MAX = 60_000 // browsers cap a request that outlives its page at 64KB
 const num = (k: string) => Number(localStorage.getItem(k) ?? 0)
 const set = (k: string, v: number) => localStorage.setItem(k, String(v))
 
@@ -20,6 +21,7 @@ const pendingDeletes = (): LogKey[] => {
 }
 const setPendingDeletes = (v: LogKey[]) => localStorage.setItem(DELETED_KEY, JSON.stringify(v))
 const sameKey = (a: LogKey, b: LogKey) => a.cardId === b.cardId && a.review === b.review
+const isDate = (d: Date) => !Number.isNaN(+d)
 
 /** An undo removed this review locally; remove it from the server on the next push too. */
 export const recordUndo = (cardId: string, review: Date) => setPendingDeletes([...pendingDeletes(), { cardId, review: +review }])
@@ -37,6 +39,21 @@ export async function clearLocal() {
   resetWeights()
 }
 
+// Another tab cleared this device's progress or handed it to another account, so this tab's copy in memory is gone
+// too. (Its sign-in or sign-out has usually reloaded this tab already; see auth.)
+window.addEventListener('storage', (e) => {
+  if (e.key === OWNER_KEY && e.oldValue && e.oldValue !== e.newValue) location.reload()
+})
+
+// Signing in as a different account drops what the last one left here (see own). If some of it never reached that
+// account (its session ran out, say, and answers carried on as a guest), ask rather than lose it quietly.
+setBeforeSignIn(async (uid) => {
+  const owner = localStorage.getItem(OWNER_KEY)
+  if (!owner || owner === uid) return true
+  const unsynced = (await db.cards.where('dirty').equals(1).count()) + (await db.revlog.where('dirty').equals(1).count()) + pendingDeletes().length
+  return !unsynced || confirm("Some answers on this device haven't synced to the account signed in here before, and signing in with a different one will remove them. Sign in anyway?")
+})
+
 /**
  * Tie local progress to the signed-in account. Guest progress merges into the first account; progress left by a
  * different account is dropped rather than merged. Returns true if local data was cleared.
@@ -52,6 +69,7 @@ async function own() {
 
 /** Bring down anything newer on the server. Returns true if local data changed. */
 export async function pull(): Promise<boolean> {
+  const uid = getAuth()!.user.id
   const r = (await api(`/api/sync?since=${Math.max(0, num(PULL_KEY) - OVERLAP)}`)) as {
     now: number
     cards: { id: string; data: CardRow; updated: number }[]
@@ -62,34 +80,42 @@ export async function pull(): Promise<boolean> {
   const undone = pendingDeletes()
   let changed = false
   await db.transaction('rw', db.cards, db.days, db.revlog, async () => {
-    for (const c of r.cards) {
+    // Another tab switched accounts while this was in flight: these rows aren't this device's to keep any more.
+    if (authChanged() || localStorage.getItem(OWNER_KEY) !== uid) throw new Error('Account changed')
+    // One bad row (an impossible date, say) is skipped, rather than failing this pull and every one after it.
+    const each = async <T>(rows: T[] | undefined, f: (x: T) => Promise<void>) => {
+      for (const x of rows ?? []) await f(x).catch(() => {})
+    }
+    await each(r.cards, async (c) => {
       const local = await db.cards.get(c.id)
-      if (!local || local.updated < c.updated) {
-        await db.cards.put(reviveCard({ ...c.data, updated: c.updated }))
+      const row = reviveCard({ ...c.data, id: c.id, updated: c.updated })
+      if ((!local || local.updated < c.updated) && isDate(row.due)) {
+        await db.cards.put(row)
         changed = true
       }
-    }
-    for (const d of r.days) {
+    })
+    await each(r.days, async (d) => {
       const local = await db.days.get(d.day)
       // Only `extraNew` matters here (counters are derived from the log); keep the larger of the two.
       const extraNew = Math.max(local?.extraNew ?? 0, d.data.extraNew ?? 0)
       if (!local || local.extraNew !== extraNew) {
-        await db.days.put({ ...(local ?? d.data), extraNew, updated: Math.max(local?.updated ?? 0, d.updated) })
+        // The server keeps just `extraNew` now, so a day new to this device starts from an empty row.
+        await db.days.put({ ...emptyDay(d.day), ...(local ?? d.data), day: d.day, extraNew, updated: Math.max(local?.updated ?? 0, d.updated) })
         changed = true
       }
-    }
-    for (const l of r.revlog ?? []) {
-      if (undone.some((k) => sameKey(k, l))) continue
+    })
+    await each(r.revlog, async (l) => {
       const review = new Date(l.review)
+      if (!isDate(review) || undone.some((k) => sameKey(k, l))) return
       const exists = await db.revlog.where('review').equals(review).filter((x) => x.cardId === l.cardId).count()
-      if (exists) continue
+      if (exists) return
       await db.revlog.add({ ...l.data, id: undefined, cardId: l.cardId, review, due: new Date(l.data.due) })
       changed = true
-    }
+    })
     // Reviews undone on another device.
-    for (const k of r.deleted ?? []) {
+    await each(r.deleted, async (k) => {
       if (await db.revlog.where('review').equals(new Date(k.review)).filter((x) => x.cardId === k.cardId).delete()) changed = true
-    }
+    })
   })
   set(PULL_KEY, r.now)
   return changed
@@ -99,13 +125,22 @@ const unmark = (x: { dirty?: 1 }) => {
   delete x.dirty
 }
 
-/** Send everything written locally and not yet pushed, in requests of at most BATCH rows. */
-export async function push() {
-  if (!getAuth() || localStorage.getItem(OWNER_KEY) !== getAuth()!.user.id) return // syncNow claims local data first
+type Rejected = Partial<Record<'cards' | 'days' | 'revlog' | 'deleted', number[]>>
+
+/**
+ * Send everything written locally and not yet pushed, in requests of at most BATCH rows. Throws if something is
+ * waiting that can't be sent under this account. `leaving`: the page is being hidden or closed.
+ */
+export async function push(leaving = false) {
   const [cards, days, revlog] = await db.transaction('r', db.cards, db.days, db.revlog, () =>
     Promise.all([db.cards.where('dirty').equals(1).toArray(), db.days.where('dirty').equals(1).toArray(), db.revlog.where('dirty').equals(1).toArray()]),
   )
   const deleted = pendingDeletes()
+  if (!cards.length && !days.length && !revlog.length && !deleted.length) return
+  // Another tab signed in or out, or syncNow hasn't claimed local data for this account yet. Failing, rather than
+  // quietly skipping, lets a sign-out warn that it's unsent.
+  const auth = getAuth()
+  if (!auth || authChanged() || localStorage.getItem(OWNER_KEY) !== auth.user.id) throw new Error('Not synced')
   while (cards.length || days.length || revlog.length || deleted.length) {
     let room = BATCH
     const take = <T>(a: T[]) => {
@@ -114,24 +149,37 @@ export async function push() {
       return s
     }
     const [c, d, l, k] = [take(cards), take(days), take(revlog), take(deleted)]
-    await api('/api/sync', {
-      method: 'POST',
-      body: JSON.stringify({
-        cards: c.map((x) => ({ id: x.id, data: { ...x, dirty: undefined }, updated: x.updated })),
-        days: d.map((x) => ({ day: x.day, data: { ...x, dirty: undefined }, updated: x.updated })),
-        revlog: l.map((x) => ({ cardId: x.cardId, review: +new Date(x.review), data: { ...x, id: undefined, dirty: undefined } })),
-        deleted: k,
-      }),
+    const body = JSON.stringify({
+      cards: c.map((x) => ({ id: x.id, data: { ...x, dirty: undefined }, updated: x.updated })),
+      // Only `extraNew` is kept for a day; the counters are derived from the log.
+      days: d.map((x) => ({ day: x.day, data: { day: x.day, extraNew: x.extraNew }, updated: x.updated })),
+      revlog: l.map((x) => ({ cardId: x.cardId, review: +new Date(x.review), data: { ...x, id: undefined, dirty: undefined } })),
+      deleted: k,
     })
+    // Keepalive lets the request finish after the page has gone, but only up to 64KB; past that it's best effort.
+    const res = (await api('/api/sync', { method: 'POST', body, keepalive: leaving && body.length < KEEPALIVE_MAX })) as { rejected?: Rejected; cap?: number }
+    // Rows the server refused (an out-of-range time, say) stay pending to go again, rather than count as sent.
+    const no = res.rejected ?? {}
+    const kept = <T>(rows: T[], skip: number[] = []) => rows.filter((_, i) => !skip.includes(i))
+    const [sc, sd, sl, sk] = [kept(c, no.cards), kept(d, no.days), kept(l, no.revlog), kept(k, no.deleted)]
     // Only clear what was sent; a row written again since then stays dirty for the next push.
-    const sent = new Map(c.map((x) => [x.id, x.updated]))
-    const sentDays = new Map(d.map((x) => [x.day, x.updated]))
+    const sent = new Map(sc.map((x) => [x.id, x.updated]))
+    const sentDays = new Map(sd.map((x) => [x.day, x.updated]))
+    const cap = res.cap ?? Infinity
     await db.transaction('rw', db.cards, db.days, db.revlog, async () => {
-      await db.cards.where('id').anyOf([...sent.keys()]).and((x) => sent.get(x.id) === x.updated).modify(unmark)
+      // The server stores a fast clock's times as `cap`. Hold the same here, so the next pull compares like for like.
+      await db.cards
+        .where('id')
+        .anyOf([...sent.keys()])
+        .and((x) => sent.get(x.id) === x.updated)
+        .modify((x) => {
+          unmark(x)
+          x.updated = Math.min(x.updated, cap)
+        })
       await db.days.where('day').anyOf([...sentDays.keys()]).and((x) => sentDays.get(x.day) === x.updated).modify(unmark)
-      await db.revlog.where('id').anyOf(l.map((x) => x.id!)).modify(unmark)
+      await db.revlog.where('id').anyOf(sl.map((x) => x.id!)).modify(unmark)
     })
-    if (k.length) setPendingDeletes(pendingDeletes().filter((x) => !k.some((y) => sameKey(x, y))))
+    if (sk.length) setPendingDeletes(pendingDeletes().filter((x) => !sk.some((y) => sameKey(x, y))))
   }
 }
 
@@ -144,6 +192,14 @@ export function schedulePush() {
     timer = null
     push().catch(() => {})
   }, 1500)
+}
+
+/** The page is being hidden or closed: send what the debounce is holding now, while requests can still go out. */
+export function pushNow() {
+  if (!timer) return
+  clearTimeout(timer)
+  timer = null
+  push(true).catch(() => {})
 }
 
 /** Push anything pending right now (before signing out). Returns false if it didn't get through. */
@@ -160,7 +216,8 @@ export async function flush() {
 let syncing: Promise<boolean> | null = null
 /** Full round trip: used on load and right after sign-in. Concurrent calls share one run. */
 export function syncNow(): Promise<boolean> {
-  if (!getAuth()) return Promise.resolve(false)
+  // Signed out, or another tab switched accounts and this one is about to reload (see auth).
+  if (!getAuth() || authChanged()) return Promise.resolve(false)
   syncing ??= (async () => {
     const cleared = await own()
     try {

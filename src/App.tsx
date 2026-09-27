@@ -318,14 +318,15 @@ export default function App() {
             <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>p</kbd> progress
             </span>
           </div>
-          <div className="truncate">
-            <a href="https://github.com/anki-geo/ultimate-geography" className="hover:text-ink" target="_blank" rel="noreferrer">
+          {/* Padded to the footer's height (and pulled back) so the links' full-height tap targets aren't clipped. */}
+          <div className="-my-3.5 truncate py-3.5">
+            <a href="https://github.com/anki-geo/ultimate-geography" className="relative hover:text-ink after:absolute after:inset-x-0 after:-inset-y-3.5" target="_blank" rel="noreferrer">
               Ultimate Geography {DECK_VERSION}
             </a>
             <span className="hidden md:inline"> · deck public domain · images CC BY-SA / CC0,</span>{' '}
             <a
               href="https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv"
-              className="hover:text-ink"
+              className="relative hover:text-ink after:absolute after:inset-x-0 after:-inset-y-3.5"
               target="_blank"
               rel="noreferrer"
             >

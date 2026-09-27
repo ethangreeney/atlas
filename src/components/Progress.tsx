@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import world from '../data/world.json'
 import { db, type CardRow } from '../lib/db'
 import { ALL_CARDS, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type Note } from '../lib/deck'
+import { restoreFocus, trapTab } from '../lib/focus'
 import { CARDS_BY_NOTE, forecast, hardest, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
 import { Reminders } from './Reminders'
 import { formatInterval, State } from '../lib/scheduler'
@@ -29,6 +30,8 @@ const OCEANIA = WORLD.regions.findIndex((r) => r.name === 'Oceania')
 const REGION_IDS = WORLD.regions.map((_, r) => Object.keys(WORLD.places).filter((id) => WORLD.places[id][0] === r))
 /** Each region's land as one path, to tint on hover. */
 const REGION_D = REGION_IDS.map((ids) => ids.map((id) => WORLD.shapes[id] ?? '').join(''))
+/** Each region's places by name, for the keyboard. */
+const REGION_NOTES = REGION_IDS.map((ids) => ids.flatMap((id) => NOTE_BY_ID.get(id) ?? []).sort((a, b) => a.country.localeCompare(b.country)))
 /** Tapping the sea within this many map units of a place still picks its region. */
 const NEAR = 30
 /** Places drawn smaller than this many px across also get a dot; dot and tap-target radii, and the least gap between dots, in px. */
@@ -67,9 +70,9 @@ const Thumb = ({ note }: { note: Note }) => {
   )
 }
 
-const Row = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
+const Row = ({ id, onClick, children }: { id: string; onClick: () => void; children: React.ReactNode }) => (
   <li>
-    <button onClick={onClick} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle">
+    <button data-note={id} onClick={onClick} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle">
       {children}
     </button>
   </li>
@@ -191,6 +194,14 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
   const shown = region ?? hoverRegion
   const idOf = (e: React.SyntheticEvent) => (e.target as Element).getAttribute('data-id')
 
+  // A hover or focus from the last view doesn't carry into the next.
+  const [at, setAt] = useState(region)
+  if (at !== region) {
+    setAt(region)
+    setHover(null)
+    setHoverRegion(null)
+  }
+
   /** The region under the pointer: the place it's on, or failing that the nearest one close by. */
   const regionAt = (e: React.PointerEvent | React.MouseEvent) => {
     const id = idOf(e)
@@ -300,6 +311,38 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
           <span className="ml-0.5 max-sm:hidden">More</span>
         </span>
       </div>
+      {/* For the keyboard: a hidden button per region, then per place once zoomed in. Focus lights it up on the map, as hover does. */}
+      <div className="sr-only">
+        {region === null
+          ? WORLD.regions.map((r, i) => (
+              <button
+                key={r.name}
+                data-region={i}
+                onClick={() => {
+                  setHoverRegion(null)
+                  onRegion(i)
+                }}
+                onFocus={() => setHoverRegion(i)}
+                onBlur={() => setHoverRegion(null)}
+              >
+                {r.name}: {count(REGION_IDS[i])}
+              </button>
+            ))
+          : REGION_NOTES[region].map((n) => (
+              <button
+                key={n.id}
+                data-place={n.id}
+                onClick={() => {
+                  setHover(null)
+                  onPick(n.id)
+                }}
+                onFocus={() => setHover(n.id)}
+                onBlur={() => setHover(null)}
+              >
+                {n.country}: {levels.get(n.id)?.mature ?? 0} of {levels.get(n.id)?.total ?? 0} cards mastered
+              </button>
+            ))}
+      </div>
     </section>
   )
 }
@@ -310,7 +353,7 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
   const info = [note.countryInfo, note.capitalInfo].filter(Boolean).join(' ')
   return (
     <div>
-      <button onClick={onBack} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
+      <button data-back onClick={onBack} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
         <ChevronLeft size={16} strokeWidth={1.75} /> Back
       </button>
       <div className="mt-2 flex flex-col items-center gap-3 text-center">
@@ -364,6 +407,10 @@ export default function Progress({ onClose, onDrill }: Props) {
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+  /** What had focus before the page opened, to get it back on closing. */
+  const opener = useRef<Element | null>(null)
+  /** The last input was a key rather than a pointer. */
+  const keyed = useRef(false)
 
   useEffect(() => {
     let live = true
@@ -382,21 +429,31 @@ export default function Progress({ onClose, onDrill }: Props) {
   // The phone's back gesture closes the page rather than leaving the app.
   useEffect(() => {
     if (history.state?.atlasProgress !== TOKEN) history.pushState({ ...history.state, atlasProgress: TOKEN }, '')
-    const onPop = () => onCloseRef.current()
+    const onPop = () => {
+      restoreFocus(opener.current, dialogRef.current)
+      onCloseRef.current()
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
-  const close = useCallback(() => (history.state?.atlasProgress === TOKEN ? history.back() : onCloseRef.current()), [])
+  const close = useCallback(() => {
+    if (history.state?.atlasProgress === TOKEN) return history.back()
+    restoreFocus(opener.current, dialogRef.current)
+    onCloseRef.current()
+  }, [])
 
   // Typing goes straight to search with a keyboard; on a phone the keyboard would cover the map, so wait for a tap.
   useEffect(() => {
+    opener.current ??= document.activeElement
     if (matchMedia('(pointer: fine)').matches) inputRef.current?.focus()
     else dialogRef.current?.focus()
   }, [])
 
-  // Escape steps back one level: detail, then search, then the zoomed region, then the page itself.
+  // Escape steps back one level: detail, then search, then the zoomed region, then the page itself. Tab stays inside.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      keyed.current = true
+      if (e.key === 'Tab') return trapTab(e, dialogRef.current)
       if (e.key !== 'Escape') return
       e.stopImmediatePropagation()
       e.preventDefault()
@@ -405,9 +462,30 @@ export default function Progress({ onClose, onDrill }: Props) {
       else if (region !== null) setRegion(null)
       else close()
     }
+    const onPointer = () => (keyed.current = false)
     window.addEventListener('keydown', onKey, { capture: true })
-    return () => window.removeEventListener('keydown', onKey, { capture: true })
+    window.addEventListener('pointerdown', onPointer, { capture: true })
+    return () => {
+      window.removeEventListener('keydown', onKey, { capture: true })
+      window.removeEventListener('pointerdown', onPointer, { capture: true })
+    }
   }, [detail, query, region, close])
+
+  // By keyboard, the control just used (a region, World, a place, Back) goes with the view it was in; focus moves to its counterpart.
+  const was = useRef({ detail, region })
+  useEffect(() => {
+    const prev = was.current
+    was.current = { detail, region }
+    const box = dialogRef.current
+    if (!keyed.current || !box || box.contains(document.activeElement)) return
+    const id = prev.detail && CSS.escape(prev.detail.id)
+    const sel = detail
+      ? detail !== prev.detail && '[data-back]'
+      : id
+        ? `[data-place="${id}"], [data-note="${id}"]`
+        : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
+    if (sel) (box.querySelector<HTMLElement>(sel) ?? box).focus()
+  }, [detail, region])
 
   const searching = query.trim() !== ''
   useEffect(() => {
@@ -429,7 +507,7 @@ export default function Progress({ onClose, onDrill }: Props) {
     body = results.length ? (
       <ul className="-mx-2">
         {results.map((n) => (
-          <Row key={n.id} onClick={() => open(n)}>
+          <Row key={n.id} id={n.id} onClick={() => open(n)}>
             <Thumb note={n} />
             <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{n.country}</span>
             {n.capital && <span className="max-w-[45%] truncate text-[13px] text-ink-3">{n.capital}</span>}
@@ -447,7 +525,7 @@ export default function Progress({ onClose, onDrill }: Props) {
             <h2 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px]">
               {streak ? `${streak}-day streak` : 'Progress'}
             </h2>
-            <p className="mt-1 text-[13.5px] text-ink-2">
+            <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">
               {learned.toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards learned
               {streak === 0 ? ' · study today to start a streak' : ''}
             </p>
@@ -459,7 +537,7 @@ export default function Progress({ onClose, onDrill }: Props) {
 
         <MasteryMap levels={levels} region={region} onRegion={setRegion} onPick={(id) => open(NOTE_BY_ID.get(id))} />
 
-        <p className="mt-5 text-balance text-[13.5px] leading-snug text-ink-2">
+        <p className="mt-5 text-balance text-[13.5px] leading-snug tabular-nums text-ink-2">
           {ahead.remaining > 0
             ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} in about ${span(ahead.days)}`
             : `Every card${filtered ? ' in these filters' : ''} is under way`}
@@ -477,7 +555,7 @@ export default function Progress({ onClose, onDrill }: Props) {
                 {hard.map((r) => {
                   const c = CARD_BY_ID.get(r.id)!
                   return (
-                    <Row key={r.id} onClick={() => open(c.note)}>
+                    <Row key={r.id} id={c.note.id} onClick={() => open(c.note)}>
                       <Thumb note={c.note} />
                       <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
                         {c.note.country}

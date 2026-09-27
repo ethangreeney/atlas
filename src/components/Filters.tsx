@@ -52,10 +52,24 @@ export function Filters({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('pointerdown', onDown)
   }, [onClose])
 
+  // Escape closes the panel (in App); focus goes back to the button that opened it rather than dropping to the page.
+  // Tabbing out of the panel closes it too, so focus never lands on the card half hidden beneath it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && ref.current?.contains(document.activeElement)) document.querySelector<HTMLElement>('[aria-controls="filters"]')?.focus()
+    }
+    window.addEventListener('keydown', onKey, { capture: true })
+    return () => window.removeEventListener('keydown', onKey, { capture: true })
+  }, [])
+
   return (
     <motion.div
       ref={ref}
       id="filters"
+      onBlur={(e) => {
+        const to = e.relatedTarget
+        if (to && !e.currentTarget.contains(to) && !to.closest('[aria-controls="filters"]')) onClose()
+      }}
       className="card-shadow absolute right-4 top-14 z-40 max-h-[calc(100%-4.5rem)] w-[min(380px,calc(100%-32px))] overflow-y-auto rounded-2xl bg-surface p-4 sm:right-6"
       initial={{ opacity: 0, y: -6, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}

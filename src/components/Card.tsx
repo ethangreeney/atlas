@@ -123,7 +123,8 @@ const LookAlikes = ({ card }: { card: DeckCard }) => {
   const items = lookAlikes(card.note)
   if (!items.length) return null
   const flag = (l: (typeof items)[number]) =>
-    l.flag && <img src={mediaUrl(l.flag)} alt={`Flag of ${l.name}`} draggable={false} className="img-shadow max-h-full max-w-full rounded-[2px]" />
+    // Decorative: the name is right beside it.
+    l.flag && <img src={mediaUrl(l.flag)} alt="" draggable={false} className="img-shadow max-h-full max-w-full rounded-[2px]" />
   const note = (text: string) => <span className="text-balance text-[12.5px] text-ink-2 first-letter:uppercase short:text-[12px]">{text}</span>
   // Under a hairline: a centred "Looks like", then one look-alike centred on its own, or two as aligned rows.
   return (

@@ -1,7 +1,8 @@
 /// <reference types="@cloudflare/workers-types" />
 // Atlas API: Google sign-in and sync. Cards are last-write-wins, the review log is append-only (undo deletes and
 // leaves a tombstone), and day rows only carry `extraNew`, merged by max. Every row records `synced` (server receipt
-// time) so a pull with `since` catches rows that were written offline and pushed late. /api/push stores daily reminder
+// time) so a pull with `since` catches rows that were written offline and pushed late. The fitted FSRS weights are one
+// row per account, kept from whichever fit saw the most reviews, so every device schedules the same way. /api/push stores daily reminder
 // subscriptions; the separate worker in reminders/ sends them.
 import deck from '../src/data/deck.json'
 
@@ -16,6 +17,7 @@ type Row = { id: string; data: unknown; updated: number }
 type DayRowIn = { day: string; data: unknown; updated: number }
 type RevlogIn = { cardId: string; review: number; data: unknown }
 type RevlogKey = { cardId: string; review: number }
+type ParamsIn = { data: { w?: unknown; at?: unknown; reviews?: unknown }; updated: number }
 
 /** Every card id in the deck (mirrors src/lib/deck.ts). */
 const CARD_IDS = new Set(
@@ -91,11 +93,12 @@ async function googleSignIn(env: Env, req: Request) {
 async function pull(env: Env, uid: string, since: number) {
   const now = Date.now()
   const q = (sql: string) => env.DB.prepare(sql).bind(uid, since)
-  const [cards, days, revlog, deleted] = await Promise.all([
+  const [cards, days, revlog, deleted, params] = await Promise.all([
     q('SELECT id, data, updated FROM cards WHERE user_id = ?1 AND synced > ?2').all<{ id: string; data: string; updated: number }>(),
     q('SELECT day, data, updated FROM days WHERE user_id = ?1 AND synced > ?2').all<{ day: string; data: string; updated: number }>(),
     q('SELECT card_id, review, data FROM revlog WHERE user_id = ?1 AND synced > ?2').all<{ card_id: string; review: number; data: string }>(),
     q('SELECT card_id, review FROM revlog_deleted WHERE user_id = ?1 AND synced > ?2').all<{ card_id: string; review: number }>(),
+    q('SELECT data FROM params WHERE user_id = ?1 AND synced > ?2').first<{ data: string }>(),
   ])
   return json({
     now,
@@ -103,6 +106,7 @@ async function pull(env: Env, uid: string, since: number) {
     days: days.results.map((r) => ({ day: r.day, data: JSON.parse(r.data), updated: r.updated })),
     revlog: revlog.results.map((r) => ({ cardId: r.card_id, review: r.review, data: JSON.parse(r.data) })),
     deleted: deleted.results.map((r) => ({ cardId: r.card_id, review: r.review })),
+    params: params ? JSON.parse(params.data) : null,
   })
 }
 
@@ -125,7 +129,7 @@ async function push(env: Env, uid: string, req: Request) {
   if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) return json({ error: 'Too large' }, 413)
   const text = await req.text()
   if (text.length > MAX_BODY) return json({ error: 'Too large' }, 413)
-  let body: { cards?: unknown; days?: unknown; revlog?: unknown; deleted?: unknown }
+  let body: { cards?: unknown; days?: unknown; revlog?: unknown; deleted?: unknown; params?: unknown }
   try {
     body = JSON.parse(text) ?? {}
   } catch {
@@ -135,7 +139,8 @@ async function push(env: Env, uid: string, req: Request) {
   const days = list<DayRowIn>(body.days)
   const revlog = list<RevlogIn>(body.revlog)
   const deleted = list<RevlogKey>(body.deleted)
-  if (cards.length + days.length + revlog.length + deleted.length > MAX_ROWS) return json({ error: 'Too many rows' }, 413)
+  const params = body.params as ParamsIn | undefined
+  if (cards.length + days.length + revlog.length + deleted.length + (params ? 1 : 0) > MAX_ROWS) return json({ error: 'Too many rows' }, 413)
 
   const now = Date.now()
   // A clock that runs ahead would otherwise win every last-write-wins merge until real time catches up.
@@ -155,10 +160,14 @@ async function push(env: Env, uid: string, req: Request) {
   const upLog = env.DB.prepare(
     'INSERT OR IGNORE INTO revlog (user_id, card_id, review, data, synced) SELECT ?1, ?2, ?3, ?4, ?5 WHERE NOT EXISTS (SELECT 1 FROM revlog_deleted WHERE user_id = ?1 AND card_id = ?2 AND review = ?3)',
   )
+  // A fit replaces the stored one only if it learned from more reviews, or as many and later.
+  const upParams = env.DB.prepare(
+    'INSERT INTO params (user_id, data, reviews, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, reviews = excluded.reviews, updated = excluded.updated, synced = excluded.synced WHERE excluded.reviews > params.reviews OR (excluded.reviews = params.reviews AND excluded.updated > params.updated)',
+  )
   const delLog = env.DB.prepare('DELETE FROM revlog WHERE user_id = ?1 AND card_id = ?2 AND review = ?3')
   const tomb = env.DB.prepare('INSERT OR REPLACE INTO revlog_deleted (user_id, card_id, review, synced) VALUES (?1, ?2, ?3, ?4)')
   // Positions of the rows not stored, per kind, so the client keeps those to send again instead of marking them done.
-  const rejected = { cards: [] as number[], days: [] as number[], revlog: [] as number[], deleted: [] as number[] }
+  const rejected = { cards: [] as number[], days: [] as number[], revlog: [] as number[], deleted: [] as number[], params: [] as number[] }
   for (const [i, c] of cards.entries()) {
     const data = c && CARD_IDS.has(c.id) && isTime(c.updated) ? dataOf(c.data) : null
     if (data) stmts.push(upCard.bind(uid, c.id, data, clamp(c.updated), now))
@@ -181,11 +190,20 @@ async function push(env: Env, uid: string, req: Request) {
     if (isKey(k)) stmts.push(delLog.bind(uid, k.cardId, k.review), tomb.bind(uid, k.cardId, k.review, now))
     else rejected.deleted.push(i)
   }
+  if (params) {
+    const { w, at, reviews } = params.data ?? {}
+    const ok =
+      Array.isArray(w) && w.length === 21 && w.every((x) => Number.isFinite(x) && Math.abs(x) < 1000) && isTime(at) && Number.isSafeInteger(reviews) && (reviews as number) >= 0
+    if (ok) stmts.push(upParams.bind(uid, JSON.stringify({ w, at, reviews }), reviews, clamp(at as number), now))
+    else rejected.params.push(0)
+  }
   // D1 batches are limited in size; chunk them.
   for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100))
   const skipped = Object.values(rejected).reduce((n, a) => n + a.length, 0)
+  // The fit kept, when one was sent: if it wasn't this one, the device switches to it rather than keep a worse one.
+  const kept = params ? await env.DB.prepare('SELECT data FROM params WHERE user_id = ?1').bind(uid).first<{ data: string }>() : null
   // `cap`: card times above it were stored as it, so the client can hold the same value and compare like for like.
-  return json({ ok: true, count: stmts.length, skipped, rejected, cap: now + MAX_AHEAD })
+  return json({ ok: true, count: stmts.length, skipped, rejected, cap: now + MAX_AHEAD, ...(kept && { params: JSON.parse(kept.data) }) })
 }
 
 const MAX_PUSH_BODY = 4000

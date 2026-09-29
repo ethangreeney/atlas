@@ -1,6 +1,7 @@
 import { db, type RevlogRow } from './db'
 import type { FitRequest } from './optimize.worker'
 import { applyWeights, dayKey, loadFitted, State, validWeights } from './scheduler'
+import { schedulePush } from './sync'
 
 /** Below this the optimizer mostly hands back the defaults it started from. */
 const MIN_REVIEWS = 400
@@ -64,7 +65,12 @@ export async function maybeOptimize() {
       worker.postMessage(items, [items.ratings.buffer, items.deltas.buffer, items.lengths.buffer])
     })
     worker.terminate()
-    if (validWeights(w)) applyWeights({ w, at: Date.now(), reviews })
+    // Only if nothing better arrived from another device while this one was fitting.
+    const now = loadFitted()
+    if (validWeights(w) && (!now || reviews > now.reviews)) {
+      applyWeights({ w, at: Date.now(), reviews })
+      schedulePush() // so the account's other devices use it too
+    }
   } finally {
     running = false
   }

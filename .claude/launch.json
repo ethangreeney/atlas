@@ -1,6 +1,30 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "atlas", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev", "--port", "5179", "--strictPort"], "port": 5179 }
+    {
+      "name": "atlas",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev",
+        "--port",
+        "5179",
+        "--strictPort"
+      ],
+      "port": 5179
+    },
+    {
+      "name": "atlas-api",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "wrangler",
+        "pages",
+        "dev",
+        "dist",
+        "--port",
+        "8787",
+        "--local"
+      ],
+      "port": 8787
+    }
   ]
 }

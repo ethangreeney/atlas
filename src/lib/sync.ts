@@ -1,10 +1,11 @@
 import { api, authChanged, getAuth, setBeforeSignIn } from './auth'
-import { emptyDay, resetWeights } from './scheduler'
+import { applyWeights, emptyDay, loadFitted, resetWeights, validWeights, type Fitted } from './scheduler'
 import { db, type CardRow, type DayRow, type RevlogRow } from './db'
 
 const PULL_KEY = 'atlas.sync.pulled2' // server clock of the last pull (v2: also pulls the review log)
 const DELETED_KEY = 'atlas.sync.deleted' // undone reviews not yet deleted on the server
 const OWNER_KEY = 'atlas.owner' // account whose progress is stored on this device; none = guest
+const FIT_SENT_KEY = 'atlas.fsrs.sent' // when the fit in use here was made, once the server has it
 const OVERLAP = 60_000 // re-pull this much before the last pull, for pushes that were still committing
 const BATCH = 500 // rows per push request (the server takes up to 1000)
 const KEEPALIVE_MAX = 60_000 // browsers cap a request that outlives its page at 64KB
@@ -35,7 +36,7 @@ const reviveCard = (c: CardRow): CardRow => ({
 /** Forget all progress on this device (sign-out, or another account signing in). */
 export async function clearLocal() {
   await db.transaction('rw', db.cards, db.days, db.revlog, () => Promise.all([db.cards.clear(), db.days.clear(), db.revlog.clear()]))
-  for (const k of [PULL_KEY, DELETED_KEY, OWNER_KEY, 'atlas.sync.pushed']) localStorage.removeItem(k)
+  for (const k of [PULL_KEY, DELETED_KEY, OWNER_KEY, FIT_SENT_KEY, 'atlas.sync.pushed']) localStorage.removeItem(k)
   resetWeights()
 }
 
@@ -67,6 +68,22 @@ async function own() {
   return !!owner
 }
 
+/** Whether fit `a` should replace fit `b`: the one that learned from more reviews, or as many and made later (as the server decides). */
+const betterFit = (a: Fitted, b: Fitted | null) => !b || a.reviews > b.reviews || (a.reviews === b.reviews && a.at > b.at)
+/** The fit in use here, if the server doesn't have it yet. */
+const unsentFit = () => {
+  const f = loadFitted()
+  return f && num(FIT_SENT_KEY) !== f.at ? f : null
+}
+
+/** Switch to the account's stored fit if it beats the one in use here. */
+function adoptFit(f: Fitted | null | undefined) {
+  if (f && validWeights(f.w) && Number.isSafeInteger(f.reviews) && Number.isSafeInteger(f.at) && betterFit(f, loadFitted())) {
+    applyWeights({ w: f.w, at: f.at, reviews: f.reviews })
+    set(FIT_SENT_KEY, f.at)
+  }
+}
+
 /** Bring down anything newer on the server. Returns true if local data changed. */
 export async function pull(): Promise<boolean> {
   const uid = getAuth()!.user.id
@@ -76,6 +93,7 @@ export async function pull(): Promise<boolean> {
     days: { day: string; data: DayRow; updated: number }[]
     revlog?: { cardId: string; review: number; data: RevlogRow }[]
     deleted?: LogKey[]
+    params?: Fitted | null
   }
   const undone = pendingDeletes()
   let changed = false
@@ -117,6 +135,9 @@ export async function pull(): Promise<boolean> {
       if (await db.revlog.where('review').equals(new Date(k.review)).filter((x) => x.cardId === k.cardId).delete()) changed = true
     })
   })
+  // Weights fitted on another device: use them here too if they learned from more, so both schedule alike. Cards keep
+  // their dates; the next answer uses the new weights.
+  adoptFit(r.params)
   set(PULL_KEY, r.now)
   return changed
 }
@@ -125,7 +146,7 @@ const unmark = (x: { dirty?: 1 }) => {
   delete x.dirty
 }
 
-type Rejected = Partial<Record<'cards' | 'days' | 'revlog' | 'deleted', number[]>>
+type Rejected = Partial<Record<'cards' | 'days' | 'revlog' | 'deleted' | 'params', number[]>>
 
 /**
  * Send everything written locally and not yet pushed, in requests of at most BATCH rows. Throws if something is
@@ -136,12 +157,13 @@ export async function push(leaving = false) {
     Promise.all([db.cards.where('dirty').equals(1).toArray(), db.days.where('dirty').equals(1).toArray(), db.revlog.where('dirty').equals(1).toArray()]),
   )
   const deleted = pendingDeletes()
-  if (!cards.length && !days.length && !revlog.length && !deleted.length) return
+  let fit = unsentFit()
+  if (!cards.length && !days.length && !revlog.length && !deleted.length && !fit) return
   // Another tab signed in or out, or syncNow hasn't claimed local data for this account yet. Failing, rather than
   // quietly skipping, lets a sign-out warn that it's unsent.
   const auth = getAuth()
   if (!auth || authChanged() || localStorage.getItem(OWNER_KEY) !== auth.user.id) throw new Error('Not synced')
-  while (cards.length || days.length || revlog.length || deleted.length) {
+  while (cards.length || days.length || revlog.length || deleted.length || fit) {
     let room = BATCH
     const take = <T>(a: T[]) => {
       const s = a.splice(0, room)
@@ -155,9 +177,17 @@ export async function push(leaving = false) {
       days: d.map((x) => ({ day: x.day, data: { day: x.day, extraNew: x.extraNew }, updated: x.updated })),
       revlog: l.map((x) => ({ cardId: x.cardId, review: +new Date(x.review), data: { ...x, id: undefined, dirty: undefined } })),
       deleted: k,
+      // The fit goes with the first request.
+      params: fit ? { data: fit, updated: fit.at } : undefined,
     })
+    const sentFit = fit
+    fit = null
     // Keepalive lets the request finish after the page has gone, but only up to 64KB; past that it's best effort.
-    const res = (await api('/api/sync', { method: 'POST', body, keepalive: leaving && body.length < KEEPALIVE_MAX })) as { rejected?: Rejected; cap?: number }
+    const res = (await api('/api/sync', { method: 'POST', body, keepalive: leaving && body.length < KEEPALIVE_MAX })) as {
+      rejected?: Rejected
+      cap?: number
+      params?: Fitted
+    }
     // Rows the server refused (an out-of-range time, say) stay pending to go again, rather than count as sent.
     const no = res.rejected ?? {}
     const kept = <T>(rows: T[], skip: number[] = []) => rows.filter((_, i) => !skip.includes(i))
@@ -180,6 +210,9 @@ export async function push(leaving = false) {
       await db.revlog.where('id').anyOf(sl.map((x) => x.id!)).modify(unmark)
     })
     if (sk.length) setPendingDeletes(pendingDeletes().filter((x) => !sk.some((y) => sameKey(x, y))))
+    // Sent, whether or not it beat the one stored; if it didn't, use that one instead.
+    if (sentFit && !no.params?.length) set(FIT_SENT_KEY, sentFit.at)
+    adoptFit(res.params)
   }
 }
 

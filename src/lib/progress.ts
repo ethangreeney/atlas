@@ -1,6 +1,6 @@
 import { createEmptyCard, fsrs, type Card } from 'ts-fsrs'
 import type { CardRow } from './db'
-import { ALL_CARDS, CARD_BY_ID, NOTES, type DeckCard, type Note } from './deck'
+import { ALL_CARDS, NOTES, type DeckCard, type Note } from './deck'
 import { dayEnd, matchesFilters, Rating, scheduler, State } from './scheduler'
 import type { Settings } from './settings'
 
@@ -25,14 +25,6 @@ export function mastery(rows: Map<string, CardRow>) {
     out.set(id, { mature, total: cards.length, level: mature === cards.length ? 4 : score ? Math.min(3, Math.ceil(score * 3)) : 0 })
   }
   return out
-}
-
-/** Leeches first, then the cards forgotten most often after being learned. */
-export function hardest(rows: Map<string, CardRow>, n = 10) {
-  return [...rows.values()]
-    .filter((r) => (r.lapses > 0 || r.leech) && CARD_BY_ID.has(r.id))
-    .sort((a, b) => Number(!!b.leech) - Number(!!a.leech) || b.lapses - a.lapses || b.difficulty - a.difficulty)
-    .slice(0, n)
 }
 
 const DAY_MS = 86_400_000

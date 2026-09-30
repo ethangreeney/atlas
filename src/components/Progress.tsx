@@ -5,9 +5,9 @@ import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
 import { ALL_CARDS, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
-import { activity, byType, finished, horizons, mixUps, nearlyDone, placesStarted, recallNow, studyTime, typeSummary } from '../lib/insights'
-import { CARDS_BY_NOTE, forecast, hardest, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
-import { Ahead, CountUp, Goals, Heading, Heatmap, Horizon, MixUps, Stat, Types } from './Insights'
+import { TYPES, WHOLE, byType, days, forgetting, placesStarted, recallNow, sets, strugglingNow, studyTime, typeSummary, type DeckSet } from '../lib/insights'
+import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
+import { Ahead, CountUp, Forgetting, Heading, Heatmap, LastAnswers, Numbers, SetsTable, Types } from './Insights'
 import { Reminders } from './Reminders'
 import { formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
@@ -49,10 +49,6 @@ const SHADE = [0, 0.3, 0.5, 0.75, 1]
 const TOKEN = Math.random().toString(36).slice(2)
 
 const TYPE_WORD: Record<CardType, string> = { capital: 'capital', country: 'from its capital', flag: 'flag', map: 'on the map' }
-
-/** A card named the way you'd say it: "Japan's flag", "the capital of Peru". */
-const cardName = (type: CardType, note: Note) =>
-  ({ flag: `${note.country}'s flag`, map: `${note.country} on the map`, capital: `the capital of ${note.country}`, country: `${note.capital} as ${note.country}'s capital` })[type]
 
 /** "1h 34m", "12m". */
 const duration = (ms: number) => {
@@ -399,6 +395,47 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
   )
 }
 
+/** One set: every place in it and where each card stands, with a button for the ones not started. */
+function SetDetail({ set, rows, onBack, onPick, onLearn }: { set: DeckSet; rows: Map<string, CardRow>; onBack: () => void; onPick: (n: Note) => void; onLearn: () => void }) {
+  const now = new Date()
+  const n = set.cards.length
+  return (
+    <div>
+      <button data-back onClick={onBack} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
+        <ChevronLeft size={16} strokeWidth={1.75} /> Back
+      </button>
+      <h2 className="mt-2 text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">{set.label}</h2>
+      <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">{set.done === n ? `All ${n} started` : `${set.done} of ${n} started`}</p>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-good" style={{ width: `${(set.done / n) * 100}%` }} />
+      </div>
+      {set.left.length > 0 && (
+        <button
+          onClick={onLearn}
+          className="mt-4 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
+        >
+          {set.left.length === 1 ? 'Learn the one left' : `Learn the ${set.left.length} left`}
+        </button>
+      )}
+      <ul className="-mx-2 mt-4">
+        {set.cards.map((c) => {
+          const st = status(rows.get(c.id), now)
+          return (
+            <Row key={c.id} id={c.note.id} onClick={() => onPick(c.note)}>
+              <Thumb note={c.note} />
+              <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
+                {c.note.country}
+                {(c.type === 'capital' || c.type === 'country') && c.note.capital && <span className="text-ink-3"> · {c.note.capital}</span>}
+              </span>
+              <span className={`shrink-0 text-[12.5px] tabular-nums ${st.cls}`}>{st.label}</span>
+            </Row>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 type Props = { onClose: () => void; onDrill: (ids: string[]) => void }
 
 /** Search any place, see mastery on a world map, the streak, what's ahead, and the cards that keep slipping. */
@@ -409,6 +446,8 @@ export default function Progress({ onClose, onDrill }: Props) {
   const [streak, setStreak] = useState<number | null>(null)
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState<Note | null>(null)
+  /** The set open, by key. */
+  const [openSet, setOpenSet] = useState<string | null>(null)
   const [region, setRegion] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -463,7 +502,7 @@ export default function Progress({ onClose, onDrill }: Props) {
     else dialogRef.current?.focus()
   }, [])
 
-  // Escape steps back one level: detail, then search, then the zoomed region, then the page itself. Tab stays inside.
+  // Escape steps back one level: detail, then the set, then search, then the zoomed region, then the page itself. Tab stays inside.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       keyed.current = true
@@ -472,6 +511,7 @@ export default function Progress({ onClose, onDrill }: Props) {
       e.stopImmediatePropagation()
       e.preventDefault()
       if (detail) setDetail(null)
+      else if (openSet) setOpenSet(null)
       else if (query) setQuery('')
       else if (region !== null) setRegion(null)
       else close()
@@ -483,13 +523,13 @@ export default function Progress({ onClose, onDrill }: Props) {
       window.removeEventListener('keydown', onKey, { capture: true })
       window.removeEventListener('pointerdown', onPointer, { capture: true })
     }
-  }, [detail, query, region, close])
+  }, [detail, openSet, query, region, close])
 
   // By keyboard, the control just used (a region, World, a place, Back) goes with the view it was in; focus moves to its counterpart.
-  const was = useRef({ detail, region })
+  const was = useRef({ detail, region, openSet })
   useEffect(() => {
     const prev = was.current
-    was.current = { detail, region }
+    was.current = { detail, region, openSet }
     const box = dialogRef.current
     if (!keyed.current || !box || box.contains(document.activeElement)) return
     const id = prev.detail && CSS.escape(prev.detail.id)
@@ -497,47 +537,63 @@ export default function Progress({ onClose, onDrill }: Props) {
       ? detail !== prev.detail && '[data-back]'
       : id
         ? `[data-place="${id}"], [data-note="${id}"]`
-        : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
+        : openSet !== prev.openSet
+          ? openSet
+            ? '[data-back]'
+            : `[data-set="${CSS.escape(prev.openSet ?? '')}"]`
+          : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
     if (sel) (box.querySelector<HTMLElement>(sel) ?? box).focus()
-  }, [detail, region])
+  }, [detail, region, openSet])
 
   const searching = query.trim() !== ''
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0 })
-  }, [detail, searching])
+  }, [detail, searching, openSet])
 
   const results = useMemo(() => search(query), [query])
   const levels = useMemo(() => rows && mastery(rows), [rows])
   const ahead = useMemo(() => rows && forecast(rows, settings), [rows, settings])
-  const hard = useMemo(() => (rows ? hardest(rows) : []), [rows])
   const learned = useMemo(() => (rows ? [...rows.values()].filter((r) => r.state !== State.New && CARD_BY_ID.has(r.id)).length : 0), [rows])
   const filtered = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const insight = useMemo(() => {
     if (!rows || !logs) return null
-    const days = activity(logs)
-    const counts = [...days.values()]
-    const { counts: holding, best } = horizons(rows)
+    const perDay = days(logs)
+    const counts = [...perDay.values()].map((d) => d.answers)
+    const all = sets(rows)
     return {
-      days,
-      answers: logs.length,
-      best: Math.max(0, ...counts),
-      activeDays: counts.length,
+      days: perDay,
+      summary: logs.length
+        ? `${logs.length.toLocaleString()} answers over ${counts.length} day${counts.length === 1 ? '' : 's'} · ${Math.max(...counts)} on your best day`
+        : 'Your days of study will fill in here',
       recall: recallNow(rows),
       started: placesStarted(rows),
       time: studyTime(logs),
-      goals: nearlyDone(rows),
-      finished: finished(rows),
+      sets: all,
+      finished: [...all.values()].filter((x) => x.region !== WHOLE && x.done === x.cards.length).length,
       types: byType(rows, logs),
-      mix: mixUps(logs),
-      holding,
-      sturdiest: best && { name: cardName(best.card.type, best.card.note), days: best.days },
+      curve: forgetting(rows),
+      struggling: strugglingNow(rows, logs),
     }
   }, [rows, logs])
 
   const open = (note: Note | undefined) => note && setDetail(note)
 
   let body: React.ReactNode = null
+  const shownSet = openSet ? insight?.sets.get(openSet) : undefined
   if (detail && rows) body = <Detail note={detail} rows={rows} onBack={() => setDetail(null)} />
+  else if (shownSet && rows)
+    body = (
+      <SetDetail
+        set={shownSet}
+        rows={rows}
+        onBack={() => setOpenSet(null)}
+        onPick={open}
+        onLearn={() => {
+          onDrill(shownSet.left.map((c) => c.id))
+          close()
+        }}
+      />
+    )
   else if (searching)
     body = results.length ? (
       <ul className="-mx-2">
@@ -569,97 +625,77 @@ export default function Progress({ onClose, onDrill }: Props) {
         </div>
 
         <div className="mt-5">
-          <Heatmap days={insight.days} />
-          {insight.answers > 0 && (
-            <p className="mt-2 text-[12px] tabular-nums text-ink-3">
-              {insight.answers.toLocaleString()} answers over {insight.activeDays} day{insight.activeDays === 1 ? '' : 's'} · {insight.best} on your best day
-            </p>
-          )}
+          <Heatmap days={insight.days} summary={insight.summary} />
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <Stat value={<CountUp to={insight.recall.recalled} />} label="you'd get right now" sub={`of ${insight.recall.learned.toLocaleString()} started`} />
-          <Stat value={<CountUp to={insight.started} />} label="places started" sub={`of ${NOTES.length}`} />
-          <Stat value={duration(insight.time.ms)} label="spent studying" sub={insight.time.perCard ? `${Math.round(insight.time.perCard / 1000)}s a card` : undefined} />
+        <div className="mt-6">
+          <Numbers
+            items={[
+              { value: <CountUp to={insight.recall.recalled} />, label: "you'd get right now", sub: `of ${insight.recall.learned.toLocaleString()} started` },
+              { value: <CountUp to={insight.started} />, label: 'places started', sub: `of ${NOTES.length}` },
+              { value: duration(insight.time.ms), label: 'spent studying', sub: insight.time.perCard ? `${Math.round(insight.time.perCard / 1000)}s a card` : undefined },
+            ]}
+          />
         </div>
 
         <MasteryMap levels={levels} region={region} onRegion={setRegion} onPick={(id) => open(NOTE_BY_ID.get(id))} />
 
-        {insight.goals.length > 0 && (
-          <section className="mt-8">
-            <Heading aside={insight.finished ? `${insight.finished} set${insight.finished === 1 ? '' : 's'} finished` : undefined}>Almost there</Heading>
-            <Goals
-              goals={insight.goals}
-              onLearn={(g) => {
-                onDrill(g.left.map((c) => c.id))
-                close()
-              }}
-            />
-          </section>
-        )}
+        <section className="mt-9">
+          <Heading aside={`${insight.finished} of ${insight.sets.size - TYPES.length} finished`}>Sets</Heading>
+          <SetsTable sets={insight.sets} onOpen={setOpenSet} />
+        </section>
 
-        <section className="mt-8">
+        <section className="mt-9">
           <Heading>By kind of card</Heading>
-          {typeSummary(insight.types) && <p className="-mt-1 mb-3 text-[13.5px] leading-snug text-ink-2">{typeSummary(insight.types)}</p>}
+          {typeSummary(insight.types) && <p className="-mt-1 mb-3.5 text-balance text-[13.5px] leading-snug text-ink-2">{typeSummary(insight.types)}</p>}
           <Types stats={insight.types} />
         </section>
 
-        {insight.mix.length > 0 && (
-          <section className="mt-8">
-            <Heading>Flags you mix up</Heading>
-            <MixUps pairs={insight.mix} onPick={open} />
+        {insight.curve.total > 0 && (
+          <section className="mt-9">
+            <Heading>If you stopped today</Heading>
+            <Forgetting points={insight.curve.points} total={insight.curve.total} />
           </section>
         )}
 
-        <section className="mt-8">
-          <Heading>How long they'll stick</Heading>
-          <Horizon counts={insight.holding} best={insight.sturdiest} />
-        </section>
-
-        <section className="mt-8">
+        <section className="mt-9">
           <Heading aside="reviews due">Next two weeks</Heading>
           <Ahead load={ahead.load} cap={settings.reviewsPerDay} />
-          <p className="mt-3 text-balance text-[13px] leading-snug tabular-nums text-ink-2">
+          <p className="mt-1 text-balance text-[13px] leading-snug tabular-nums text-ink-3">
             {ahead.remaining > 0
-              ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} in about ${span(ahead.days)}`
-              : `Every card${filtered ? ' in these filters' : ''} is under way`}
-            {ahead.peak > 0 && `, with about ${ahead.peak} review${ahead.peak === 1 ? '' : 's'} a day at the busiest.`}
+              ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} in about ${span(ahead.days)}.`
+              : `Every card${filtered ? ' in these filters' : ''} is under way.`}
           </p>
         </section>
 
-        <section className="mt-8">
-          <Heading aside={hard.length > 0 ? 'times forgotten' : undefined}>Hardest cards</Heading>
-          {hard.length ? (
+        <section className="mt-9">
+          <Heading aside={insight.struggling.length > 0 ? 'last 5 answers →' : undefined}>Hardest right now</Heading>
+          {insight.struggling.length ? (
             <>
               <ul className="-mx-2">
-                {hard.map((r) => {
-                  const c = CARD_BY_ID.get(r.id)!
-                  return (
-                    <Row key={r.id} id={c.note.id} onClick={() => open(c.note)}>
-                      <Thumb note={c.note} />
-                      <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
-                        {c.note.country}
-                        <span className="text-ink-3"> · {TYPE_WORD[c.type]}</span>
-                      </span>
-                      <span className={`text-[12.5px] tabular-nums ${r.leech ? 'text-again' : 'text-ink-3'}`} title={r.leech ? 'Leech' : undefined}>
-                        {r.lapses}
-                      </span>
-                    </Row>
-                  )
-                })}
+                {insight.struggling.map(({ card: c, last }) => (
+                  <Row key={c.id} id={c.note.id} onClick={() => open(c.note)}>
+                    <Thumb note={c.note} />
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
+                      {c.note.country}
+                      <span className="text-ink-3"> · {TYPE_WORD[c.type]}</span>
+                    </span>
+                    <LastAnswers ratings={last} />
+                  </Row>
+                ))}
               </ul>
               <button
                 onClick={() => {
-                  onDrill(hard.map((r) => r.id))
+                  onDrill(insight.struggling.map((x) => x.card.id))
                   close()
                 }}
                 className="mt-3 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
               >
-                Drill these {hard.length}
+                Drill these {insight.struggling.length}
               </button>
             </>
           ) : (
-            <p className="text-[13.5px] text-ink-3">No trouble cards yet.</p>
+            <p className="text-[13.5px] text-ink-3">Nothing's giving you trouble lately.</p>
           )}
         </section>
       </>

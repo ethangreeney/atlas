@@ -1,8 +1,8 @@
-import { Flag, Globe, Landmark, MapPin } from 'lucide-react'
+import { Check, Flag, Globe, Landmark, MapPin } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-import { mediaUrl, type CardType, type Note } from '../lib/deck'
-import { HORIZONS, type Goal, type MixUp, type TypeStat } from '../lib/insights'
+import type { CardType } from '../lib/deck'
+import { CONTINENTS, SUBREGIONS, TYPES, WHOLE, placeName, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
 import { dayKey } from '../lib/scheduler'
 
 /** Fill opacity of the good colour for each step of more; step 0 is empty. Matches the map. */
@@ -12,9 +12,21 @@ const EASE = [0.2, 0.8, 0.2, 1] as const
 export const Heading = ({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) => (
   <div className="mb-2.5 flex items-baseline justify-between gap-3">
     <h3 className="text-[12.5px] font-medium text-ink-3">{children}</h3>
-    {aside && <span className="text-[11.5px] text-ink-3">{aside}</span>}
+    {aside && <span className="text-[11.5px] tabular-nums text-ink-3">{aside}</span>}
   </div>
 )
+
+/** Width of an element, kept up to date. */
+function useWidth<T extends Element>() {
+  const ref = useRef<T>(null)
+  const [width, setWidth] = useState(0)
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
+    ro.observe(ref.current!)
+    return () => ro.disconnect()
+  }, [])
+  return [ref, width] as const
+}
 
 /** A bar that grows in from the left when the page opens. */
 function Fill({ value, className, delay = 0 }: { value: number; className: string; delay?: number }) {
@@ -30,57 +42,6 @@ function Fill({ value, className, delay = 0 }: { value: number; className: strin
   )
 }
 
-const pad = (n: number) => String(n).padStart(2, '0')
-const keyOf = (t: Date) => `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`
-const DAY_NAME = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-
-const CELL = 12
-const GAP = 3
-
-/** Every day of the last few months as a square, darker for more answers, weeks as columns starting Monday. As many
- * weeks as fit the width. */
-export function Heatmap({ days }: { days: Map<string, number> }) {
-  const box = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
-  useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
-    ro.observe(box.current!)
-    return () => ro.disconnect()
-  }, [])
-  const weeks = Math.max(1, Math.floor((width + GAP) / (CELL + GAP)))
-  const today = dayKey(new Date())
-  const [y, m, d] = today.split('-').map(Number)
-  const end = new Date(y, m - 1, d, 12)
-  const start = new Date(end)
-  start.setDate(start.getDate() - ((end.getDay() + 6) % 7) - (weeks - 1) * 7)
-  const max = Math.max(1, ...days.values())
-  const level = (n: number) => (n ? Math.min(4, Math.ceil((n / max) * 4)) : 0)
-  const cells: { key: string; n: number; future: boolean; label: string }[] = []
-  for (let t = new Date(start), i = 0; i < weeks * 7; i++, t.setDate(t.getDate() + 1)) {
-    const key = keyOf(t)
-    const n = days.get(key) ?? 0
-    cells.push({ key, n, future: t > end, label: `${DAY_NAME.format(t)}: ${n ? `${n} answer${n === 1 ? '' : 's'}` : 'no study'}` })
-  }
-  return (
-    <div
-      ref={box}
-      className="grid grid-flow-col justify-end"
-      style={{ gap: GAP, gridTemplateColumns: `repeat(${weeks}, ${CELL}px)`, gridTemplateRows: `repeat(7, ${CELL}px)` }}
-      role="img"
-      aria-label={`Answers per day, last ${weeks} weeks`}
-    >
-      {width > 0 && cells.map((c) => (
-        <div
-          key={c.key}
-          title={c.future ? undefined : c.label}
-          className={`rounded-[3px] ${c.future ? '' : c.n ? 'bg-good' : 'bg-muted'} ${c.key === today ? 'ring-1 ring-ink-3 ring-offset-1 ring-offset-surface' : ''}`}
-          style={c.n ? { opacity: SHADE[level(c.n)] } : undefined}
-        />
-      ))}
-    </div>
-  )
-}
-
 /** A number that counts up from zero when the page opens. */
 export function CountUp({ to }: { to: number }) {
   const reduce = useReducedMotion()
@@ -93,51 +54,112 @@ export function CountUp({ to }: { to: number }) {
   return <>{(reduce ? to : n).toLocaleString()}</>
 }
 
-export const Stat = ({ value, label, sub }: { value: React.ReactNode; label: string; sub?: React.ReactNode }) => (
-  <div className="min-w-0 rounded-2xl border border-line px-3.5 py-3">
-    <div className="whitespace-nowrap text-[20px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums sm:text-[22px]">{value}</div>
-    <div className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{label}</div>
-    {sub && <div className="mt-0.5 text-[11.5px] leading-snug text-ink-3 tabular-nums">{sub}</div>}
+/** Three headline numbers side by side. */
+export const Numbers = ({ items }: { items: { value: React.ReactNode; label: string; sub?: string }[] }) => (
+  <div className="grid grid-cols-3 divide-x divide-line">
+    {items.map((x) => (
+      <div key={x.label} className="min-w-0 px-3 first:pl-0 last:pr-0 sm:px-4">
+        <div className="whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums sm:text-[24px]">{x.value}</div>
+        <div className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{x.label}</div>
+        {x.sub && <div className="mt-0.5 text-[11.5px] leading-snug text-ink-3 tabular-nums">{x.sub}</div>}
+      </div>
+    ))}
   </div>
 )
 
-/** Sets closest to finished, each with a button that brings its last cards in now. */
-export function Goals({ goals, onLearn }: { goals: Goal[]; onLearn: (g: Goal) => void }) {
+const pad = (n: number) => String(n).padStart(2, '0')
+const keyOf = (t: Date) => `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`
+const DAY_NAME = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+const MONTH = new Intl.DateTimeFormat(undefined, { month: 'short' })
+const minutes = (ms: number) => (ms < 60_000 ? 'under a minute' : `${Math.round(ms / 60_000)} min`)
+const CELL = 12
+const GAP = 3
+
+/**
+ * Every day of the last few months as a square, darker for more answers, weeks as columns starting Monday, as many
+ * weeks as fit. Point at a day (or tap it) for what you did that day.
+ */
+export function Heatmap({ days, summary }: { days: Map<string, DayStat>; summary: string }) {
+  const [box, width] = useWidth<HTMLDivElement>()
+  const [sel, setSel] = useState<string | null>(null)
+  const weeks = Math.max(1, Math.floor((width + GAP) / (CELL + GAP)))
+  const today = dayKey(new Date())
+  const [y, m, d] = today.split('-').map(Number)
+  const end = new Date(y, m - 1, d, 12)
+  const start = new Date(end)
+  start.setDate(start.getDate() - ((end.getDay() + 6) % 7) - (weeks - 1) * 7)
+  const max = Math.max(1, ...[...days.values()].map((x) => x.answers))
+  const level = (n: number) => (n ? Math.min(4, Math.ceil((n / max) * 4)) : 0)
+  const cells: { key: string; date: Date; future: boolean }[] = []
+  const months: { col: number; label: string }[] = []
+  for (let t = new Date(start), i = 0; i < weeks * 7; i++, t.setDate(t.getDate() + 1)) {
+    cells.push({ key: keyOf(t), date: new Date(t), future: t > end })
+    // A month's name over the first week that starts in it.
+    if (i % 7 === 0 && t.getDate() <= 7) months.push({ col: i / 7, label: MONTH.format(t) })
+  }
+  const gridWidth = weeks * CELL + (weeks - 1) * GAP
+
+  const describe = (key: string) => {
+    const c = cells.find((x) => x.key === key)
+    const s = days.get(key)
+    const name = key === today ? 'Today' : c ? DAY_NAME.format(c.date) : key
+    if (!s) return `${name} · no study`
+    const parts = [`${s.answers} answer${s.answers === 1 ? '' : 's'}`, `${s.fresh} new`]
+    if (s.reviews) parts.push(`${Math.round((s.right / s.reviews) * 100)}% of reviews right`)
+    parts.push(minutes(s.ms))
+    return `${name} · ${parts.join(' · ')}`
+  }
+
   return (
-    <ul className="space-y-2">
-      {goals.map((g, i) => (
-        <li key={g.key} className="rounded-2xl border border-line py-3 pl-3.5 pr-2.5">
-          <div className="flex items-baseline justify-between gap-3 pr-1">
-            <span className="text-[13.5px] font-medium leading-snug text-ink">{g.label}</span>
-            <span className="shrink-0 text-[12px] tabular-nums text-ink-3">
-              {g.done} of {g.total}
-            </span>
+    <div ref={box}>
+      {width > 0 && (
+        <div className="ml-auto" style={{ width: gridWidth }}>
+          <div className="relative mb-1 h-3.5 text-[10.5px] text-ink-3" aria-hidden>
+            {months.map((mo) => (
+              <span key={mo.col} className="absolute whitespace-nowrap" style={{ left: mo.col * (CELL + GAP) }}>
+                {mo.label}
+              </span>
+            ))}
           </div>
-          <div className="mt-2 flex items-center gap-3">
-          <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
-            <Fill value={g.done / g.total} className="bg-good" delay={i * 0.08} />
-          </div>
-          <button
-            onClick={() => onLearn(g)}
-            className="shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-[12.5px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-2.5"
+          <div
+            className="grid grid-flow-col"
+            style={{ gap: GAP, gridTemplateColumns: `repeat(${weeks}, ${CELL}px)`, gridTemplateRows: `repeat(7, ${CELL}px)` }}
+            role="img"
+            aria-label={`Answers per day. ${summary}`}
+            onPointerLeave={(e) => e.pointerType === 'mouse' && setSel(null)}
           >
-            {g.left.length === 1 ? 'Learn the last one' : `Learn the last ${g.left.length}`}
-          </button>
+            {cells.map((c) => {
+              const n = days.get(c.key)?.answers ?? 0
+              return (
+                <div
+                  key={c.key}
+                  onPointerEnter={(e) => !c.future && e.pointerType === 'mouse' && setSel(c.key)}
+                  onClick={() => !c.future && setSel((s) => (s === c.key ? null : c.key))}
+                  className={`relative rounded-[3px] ${c.future ? '' : 'cursor-pointer'} ${c.future ? '' : n ? 'bg-good' : 'bg-muted'} ${
+                    sel === c.key ? 'outline-[1.5px] outline-offset-1 outline-ink outline' : c.key === today ? 'outline-1 outline-offset-1 outline-ink-3 outline' : ''
+                  }`}
+                  style={n ? { opacity: SHADE[level(n)] } : undefined}
+                />
+              )
+            })}
           </div>
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+      <p className="mt-2 min-h-[2lh] text-[12px] tabular-nums text-ink-3 sm:min-h-[1lh]" aria-live="polite">
+        {sel ? <span className="text-ink-2">{describe(sel)}</span> : days.has(today) ? describe(today) : summary}
+      </p>
+    </div>
   )
 }
 
-const TYPE_META: Record<CardType, { label: string; Icon: typeof Flag }> = {
-  flag: { label: 'Flags', Icon: Flag },
-  map: { label: 'Maps', Icon: MapPin },
-  capital: { label: 'Capitals', Icon: Landmark },
-  country: { label: 'Countries from capitals', Icon: Globe },
+const TYPE_META: Record<CardType, { label: string; short: string; Icon: typeof Flag }> = {
+  flag: { label: 'Flags', short: 'Flags', Icon: Flag },
+  map: { label: 'Maps', short: 'Maps', Icon: MapPin },
+  capital: { label: 'Capitals', short: 'Capitals', Icon: Landmark },
+  country: { label: 'Countries from capitals', short: 'From capitals', Icon: Globe },
 }
 
-/** Per card type: how often you remember one when it comes back (the bar), and how many are under way. */
+/** Per card type: how often you remember one when it comes back. */
 export function Types({ stats }: { stats: TypeStat[] }) {
   // Only a clear best and worst get a colour: one type alone at the top (or bottom) once rounded.
   const shown = stats.flatMap((s) => (s.recall === null ? [] : [Math.round(s.recall * 100)]))
@@ -149,20 +171,18 @@ export function Types({ stats }: { stats: TypeStat[] }) {
       {stats.map((s, i) => {
         const { label, Icon } = TYPE_META[s.type]
         const r = s.recall === null ? null : Math.round(s.recall * 100)
-        const tone = r !== null && r === best ? 'text-good' : r !== null && r === worst ? 'text-again' : 'text-ink'
         return (
           <li key={s.type}>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 text-[13.5px]">
               <Icon size={14} strokeWidth={1.75} className="shrink-0 translate-y-[2px] text-ink-3" />
-              <span className="min-w-0 flex-1 text-[13.5px] text-ink">{label}</span>
-              <span className={`text-[15px] font-semibold tabular-nums ${tone}`}>{r === null ? '–' : `${r}%`}</span>
+              <span className="min-w-0 flex-1 truncate text-ink">{label}</span>
+              <span className="shrink-0 tabular-nums">
+                <span className="font-semibold text-ink">{r === null ? '–' : `${r}%`}</span>
+                <span className="text-[12px] text-ink-3"> remembered</span>
+              </span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
               {r !== null && <Fill value={r / 100} className={r === best ? 'bg-good' : r === worst ? 'bg-again' : 'bg-ink-3'} delay={i * 0.06} />}
-            </div>
-            <div className="mt-1 text-[11.5px] tabular-nums text-ink-3">
-              {r === null ? 'Not enough reviews yet · ' : ''}
-              {s.learned} of {s.total} started
             </div>
           </li>
         )
@@ -171,78 +191,151 @@ export function Types({ stats }: { stats: TypeStat[] }) {
   )
 }
 
-const Mini = ({ note }: { note: Note }) => {
-  const file = note.flagBack ?? note.flag
-  return file ? (
-    <img src={mediaUrl(file)} alt="" draggable={false} loading="lazy" className={`h-7 w-auto max-w-12 ${file.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`} />
-  ) : null
-}
-
-/** Pairs of flags you've mixed up, side by side. */
-export function MixUps({ pairs, onPick }: { pairs: MixUp[]; onPick: (n: Note) => void }) {
-  return (
-    <ul className="grid gap-2 sm:grid-cols-2">
-      {pairs.map(({ missed, other }) => (
-        <li key={missed.id + other.id}>
-          <button onClick={() => onPick(missed)} className="flex w-full items-center gap-3 rounded-2xl border border-line px-3.5 py-2.5 text-left transition-colors hover:bg-subtle">
-            <span className="flex shrink-0 items-center gap-1.5">
-              <span className="flex w-12 justify-center">
-                <Mini note={missed} />
-              </span>
-              <span className="flex w-12 justify-center">
-                <Mini note={other} />
-              </span>
+/**
+ * Every set as a table: regions down the side, kinds of card across. Each cell is how many of that set you've
+ * started, with a check once it's all under way. Tap one to see its places.
+ */
+export function SetsTable({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void }) {
+  const cols = 'minmax(6.5rem,1fr) repeat(4, minmax(2.6rem, 4.75rem))'
+  const row = (region: string, i: number) => (
+    <div key={region} className="grid items-center gap-1 py-[3px] sm:gap-1.5" style={{ gridTemplateColumns: cols }} role="row">
+      <span className={`truncate pr-1 text-[13px] ${region === WHOLE ? 'text-ink' : 'text-ink-2'}`} role="rowheader">
+        {region === WHOLE ? 'Whole deck' : placeName(region).replace(/^the /, '')}
+      </span>
+      {TYPES.map((type) => {
+        const s = sets.get(`${region}:${type}`)
+        if (!s) return <span key={type} className="text-center text-[12px] text-ink-3" role="cell">–</span>
+        const done = s.done === s.cards.length
+        return (
+          <button
+            key={type}
+            role="cell"
+            data-set={s.key}
+            onClick={() => onOpen(s.key)}
+            title={`${s.label}: ${s.done} of ${s.cards.length} started`}
+            className="group relative flex h-9 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-subtle"
+          >
+            <span className={`flex items-center gap-0.5 text-[12px] tabular-nums tracking-tight ${done ? 'font-medium text-ink' : s.done ? 'text-ink-2' : 'text-ink-3'}`}>
+              {done && <Check size={12} strokeWidth={2.5} className="text-good" aria-label="Finished" />}
+              {done ? s.cards.length : `${s.done}/${s.cards.length}`}
             </span>
-            <span className="min-w-0 text-[13px] leading-snug">
-              <span className="block truncate text-ink">{missed.country}</span>
-              <span className="block truncate text-ink-3">vs {other.country}</span>
+            <span className="h-[3px] w-8 overflow-hidden rounded-full bg-muted">
+              {s.done > 0 && <Fill value={s.done / s.cards.length} className="bg-good" delay={i * 0.03} />}
             </span>
           </button>
-        </li>
-      ))}
-    </ul>
+        )
+      })}
+    </div>
+  )
+  return (
+    <div role="table" aria-label="Sets">
+      <div className="grid items-end gap-1 pb-1.5 sm:gap-1.5" style={{ gridTemplateColumns: cols }} role="row">
+        <span />
+        {TYPES.map((t) => {
+          const { short, Icon } = TYPE_META[t]
+          return (
+            <span key={t} className="flex flex-col items-center gap-1 text-balance text-center text-[11px] leading-tight text-ink-3" role="columnheader">
+              <Icon size={13} strokeWidth={1.75} />
+              {short}
+            </span>
+          )
+        })}
+      </div>
+      {row(WHOLE, 0)}
+      <div className="mb-1 mt-1.5 border-t border-line" />
+      {CONTINENTS.map((r, i) => row(r, i + 1))}
+      <div className="mb-0.5 mt-3 text-[11.5px] text-ink-3">Within them</div>
+      {SUBREGIONS.map((r, i) => row(r, i + 1 + CONTINENTS.length))}
+    </div>
   )
 }
 
-const long = (days: number) =>
-  days < 14 ? `${Math.round(days)} days` : days < 60 ? `${Math.round(days / 7)} weeks` : days < 540 ? `${Math.round(days / 30)} months` : `${(days / 365).toFixed(1).replace(/\.0$/, '')} years`
+const AHEAD_TICKS = [
+  { days: 0, label: 'Now' },
+  { days: 7, label: '1 wk' },
+  { days: 30, label: '1 mo' },
+  { days: 90, label: '3 mo' },
+  { days: 180, label: '6 mo' },
+  { days: 365, label: '1 yr' },
+]
+const when = (d: number) => (d === 0 ? 'Now' : d < 14 ? `In ${d} day${d === 1 ? '' : 's'}` : d < 60 ? `In ${Math.round(d / 7)} weeks` : d < 330 ? `In ${Math.round(d / 30)} months` : 'In a year')
 
-/** Graduated cards by how long they should stay remembered, as one bar. */
-export function Horizon({ counts, best }: { counts: number[]; best: { name: string; days: number } | null }) {
-  const total = counts.reduce((a, b) => a + b, 0)
+/**
+ * How many of the cards you've answered you'd still know, if you stopped studying today: the whole deck's forgetting
+ * curve over the next year. Time runs on a log scale, so the first weeks, where most of the drop happens, get room.
+ */
+export function Forgetting({ points, total }: { points: { days: number; known: number }[]; total: number }) {
+  const [box, width] = useWidth<HTMLDivElement>()
+  const [hover, setHover] = useState<number | null>(null)
   const reduce = useReducedMotion()
-  if (!total) return <p className="text-[13.5px] text-ink-3">Once cards graduate from learning, you'll see how long they'll stick.</p>
+  const H = 130
+  const TOP = 16
+  const BOTTOM = 18
+  const R = 6
+  const last = points[points.length - 1].days
+  const x = (d: number) => (Math.log1p(d) / Math.log1p(last)) * (width - R)
+  const y = (k: number) => TOP + (1 - k / Math.max(1, total)) * (H - TOP - BOTTOM)
+  /** Known at any day, between samples on the same log scale the chart uses. */
+  const at = (d: number) => {
+    const i = Math.max(1, points.findIndex((p) => p.days >= d))
+    const [a, b] = [points[i - 1], points[i]]
+    const t = (Math.log1p(d) - Math.log1p(a.days)) / (Math.log1p(b.days) - Math.log1p(a.days) || 1)
+    return a.known + (b.known - a.known) * Math.min(1, Math.max(0, t))
+  }
+  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.days).toFixed(1)},${y(p.known).toFixed(1)}`).join('')
+  const area = `${line}L${x(last).toFixed(1)},${y(0)}L0,${y(0)}Z`
+  const month = Math.round(at(30))
+  const year = Math.round(at(365))
+  const caption = `You'd still know about ${month.toLocaleString()} of your ${total.toLocaleString()} cards in a month, and ${year.toLocaleString()} in a year.`
+
   return (
-    <div>
-      <div className="flex h-3 gap-[2px] overflow-hidden rounded-full">
-        {counts.map((n, i) =>
-          n ? (
-            <motion.div
-              key={i}
-              className="h-full origin-left bg-good first:rounded-l-full last:rounded-r-full"
-              style={{ flexGrow: n, opacity: SHADE[i + 1] }}
-              initial={reduce ? false : { scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.5, delay: 0.15 + i * 0.12, ease: EASE }}
-              title={`${HORIZONS[i].label}: ${n}`}
-            />
-          ) : null,
-        )}
-      </div>
-      <ul className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-4">
-        {HORIZONS.map((h, i) => (
-          <li key={h.label} className="flex items-center gap-1.5 text-ink-2">
-            <span className="h-2 w-2 shrink-0 rounded-[2px] bg-good" style={{ opacity: SHADE[i + 1] }} />
-            <span className="truncate">{h.label}</span>
-            <span className="ml-auto tabular-nums text-ink-3 sm:ml-0">{counts[i]}</span>
-          </li>
-        ))}
-      </ul>
-      {best && (
-        <p className="mt-3 text-[13px] leading-snug text-ink-2">
-          Sturdiest memory: <span className="text-ink">{best.name}</span>. You'll very likely still know it in {long(best.days)}.
-        </p>
+    <div ref={box}>
+      {width > 0 && (
+        <svg
+          width={width}
+          height={H}
+          className="block touch-pan-y overflow-visible"
+          role="img"
+          aria-label={caption}
+          onPointerMove={(e) => {
+            const px = e.clientX - e.currentTarget.getBoundingClientRect().left
+            const d = Math.expm1((Math.max(0, Math.min(width - R, px)) / (width - R)) * Math.log1p(last))
+            setHover(Math.round(d))
+          }}
+          onPointerLeave={() => setHover(null)}
+        >
+          <line x1={0} x2={width - R} y1={y(total)} y2={y(total)} className="stroke-line" strokeDasharray="3 3" />
+          <text x={0} y={y(total) - 5} className="fill-ink-3 text-[10.5px]">
+            all {total.toLocaleString()}
+          </text>
+          <line x1={0} x2={width - R} y1={y(0)} y2={y(0)} className="stroke-line" />
+          <motion.g initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }}>
+            <path d={area} className="fill-good" fillOpacity={0.1} />
+            <path d={line} className="fill-none stroke-good" strokeWidth={2} strokeLinejoin="round" />
+          </motion.g>
+          {AHEAD_TICKS.filter((t) => width >= 420 || t.days !== 180).map((t) => (
+            <text key={t.days} x={x(t.days)} y={H - 3} textAnchor={t.days === 0 ? 'start' : t.days === last ? 'end' : 'middle'} className="fill-ink-3 text-[10.5px]">
+              {t.label}
+            </text>
+          ))}
+          {hover !== null && (
+            <g className="pointer-events-none">
+              <line x1={x(hover)} x2={x(hover)} y1={TOP - 4} y2={y(0)} className="stroke-ink-3" strokeWidth={1} />
+              <circle cx={x(hover)} cy={y(at(hover))} r={4} className="fill-good stroke-surface" strokeWidth={2} />
+            </g>
+          )}
+        </svg>
       )}
+      <p className="mt-2 min-h-[2lh] text-[13px] leading-snug tabular-nums text-ink-2" aria-live="polite">
+        {hover !== null ? (
+          <>
+            <span className="font-medium text-ink">{when(hover)}</span>: about {Math.round(at(hover)).toLocaleString()} of {total.toLocaleString()} (
+            {Math.round((at(hover) / Math.max(1, total)) * 100)}%)
+          </>
+        ) : (
+          caption
+        )}
+      </p>
     </div>
   )
 }
@@ -250,9 +343,10 @@ export function Horizon({ counts, best }: { counts: number[]; best: { name: stri
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'narrow' })
 const WEEKDAY_LONG = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
 
-/** Reviews due each of the next two weeks, as bars. */
+/** Reviews due each of the next two weeks, as bars. Point at one for its day and count. */
 export function Ahead({ load, cap }: { load: number[]; cap: number }) {
   const reduce = useReducedMotion()
+  const [hover, setHover] = useState<number | null>(null)
   const days = load.slice(0, 14).map((n) => Math.min(n, cap))
   const max = Math.max(1, ...days)
   const peak = days.indexOf(Math.max(...days))
@@ -261,18 +355,26 @@ export function Ahead({ load, cap }: { load: number[]; cap: number }) {
     t.setDate(t.getDate() + i)
     return t
   }
+  const name = (i: number) => (i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : WEEKDAY_LONG.format(date(i)))
+  const count = (n: number) => `${n} review${n === 1 ? '' : 's'}`
   return (
     <div>
-      <div className="flex h-24 items-end gap-[3px] pt-4 sm:gap-1">
+      <div className="flex h-24 items-end gap-[3px] pt-4 sm:gap-1" onPointerLeave={() => setHover(null)}>
         {days.map((n, i) => (
-          <div key={i} data-due={n} className="relative flex h-full min-w-0 flex-1 items-end" title={`${i ? WEEKDAY_LONG.format(date(i)) : 'Today'}: ${n} review${n === 1 ? '' : 's'}`}>
+          <div
+            key={i}
+            data-due={n}
+            className="relative flex h-full min-w-0 flex-1 cursor-default items-end"
+            onPointerEnter={() => setHover(i)}
+            onClick={() => setHover((h) => (h === i ? null : i))}
+          >
             {(i === 0 || i === 1 || i === peak) && n > 0 && (
               <span className="absolute inset-x-0 text-center text-[10.5px] tabular-nums text-ink-3" style={{ bottom: `calc(${(n / max) * 100}% + 3px)` }}>
                 {n}
               </span>
             )}
             <motion.div
-              className={`w-full origin-bottom rounded-[4px] ${i === 0 ? 'bg-ink' : 'bg-muted-2'}`}
+              className={`w-full origin-bottom rounded-[4px] transition-colors ${i === 0 ? 'bg-ink' : hover === i ? 'bg-ink-3' : 'bg-muted-2'}`}
               style={{ height: `${Math.max(n ? 6 : 2, (n / max) * 100)}%` }}
               initial={reduce ? false : { scaleY: 0 }}
               animate={{ scaleY: 1 }}
@@ -281,13 +383,34 @@ export function Ahead({ load, cap }: { load: number[]; cap: number }) {
           </div>
         ))}
       </div>
-      <div className="mt-1.5 flex gap-[3px] sm:gap-1">
+      <div className="mt-1.5 flex gap-[3px] sm:gap-1" aria-hidden>
         {days.map((_, i) => (
-          <span key={i} className={`min-w-0 flex-1 text-center text-[10.5px] ${i === 0 ? 'font-medium text-ink' : 'text-ink-3'}`} aria-hidden>
+          <span key={i} className={`min-w-0 flex-1 text-center text-[10.5px] ${i === 0 ? 'font-medium text-ink' : 'text-ink-3'}`}>
             {WEEKDAY.format(date(i))}
           </span>
         ))}
       </div>
+      <p className="mt-2 text-[13px] tabular-nums text-ink-2" aria-live="polite">
+        {hover !== null ? (
+          <>
+            <span className="font-medium text-ink">{name(hover)}</span>: {count(days[hover])}
+          </>
+        ) : (
+          <>
+            Tomorrow {count(days[1] ?? 0)}
+            {peak > 1 && ` · busiest ${WEEKDAY_LONG.format(date(peak))} with ${days[peak]}`}
+          </>
+        )}
+      </p>
     </div>
   )
 }
+
+/** Your last few answers on a card, oldest first: red for a miss, green for right. */
+export const LastAnswers = ({ ratings }: { ratings: number[] }) => (
+  <span className="flex shrink-0 items-center gap-1" aria-label={`Last ${ratings.length}: ${ratings.map((r) => (r === 1 ? 'missed' : 'right')).join(', ')}`}>
+    {ratings.map((r, i) => (
+      <span key={i} className={`h-2 w-2 rounded-full ${r === 1 ? 'bg-again' : 'bg-good'}`} />
+    ))}
+  </span>
+)

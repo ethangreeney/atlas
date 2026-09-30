@@ -95,7 +95,7 @@ export function forecast(rows: Map<string, CardRow>, settings: Settings, now = n
   }
 
   const peak = Math.min(settings.reviewsPerDay, Math.max(0, ...load))
-  return { remaining, days, peak }
+  return { remaining, days, peak, load }
 }
 
 const fold = (s: string) =>

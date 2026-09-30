@@ -1,6 +1,6 @@
 import { Check, ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
 import { motion, useDragControls, type Variants } from 'motion/react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
 import type { Verdict } from '../lib/answer'
 import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
@@ -346,6 +346,12 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
   const tag = stateTag(row)
   const drag = useDragControls()
   const front = useRef<HTMLDivElement>(null)
+  // Once the answer is shown, tapping the card turns it over again, to look at the question (a flag, say) full size.
+  // Each tap is another half turn the same way round; an even number of them shows the answer.
+  const [turns, setTurns] = useState(0)
+  const answerUp = flipped && turns % 2 === 0
+  // A swipe that doesn't go far enough to grade springs back; its pointer-up mustn't also count as a tap.
+  const dragged = useRef(false)
   // Once turned over, the answer box lets go of the keyboard so Enter and the number keys grade.
   useEffect(() => {
     if (flipped && front.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur()
@@ -363,6 +369,9 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
       dragListener={false}
       dragSnapToOrigin
       onPointerDown={(e) => flipped && e.pointerType !== 'mouse' && drag.start(e)}
+      onDragStart={() => {
+        dragged.current = true
+      }}
       onDragEnd={(_, { offset, velocity }) => {
         const dx = offset.x + velocity.x * 0.15
         if (dx > SWIPE) onGrade(Rating.Good)
@@ -370,23 +379,27 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
       }}
     >
       <motion.div
-        className={`relative h-full w-full select-none [transform-style:preserve-3d] ${flipped ? '' : 'cursor-pointer'}`}
-        animate={{ rotateY: flipped ? 180 : 0 }}
+        className="relative h-full w-full cursor-pointer select-none [transform-style:preserve-3d]"
+        animate={{ rotateY: (flipped ? 180 : 0) + turns * 180 }}
         transition={{ duration: 0.38 * SLOW, ease: [0.3, 0.7, 0.2, 1] }}
-        onClick={() => !flipped && onFlip()}
+        onClick={() => {
+          if (dragged.current) return void (dragged.current = false)
+          if (flipped) setTurns((t) => t + 1)
+          else onFlip()
+        }}
       >
-        <div ref={front} className={face} inert={flipped}>
+        <div ref={front} className={face} inert={answerUp}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          <div className={body(!flipped)}>
+          <div className={body(!answerUp)}>
             <Front card={card} />
             {input && <AnswerInput card={card} input={input} />}
           </div>
         </div>
-        <div className={`${face} [transform:rotateY(180deg)]`} inert={!flipped}>
+        <div className={`${face} [transform:rotateY(180deg)]`} inert={!answerUp}>
           <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
           {typed && <Result typed={typed} />}
           {/* A scroller sets its own touch-action, so it needs pan-y too or a swipe starting on the answer is lost. */}
-          <div className={`${body(flipped)} touch-pan-y`}>
+          <div className={`${body(answerUp)} touch-pan-y`}>
             <Back card={card} showMap={showMap} onSay={onSpeak} />
           </div>
           <div className="absolute bottom-3 right-3 flex items-center gap-3">

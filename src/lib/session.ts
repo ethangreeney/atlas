@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
 import { CARD_BY_ID, type DeckCard } from './deck'
-import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, matchesFilters, scheduler, type Queue } from './scheduler'
+import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, scheduler, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
 
@@ -23,6 +23,12 @@ export function useSession() {
   const [saveError, setSaveError] = useState(false)
   /** Card pinned to the front of the queue after an undo. */
   const pinned = useRef<string | null>(null)
+  /**
+   * The card that was on screen when an undo took it away, to come back once the undone card is answered again.
+   * Answering differently the second time ("Knew it" instead of Good, say) changes the day's counts, and without this
+   * the queue could pick another card, so the one just seen would vanish.
+   */
+  const resume = useRef<{ id: string; rev: number } | null>(null)
   /**
    * The card on screen stays there until it's answered. Without this, coming back to the tab could swap it
    * for a learning card that fell due in the meantime, mid-view and already flipped. `rev` is the card's
@@ -182,9 +188,12 @@ export function useSession() {
       }
 
       rows.current.set(card.id, row)
+      // Re-answering the card an undo brought back returns to the one that was showing before the undo.
+      const back = pinned.current === card.id ? resume.current : null
       pinned.current = null
-      // Whatever comes next (this card again, even) is a fresh showing.
-      shown.current = null
+      resume.current = null
+      // Whatever comes next (this card again, even) is a fresh showing, unless it's the card the undo interrupted.
+      shown.current = back && back.id !== card.id && stillDue(back.id, row, nd, now) ? back : null
       setDrill((dr) => {
         if (!dr) return dr
         const left = dr.left.filter((id) => id !== card.id)
@@ -205,7 +214,8 @@ export function useSession() {
       setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review, drill })
       schedulePush()
     },
-    [day, loadDay, drill],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [day, loadDay, drill, settings],
   )
 
   const undoLast = useCallback(async () => {
@@ -221,6 +231,8 @@ export function useSession() {
     const extraNew = Math.max(undo.day.extraNew, day?.day === undo.day.day ? day.extraNew : 0)
     const nd: DayRow = { ...undo.day, extraNew, updated: now, dirty: 1 }
     rows.current.set(undo.cardId, row)
+    // Don't carry a card over from one undo to the next: only the one on screen now is interrupted.
+    resume.current = shown.current && shown.current.id !== undo.cardId ? shown.current : null
     pinned.current = undo.cardId
     setDrill(undo.drill)
     setDay(nd)
@@ -238,6 +250,19 @@ export function useSession() {
     recordUndo(undo.cardId, undo.review)
     schedulePush()
   }, [undo, day])
+
+  /**
+   * Whether a card would still be on today's list after `graded` was answered: a learning card due within the
+   * learn-ahead limit, a review due today, or a new card with room left and its place not seen today.
+   */
+  function stillDue(id: string, graded: CardRow, d: DayRow, now: Date) {
+    const c = CARD_BY_ID.get(id)
+    if (!c || !matchesFilters(c, settings)) return false
+    const r = rows.current.get(id) ?? freshRow(c, now)
+    if (r.state === State.Learning || r.state === State.Relearning) return +r.due - +now <= LEARN_AHEAD_MS
+    if (r.state === State.Review) return r.due < dayEnd(now)
+    return c.note.id !== graded.noteId && !d.seenNotes.includes(c.note.id) && buildQueue(now, rows.current, settings, d).counts.new > 0
+  }
 
   const learnMore = useCallback(
     async (n = 20) => {

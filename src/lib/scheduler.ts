@@ -59,7 +59,7 @@ export function resetWeights() {
 
 export const LEECH_THRESHOLD = 8
 const ROLLOVER_HOURS = 4 // Anki: "next day starts at 4am"
-const LEARN_AHEAD_MS = 20 * 60_000 // Anki: learn ahead limit 20m
+export const LEARN_AHEAD_MS = 20 * 60_000 // Anki: learn ahead limit 20m
 
 const pad = (n: number) => String(n).padStart(2, '0')
 /** Local calendar day, with the day rolling over at 4am like Anki. */

@@ -112,7 +112,7 @@ export function Heatmap({ days, summary }: { days: Map<string, DayStat>; summary
 
   return (
     <div ref={box}>
-      {width > 0 && (
+      {width > 0 ? (
         <div className="ml-auto" style={{ width: gridWidth }}>
           <div className="relative mb-1 h-3.5 text-[10.5px] text-ink-3" aria-hidden>
             {months.map((mo) => (
@@ -144,6 +144,8 @@ export function Heatmap({ days, summary }: { days: Map<string, DayStat>; summary
             })}
           </div>
         </div>
+      ) : (
+        <div style={{ height: 18 + 7 * CELL + 6 * GAP }} />
       )}
       <p className="mt-2 min-h-[2lh] text-[12px] tabular-nums text-ink-3 sm:min-h-[1lh]" aria-live="polite">
         {sel ? <span className="text-ink-2">{describe(sel)}</span> : days.has(today) ? describe(today) : summary}
@@ -290,7 +292,7 @@ export function Forgetting({ points, total }: { points: { days: number; known: n
 
   return (
     <div ref={box}>
-      {width > 0 && (
+      {width > 0 ? (
         <svg
           width={width}
           height={H}
@@ -325,6 +327,8 @@ export function Forgetting({ points, total }: { points: { days: number; known: n
             </g>
           )}
         </svg>
+      ) : (
+        <div style={{ height: H }} />
       )}
       <p className="mt-2 min-h-[2lh] text-[13px] leading-snug tabular-nums text-ink-2" aria-live="polite">
         {hover !== null ? (

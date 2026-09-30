@@ -3,9 +3,9 @@ import { animate, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
-import { ALL_CARDS, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type Note } from '../lib/deck'
+import { ALL_CARDS, answerOf, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type DeckCard, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
-import { TYPES, WHOLE, byType, days, forgetting, placesStarted, recallNow, sets, strugglingNow, studyTime, typeSummary, type DeckSet } from '../lib/insights'
+import { TYPES, WHOLE, byType, days, forgetting, placesStarted, recallNow, sets, strugglingNow, studyTime, typeSummary, type DeckSet, type Struggle } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
 import { Ahead, CountUp, Forgetting, Heading, Heatmap, LastAnswers, Numbers, SetsTable, Types } from './Insights'
 import { Reminders } from './Reminders'
@@ -72,6 +72,86 @@ const Thumb = ({ note }: { note: Note }) => {
         />
       )}
     </span>
+  )
+}
+
+/** One side of a card, small: the name, flag or map the question shows, or the answer. */
+const Side = ({ card, back }: { card: DeckCard; back?: boolean }) => {
+  const n = card.note
+  const pic = back ? null : card.type === 'flag' ? n.flag : card.type === 'map' ? n.map : null
+  if (pic)
+    return (
+      <img
+        src={mediaUrl(pic)}
+        alt={card.type === 'flag' ? 'Flag' : 'Map'}
+        draggable={false}
+        className={card.type === 'map' ? 'img-shadow img-dim w-full rounded-lg' : `max-h-20 max-w-full ${pic.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+      />
+    )
+  return <div className="text-balance text-[15px] font-semibold leading-snug text-ink">{back ? answerOf(card) : card.type === 'country' ? n.capital : n.country}</div>
+}
+
+/** The card itself, question over answer, floating over the list beside its row. */
+const Peek = ({ card, id, above }: { card: DeckCard; id: string; above: boolean }) => {
+  const reduce = useReducedMotion()
+  return (
+    <motion.div
+      id={id}
+      initial={reduce ? false : { opacity: 0, y: above ? 4 : -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.12 }}
+      className={`pointer-events-none absolute left-10 z-20 w-56 rounded-2xl border border-line bg-surface p-3.5 shadow-xl ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+    >
+      <div className="mb-1.5 text-[11.5px] text-ink-3">{CARD_TYPES.find((t) => t.id === card.type)!.prompt}</div>
+      <Side card={card} />
+      <div className="my-3 border-t border-line" />
+      <Side card={card} back />
+    </motion.div>
+  )
+}
+
+/**
+ * The cards giving you trouble, each with its last few answers. Hovering one (tapping it on a phone, or Enter) shows
+ * the card, question and answer, without leaving the page.
+ */
+function Hardest({ items }: { items: Struggle[] }) {
+  const [peek, setPeek] = useState<string | null>(null)
+  const list = useRef<HTMLUListElement>(null)
+  const mouse = useRef(false)
+  // A tap anywhere else puts the card away.
+  useEffect(() => {
+    if (!peek) return
+    const away = (e: PointerEvent) => !list.current?.contains(e.target as Node) && setPeek(null)
+    window.addEventListener('pointerdown', away)
+    return () => window.removeEventListener('pointerdown', away)
+  }, [peek])
+  return (
+    <ul ref={list} className="-mx-2" onPointerLeave={(e) => e.pointerType === 'mouse' && setPeek(null)}>
+      {items.map(({ card: c, last }, i) => {
+        const open = peek === c.id
+        return (
+          <li key={c.id} className="relative" onPointerEnter={(e) => e.pointerType === 'mouse' && setPeek(c.id)}>
+            <button
+              aria-expanded={open}
+              aria-controls={open ? `peek-${i}` : undefined}
+              onPointerDown={(e) => (mouse.current = e.pointerType === 'mouse')}
+              // A mouse already shows the card by hovering; a tap or Enter toggles it.
+              onClick={(e) => (e.detail === 0 || !mouse.current) && setPeek(open ? null : c.id)}
+              onBlur={() => setPeek((p) => (p === c.id ? null : p))}
+              className={`flex min-h-10 w-full cursor-default items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors ${open ? 'bg-subtle' : ''}`}
+            >
+              <Thumb note={c.note} />
+              <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
+                {c.note.country}
+                <span className="text-ink-3"> · {TYPE_WORD[c.type]}</span>
+              </span>
+              <LastAnswers ratings={last} />
+            </button>
+            {open && <Peek card={c} id={`peek-${i}`} above={i >= items.length / 2} />}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -542,13 +622,31 @@ export default function Progress({ onClose, onDrill }: Props) {
             ? '[data-back]'
             : `[data-set="${CSS.escape(prev.openSet ?? '')}"]`
           : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
-    if (sel) (box.querySelector<HTMLElement>(sel) ?? box).focus()
+    if (sel) (box.querySelector<HTMLElement>(sel) ?? box).focus({ preventScroll: true })
   }, [detail, region, openSet])
 
   const searching = query.trim() !== ''
+  // Going back (from a place to its set, or to the page) picks up where you'd scrolled to; anywhere new starts at the top.
+  const view = detail ? `place:${detail.id}` : openSet ? `set:${openSet}` : searching ? 'search' : 'page'
+  const depth = detail ? 2 : openSet ? 1 : 0
+  const scrolled = useRef(new Map<string, number>())
+  const shown = useRef({ view, depth })
   useEffect(() => {
-    bodyRef.current?.scrollTo({ top: 0 })
-  }, [detail, searching, openSet])
+    const el = bodyRef.current
+    const prev = shown.current
+    shown.current = { view, depth }
+    if (!el || prev.view === view) return
+    const to = depth < prev.depth ? (scrolled.current.get(view) ?? 0) : 0
+    // The charts size themselves a frame or two after they appear, so the page may not be tall enough yet.
+    let frame = 0
+    let tries = 0
+    const go = () => {
+      el.scrollTop = to
+      if (Math.abs(el.scrollTop - to) > 1 && ++tries < 30) frame = requestAnimationFrame(go)
+    }
+    go()
+    return () => cancelAnimationFrame(frame)
+  }, [view, depth])
 
   const results = useMemo(() => search(query), [query])
   const levels = useMemo(() => rows && mastery(rows), [rows])
@@ -672,18 +770,7 @@ export default function Progress({ onClose, onDrill }: Props) {
           <Heading aside={insight.struggling.length > 0 ? 'last 5 answers →' : undefined}>Hardest right now</Heading>
           {insight.struggling.length ? (
             <>
-              <ul className="-mx-2">
-                {insight.struggling.map(({ card: c, last }) => (
-                  <Row key={c.id} id={c.note.id} onClick={() => open(c.note)}>
-                    <Thumb note={c.note} />
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
-                      {c.note.country}
-                      <span className="text-ink-3"> · {TYPE_WORD[c.type]}</span>
-                    </span>
-                    <LastAnswers ratings={last} />
-                  </Row>
-                ))}
-              </ul>
+              <Hardest items={insight.struggling} />
               <button
                 onClick={() => {
                   onDrill(insight.struggling.map((x) => x.card.id))
@@ -750,7 +837,11 @@ export default function Progress({ onClose, onDrill }: Props) {
             <X size={17} strokeWidth={1.75} />
           </button>
         </div>
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 sm:px-7 sm:pb-8">
+        <div
+          ref={bodyRef}
+          onScroll={(e) => scrolled.current.set(shown.current.view, e.currentTarget.scrollTop)}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 sm:px-7 sm:pb-8"
+        >
           {body}
         </div>
       </motion.div>

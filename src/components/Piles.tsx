@@ -124,11 +124,11 @@ export function Piles({ counts, refs, onDrill }: Props) {
           <motion.div
             key="table"
             aria-hidden
-            className="fixed inset-0 bg-page/80 backdrop-blur-[3px]"
+            className="fixed inset-0 bg-page/85 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            transition={{ duration: 0.15 }}
             onClick={() => void close()}
           />
         )}
@@ -246,6 +246,7 @@ function Dealt({
 }) {
   const reduce = useReducedMotion()
   const cards = useRef<(HTMLDivElement | null)[]>([])
+  const table = useRef<HTMLDivElement>(null)
   const [turned, setTurned] = useState<ReadonlySet<string>>(new Set())
   const turn = (id: string) =>
     setTurned((t) => {
@@ -262,6 +263,10 @@ function Dealt({
       return p ? { x: p.left + p.width / 2 - (r.left + r.width / 2), y: p.top + p.height / 2 - (r.top + r.height / 2) } : { x: 0, y: 0 }
     }
     const els = cards.current.slice(0, items.length)
+    // Only a pile too big for the table scrolls. Measured before any card is moved: one still on its way out of the
+    // pile would otherwise count as overflow, and a scrollbar would show (and take a column) where none is needed.
+    // (The cards' 3D turn adds a few pixels of phantom overflow, so a near fit counts as a fit.)
+    if (table.current) table.current.style.overflowY = table.current.scrollHeight > table.current.clientHeight + 8 ? 'auto' : 'visible'
     const deal = els.map((el, j) => {
       if (!el) return null
       const tilt = lean(items[j].card.id)
@@ -271,11 +276,11 @@ function Dealt({
         return null
       }
       const from = toPile(el)
-      const delay = Math.min(j, 24) * 0.014
+      const delay = Math.min(j, 20) * 0.009
       return animate(
         el,
         { x: [from.x, 0], y: [from.y, 0], scale: [0.4, 1], rotate: [0, tilt], opacity: [0, 1] },
-        { type: 'spring', stiffness: 360, damping: 30, delay, opacity: { duration: 0.12, delay } },
+        { type: 'spring', stiffness: 560, damping: 38, delay, opacity: { duration: 0.1, delay } },
       )
     })
     register(() => {
@@ -292,7 +297,7 @@ function Dealt({
           return animate(
             el,
             { x: x + r.x, y: y + r.y, scale: 0.4, rotate: 0, opacity: 0 },
-            { duration: 0.24, ease: [0.4, 0, 0.7, 1], delay: Math.min(n - 1 - j, 24) * 0.006, opacity: { duration: 0.1, delay: 0.14 } },
+            { duration: 0.18, ease: [0.4, 0, 0.7, 1], delay: Math.min(n - 1 - j, 20) * 0.004, opacity: { duration: 0.08, delay: 0.1 } },
           )
         }),
       )
@@ -301,9 +306,11 @@ function Dealt({
   }, [grade, items, piles, register, reduce])
 
   return (
-    <div className="absolute inset-x-0 bottom-full mb-3 flex flex-col" style={{ height }}>
+    // Wider than the piles where there's room, so a big pile fits on the table without scrolling.
+    <div className="absolute bottom-full left-1/2 mb-3 flex w-[min(calc(100vw-2rem),56rem)] -translate-x-1/2 flex-col" style={{ height }}>
       <div
-        className="scroll-fade flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-1 pt-2"
+        ref={table}
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         // The bare table between the cards puts them away too.
         onClick={(e) => !(e.target as Element).closest('button') && onClose()}
       >
@@ -339,10 +346,10 @@ function Dealt({
                     // Pointed at, a card straightens and lifts off the table; pressed, it gives a little. Plain CSS, so
                     // dealing out a big pile isn't held up setting each one up.
                     style={{ '--lean': `${-lean(card.id)}deg` } as React.CSSProperties}
-                    className="group h-full w-full cursor-pointer transition-[translate,scale,rotate] duration-200 ease-out [perspective:600px] hover:-translate-y-1.5 hover:scale-[1.04] hover:[rotate:var(--lean)] active:scale-[0.97] motion-reduce:transition-none"
+                    className="group h-full w-full cursor-pointer transition-[translate,scale,rotate] duration-150 ease-out [perspective:600px] hover:-translate-y-1.5 hover:scale-[1.04] hover:[rotate:var(--lean)] active:scale-[0.97] motion-reduce:transition-none"
                   >
                     <div
-                      className="relative h-full w-full transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] [transform-style:preserve-3d] motion-reduce:transition-none"
+                      className="relative h-full w-full transition-transform duration-[380ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] [transform-style:preserve-3d] motion-reduce:transition-none"
                       style={{ transform: up ? 'rotateY(180deg)' : undefined }}
                     >
                       <Face>

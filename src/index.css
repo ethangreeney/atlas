@@ -121,6 +121,43 @@ body {
     0 1px 2px rgba(15, 15, 16, 0.05);
 }
 
+/* A pile's top card, picked up under the pointer (or while its cards are dealt out), and a dealt card lifted. */
+@media (hover: hover) {
+  .group:enabled:hover .pile-top,
+  .group:hover .mini-shadow {
+    box-shadow:
+      0 0 0 1px var(--color-edge),
+      0 10px 20px -10px rgba(15, 15, 16, 0.3);
+  }
+}
+.group[aria-expanded='true'] .pile-top {
+  box-shadow:
+    0 0 0 1px var(--color-edge),
+    0 10px 20px -10px rgba(15, 15, 16, 0.3);
+}
+
+/* Cards beneath the top of a pile, a little in its shade. */
+.pile-under-1 {
+  background: color-mix(in oklab, var(--color-surface), #000 3%);
+}
+.pile-under-2 {
+  background: color-mix(in oklab, var(--color-surface), #000 6%);
+}
+.pile-under-3 {
+  background: color-mix(in oklab, var(--color-surface), #000 9%);
+}
+.pile-under-4 {
+  background: color-mix(in oklab, var(--color-surface), #000 12%);
+}
+
+/* The study card's shadow, at the size of a card dealt out of a pile. */
+.mini-shadow {
+  box-shadow:
+    0 0 0 1px rgba(15, 15, 16, 0.06),
+    0 1px 2px rgba(15, 15, 16, 0.05),
+    0 10px 24px -12px rgba(15, 15, 16, 0.22);
+}
+
 /* Something that scrolls only when it can't fit (a card face or the Done screen on a short screen) fades out at
  * whichever edge has more to see. Driven by its own scroll position, so when it fits there's no fade at all. */
 @property --fade-top {
@@ -183,6 +220,32 @@ kbd {
       0 1px 2px var(--color-drop);
   }
 
+  .mini-shadow {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 250, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 10px 24px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  .group[aria-expanded='true'] .pile-top {
+    box-shadow:
+      0 0 0 1px var(--color-edge),
+      0 10px 20px -10px rgba(0, 0, 0, 0.8);
+  }
+
+  .pile-under-1 {
+    background: color-mix(in oklab, var(--color-surface), #000 14%);
+  }
+  .pile-under-2 {
+    background: color-mix(in oklab, var(--color-surface), #000 22%);
+  }
+  .pile-under-3 {
+    background: color-mix(in oklab, var(--color-surface), #000 30%);
+  }
+  .pile-under-4 {
+    background: color-mix(in oklab, var(--color-surface), #000 38%);
+  }
+
   /* A faint light outline keeps the white parts of flags from bleeding into the page. */
   .img-shadow {
     box-shadow:
@@ -193,5 +256,14 @@ kbd {
   /* The deck's maps are light; take the glare off without changing their colours. */
   .img-dim {
     filter: brightness(0.88);
+  }
+}
+
+@media (prefers-color-scheme: dark) and (hover: hover) {
+  .group:enabled:hover .pile-top,
+  .group:hover .mini-shadow {
+    box-shadow:
+      0 0 0 1px var(--color-edge),
+      0 10px 20px -10px rgba(0, 0, 0, 0.8);
   }
 }

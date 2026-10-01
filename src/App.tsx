@@ -312,7 +312,7 @@ export default function App() {
         </main>
 
         <div className="mx-auto w-[min(592px,100%)] px-4 pb-4 short:pb-1.5 short:pt-2">
-          <Piles counts={pileCounts} refs={pileRefs} />
+          <Piles counts={pileCounts} refs={pileRefs} onDrill={startDrill} />
         </div>
 
         <footer className="flex h-11 shrink-0 items-center justify-between gap-6 whitespace-nowrap px-4 text-[11px] text-ink-3 sm:px-6 short:h-8">

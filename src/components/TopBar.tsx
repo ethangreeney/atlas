@@ -63,10 +63,10 @@ const InlineCounts = ({ c }: { c: NonNullable<Queue['counts']> }) => (
   </div>
 )
 
-/** Stands in for the counts while drilling the hardest cards. */
+/** Stands in for the counts while drilling a chosen few cards. */
 const Drilling = ({ n, onExit }: { n: number; onExit: () => void }) => (
   <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[12px] text-ink-3">
-    <span className="text-ink-2">Drilling {n} hardest</span>·
+    <span className="text-ink-2">Drilling {n} card{n === 1 ? '' : 's'}</span>·
     <button onClick={onExit} className="relative font-medium text-ink-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-ink">
       Exit
     </button>

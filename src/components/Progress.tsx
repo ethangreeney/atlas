@@ -164,7 +164,7 @@ const Row = ({ id, onClick, children }: { id: string; onClick: () => void; child
 )
 
 function status(r: CardRow | undefined, now: Date) {
-  if (!r || r.state === State.New) return { label: 'New', cls: 'text-easy' }
+  if (!r || r.state === State.New) return { label: 'Unseen', cls: 'text-easy' }
   if (r.state === State.Learning || r.state === State.Relearning) return { label: 'Learning', cls: 'text-again' }
   if (isMature(r)) return { label: 'Mastered', cls: 'text-good' }
   const ms = +new Date(r.due) - +now

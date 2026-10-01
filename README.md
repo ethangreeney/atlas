@@ -59,7 +59,7 @@ npx wrangler d1 migrations apply atlas --local
 pnpm build && npx wrangler pages dev dist
 ```
 
-`pnpm build:deck` rebuilds `src/data/deck.json` from the CrowdAnki export in `deck-src/`. `scripts/pronunciation/` builds the phonetic spelling for every name (see the notes at the top of each script), and `scripts/build-audio.py` renders the clips from it.
+`pnpm sync:deck` pulls Ultimate Geography from its GitHub source (master, not the last release, which can lag a year), applies our corrections from `scripts/deck-overrides.ts`, rewrites `src/data/deck.json` and the images in `public/media`, and prints what changed. A GitHub Action runs it every Monday and opens a pull request when anything did. After it adds places, `pnpm build:fame` ranks them. `scripts/pronunciation/` builds the phonetic spelling for every name (see the notes at the top of each script), and `scripts/build-audio.py` renders the clips from it.
 
 Deploy:
 
@@ -81,4 +81,4 @@ cd reminders && npx wrangler secret put VAPID_PRIVATE_KEY && npx wrangler deploy
 
 ## Credits
 
-[Ultimate Geography](https://github.com/anki-geo/ultimate-geography) by anki-geo. Deck content is public domain (Unlicense); images are CC BY-SA / CC BY / CC0 / public domain, see [sources.csv](https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv).
+[Ultimate Geography](https://github.com/anki-geo/ultimate-geography) by anki-geo. Deck content is public domain (Unlicense); images are CC BY-SA / CC BY / CC0 / public domain, see [sources.csv](https://github.com/anki-geo/ultimate-geography/blob/master/src/media/sources.csv). Our replacement flags in `scripts/deck-media` are public domain, from Wikimedia Commons.

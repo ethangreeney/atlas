@@ -240,7 +240,8 @@ export const Legend = ({ className = '' }: { className?: string }) => (
 
 /**
  * Every set as a heat map: regions down the side, kinds of card across, greener the more of the set you've started,
- * with a check once it's all under way. Point at one for its count; tap it to see its places.
+ * with how many cards are left to start in it, or a check once it's all under way. Point at one for its full count;
+ * tap it to see its places.
  */
 export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void }) {
   const [sel, setSel] = useState<string | null>(null)
@@ -270,7 +271,7 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
             className={`flex h-7 items-center justify-center rounded-md outline-offset-1 ${s.done ? '' : 'bg-muted-2'} ${sel === s.key ? 'outline outline-[1.5px] outline-ink' : ''}`}
             style={{ backgroundColor: setColour(s) }}
           >
-            {full && <Check size={13} strokeWidth={3} className="text-surface" />}
+            {full ? <Check size={13} strokeWidth={3} className="text-surface" /> : <span className="text-[12px] font-medium tabular-nums text-ink">{s.left.length}</span>}
           </button>
         )
       })}
@@ -288,10 +289,10 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
               · {hovered.done === hovered.cards.length ? `all ${hovered.cards.length} started` : `${hovered.done} of ${hovered.cards.length} started`}
             </>
           ) : (
-            `${finished} of ${all.length} finished`
+            `${finished} of ${all.length} finished · numbers are cards left to start`
           )}
         </span>
-        <Legend />
+        <Legend className="max-sm:hidden" />
       </div>
       <div role="table" aria-label="Sets" className="space-y-1" onPointerLeave={(e) => e.pointerType === 'mouse' && setSel(null)}>
         <div className="grid items-end gap-1 pb-1" style={{ gridTemplateColumns: cols }} role="row">

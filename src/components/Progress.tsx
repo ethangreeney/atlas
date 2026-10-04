@@ -12,6 +12,7 @@ import { formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
 import { speak } from '../lib/tts'
+import { isZoomed, zoom } from '../lib/zoom'
 import { Say } from './Card'
 
 type View = [number, number, number, number]
@@ -483,7 +484,11 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
         <ChevronLeft size={16} strokeWidth={1.75} /> Back
       </button>
       <div className="mt-2 flex flex-col items-center gap-3 text-center">
-        {flag && <img src={mediaUrl(flag)} alt={`Flag of ${note.country}`} draggable={false} className={`max-h-20 max-w-[140px] ${flag.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`} />}
+        {flag && (
+          <button onClick={() => zoom({ file: flag, alt: `Flag of ${note.country}` })} title="See it up close" className="cursor-zoom-in">
+            <img src={mediaUrl(flag)} alt={`Flag of ${note.country}`} draggable={false} className={`max-h-20 max-w-[140px] ${flag.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`} />
+          </button>
+        )}
         <div>
           <div className="text-balance text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
             <Say text={note.country} onSay={speak} big />
@@ -629,6 +634,7 @@ export default function Progress({ onClose, onDrill }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       keyed.current = true
+      if (isZoomed()) return
       if (e.key === 'Tab') return trapTab(e, dialogRef.current)
       if (e.key !== 'Escape') return
       e.stopImmediatePropagation()

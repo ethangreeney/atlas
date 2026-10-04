@@ -8,6 +8,7 @@ import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
 import { Piles } from './components/Piles'
 import { TopBar } from './components/TopBar'
+import { Zoom } from './components/Zoom'
 import { check } from './lib/answer'
 import { answerOf, DECK_VERSION } from './lib/deck'
 import { countMatching, previewIntervals, Rating, State } from './lib/scheduler'
@@ -17,6 +18,7 @@ import { preload, speak, stopSpeaking } from './lib/tts'
 import { useAuth } from './lib/auth'
 import { pushNow, syncNow } from './lib/sync'
 import { maybeOptimize } from './lib/optimize'
+import { zoom } from './lib/zoom'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
 /** The grade a typed answer points to. */
@@ -216,6 +218,11 @@ export default function App() {
         case 'G':
           if (card && flipped) window.open(mapsUrl(card), '_blank', 'noopener')
           break
+        case 'f':
+        case 'F':
+          // The flag on a flag card, up close: the question's side or the answer's, whichever is showing.
+          if (card?.type === 'flag') zoom({ file: (flipped && card.note.flagBack) || card.note.flag!, alt: flipped ? `Flag of ${card.note.country}` : 'Flag' })
+          break
         case 'p':
         case 'P':
           setFiltersOpen(false)
@@ -242,6 +249,7 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex h-full touch-manipulation flex-col bg-page">
+        <Zoom />
         <TopBar
           queue={queue}
           learned={learned}
@@ -321,7 +329,7 @@ export default function App() {
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
             <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>p</kbd> progress
+            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom flag <span className="mx-1">·</span> <kbd>p</kbd> progress
             </span>
           </div>
           {/* Padded to the footer's height (and pulled back) so the links' full-height tap targets aren't clipped. */}

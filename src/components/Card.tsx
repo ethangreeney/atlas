@@ -6,6 +6,7 @@ import type { Verdict } from '../lib/answer'
 import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
 import type { CardRow } from '../lib/db'
 import { lookAlikes } from '../lib/lookalike'
+import { useHoldToZoom } from '../lib/zoom'
 
 export type ExitTarget = { x: number; y: number; rotate: number }
 
@@ -100,14 +101,20 @@ export const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => 
 const Info = ({ children }: { children: React.ReactNode }) =>
   children ? <div className="max-w-[34ch] text-balance text-[13px] leading-snug text-ink-3 short:max-w-[42ch] short:text-[12px]">{children}</div> : null
 
-/** The question side says only what the picture is; the answer side can name it. */
+/** The question side says only what the picture is; the answer side can name it. Hold it to see it up close. */
 const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
   <img
     src={mediaUrl(file)}
     alt={alt}
     draggable={false}
+    {...useHoldToZoom(file, alt)}
     className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)] short:max-h-[min(190px,100cqh_-_56px)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
   />
+)
+
+/** A look-alike's flag, small beside its name; hold it to see it up close too. Decorative otherwise: the name is right there. */
+const MiniFlag = ({ file, name }: { file: string; name: string }) => (
+  <img src={mediaUrl(file)} alt="" draggable={false} {...useHoldToZoom(file, `Flag of ${name}`)} className="img-shadow max-h-full max-w-full rounded-[2px]" />
 )
 const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
   <img
@@ -123,9 +130,7 @@ const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string
 const LookAlikes = ({ card }: { card: DeckCard }) => {
   const items = lookAlikes(card.note)
   if (!items.length) return null
-  const flag = (l: (typeof items)[number]) =>
-    // Decorative: the name is right beside it.
-    l.flag && <img src={mediaUrl(l.flag)} alt="" draggable={false} className="img-shadow max-h-full max-w-full rounded-[2px]" />
+  const flag = (l: (typeof items)[number]) => l.flag && <MiniFlag file={l.flag} name={l.name} />
   const note = (text: string) => <span className="text-balance text-[12.5px] text-ink-2 first-letter:uppercase short:text-[12px]">{text}</span>
   // Under a hairline: a centred "Looks like", then one look-alike centred on its own, or two as aligned rows.
   return (

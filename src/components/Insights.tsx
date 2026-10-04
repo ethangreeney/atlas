@@ -2,7 +2,7 @@ import { Check, Flag, Globe, Landmark, MapPin } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import type { CardType } from '../lib/deck'
-import { CONTINENTS, SUBREGIONS, TYPES, WHOLE, placeName, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
+import { CONTINENTS, SET_WORD, STRENGTHS, SUBREGIONS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
 import { dayKey } from '../lib/scheduler'
 
 /** Fill opacity of the good colour for each step of more; step 0 is empty. Matches the map. */
@@ -54,11 +54,11 @@ export function CountUp({ to }: { to: number }) {
   return <>{(reduce ? to : n).toLocaleString()}</>
 }
 
-/** Three headline numbers side by side. */
+/** Three headline numbers side by side, each centred in its third. */
 export const Numbers = ({ items }: { items: { value: React.ReactNode; label: string; sub?: string }[] }) => (
   <div className="grid grid-cols-3 divide-x divide-line">
     {items.map((x) => (
-      <div key={x.label} className="min-w-0 px-3 first:pl-0 last:pr-0 sm:px-4">
+      <div key={x.label} className="min-w-0 px-2 text-center sm:px-4">
         <div className="whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums sm:text-[24px]">{x.value}</div>
         <div className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{x.label}</div>
         {x.sub && <div className="mt-0.5 text-[11.5px] leading-snug text-ink-3 tabular-nums">{x.sub}</div>}
@@ -74,16 +74,35 @@ const MONTH = new Intl.DateTimeFormat(undefined, { month: 'short' })
 const minutes = (ms: number) => (ms < 60_000 ? 'under a minute' : `${Math.round(ms / 60_000)} min`)
 const CELL = 12
 const GAP = 3
+/** Fewest weeks the grid shows, so a short history still reads as a calendar. */
+const MIN_WEEKS = 6
+/** The grid takes at most this share of the row, and leaves the heading at least this many px. */
+const SHARE = 0.55
+const LEFT_MIN = 190
+
+/** Weeks (Monday to Sunday) from the one holding `from` to the one holding `to`, both counted. */
+const weeksSpanned = (from: string, to: string) => {
+  const monday = (key: string) => {
+    const [y, m, d] = key.split('-').map(Number)
+    const t = new Date(y, m - 1, d, 12)
+    t.setDate(t.getDate() - ((t.getDay() + 6) % 7))
+    return +t
+  }
+  return Math.round((monday(to) - monday(from)) / (7 * 86_400_000)) + 1
+}
 
 /**
- * Every day of the last few months as a square, darker for more answers, weeks as columns starting Monday, as many
- * weeks as fit. Point at a day (or tap it) for what you did that day.
+ * Every day you've studied as a square, darker for more answers, weeks as columns starting Monday, beside the page's
+ * heading. It grows with your history, from six weeks up to as many as fit. Point at a day (or tap it) for what you
+ * did that day.
  */
-export function Heatmap({ days, summary }: { days: Map<string, DayStat>; summary: string }) {
+export function Heatmap({ days, summary, children }: { days: Map<string, DayStat>; summary: string; children: React.ReactNode }) {
   const [box, width] = useWidth<HTMLDivElement>()
   const [sel, setSel] = useState<string | null>(null)
-  const weeks = Math.max(1, Math.floor((width + GAP) / (CELL + GAP)))
   const today = dayKey(new Date())
+  const first = [...days.keys()].reduce((a, b) => (a < b ? a : b), today)
+  const fit = Math.max(1, Math.floor((Math.min(width * SHARE, width - LEFT_MIN) + GAP) / (CELL + GAP)))
+  const weeks = Math.min(fit, Math.max(MIN_WEEKS, weeksSpanned(first, today)))
   const [y, m, d] = today.split('-').map(Number)
   const end = new Date(y, m - 1, d, 12)
   const start = new Date(end)
@@ -111,9 +130,15 @@ export function Heatmap({ days, summary }: { days: Map<string, DayStat>; summary
   }
 
   return (
-    <div ref={box}>
+    <div ref={box} className="flex justify-between gap-5">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {children}
+        <p className="mt-auto pt-3 text-[12px] leading-snug tabular-nums text-ink-3" aria-live="polite">
+          {sel ? <span className="text-ink-2">{describe(sel)}</span> : days.has(today) ? describe(today) : summary}
+        </p>
+      </div>
       {width > 0 ? (
-        <div className="ml-auto" style={{ width: gridWidth }}>
+        <div className="shrink-0" style={{ width: gridWidth }}>
           <div className="relative mb-1 h-3.5 text-[10.5px] text-ink-3" aria-hidden>
             {months.map((mo) => (
               <span key={mo.col} className="absolute whitespace-nowrap" style={{ left: mo.col * (CELL + GAP) }}>
@@ -147,9 +172,6 @@ export function Heatmap({ days, summary }: { days: Map<string, DayStat>; summary
       ) : (
         <div style={{ height: 18 + 7 * CELL + 6 * GAP }} />
       )}
-      <p className="mt-2 min-h-[2lh] text-[12px] tabular-nums text-ink-3 sm:min-h-[1lh]" aria-live="polite">
-        {sel ? <span className="text-ink-2">{describe(sel)}</span> : days.has(today) ? describe(today) : summary}
-      </p>
     </div>
   )
 }
@@ -159,6 +181,12 @@ const TYPE_META: Record<CardType, { label: string; short: string; Icon: typeof F
   map: { label: 'Maps', short: 'Maps', Icon: MapPin },
   capital: { label: 'Capitals', short: 'Capitals', Icon: Landmark },
   country: { label: 'Countries from capitals', short: 'From capitals', Icon: Globe },
+}
+
+/** A kind of card's icon. */
+export const TypeIcon = ({ type, size = 14 }: { type: CardType; size?: number }) => {
+  const { Icon } = TYPE_META[type]
+  return <Icon size={size} strokeWidth={1.75} />
 }
 
 /** Per card type: how often you remember one when it comes back. */
@@ -193,151 +221,148 @@ export function Types({ stats }: { stats: TypeStat[] }) {
   )
 }
 
+/** The map's shades as solid colours, so a check can sit on top at full strength. */
+const tint = (step: number) => (step ? mix(SHADE[step]) : undefined)
+const mix = (share: number) => `color-mix(in oklab, var(--color-good) ${Math.round(share * 100)}%, var(--color-surface))`
+/** A set's colour: grey until started, then greener the more of it is under way (across the map's in-between shades), full once every card is. */
+const setColour = (s: DeckSet) => (!s.done ? undefined : mix(s.done === s.cards.length ? 1 : SHADE[1] + (SHADE[3] - SHADE[1]) * (s.done / s.cards.length)))
+
+/** The map's key: grey, then four greens. */
+export const Legend = ({ className = '' }: { className?: string }) => (
+  <span className={`flex shrink-0 items-center gap-1 ${className}`} aria-hidden>
+    <span className="mr-0.5 max-sm:hidden">Less</span>
+    {SHADE.map((_, l) => (
+      <span key={l} className={`h-2.5 w-2.5 rounded-[3px] ${l ? '' : 'bg-muted-2'}`} style={{ backgroundColor: tint(l) }} />
+    ))}
+    <span className="ml-0.5 max-sm:hidden">More</span>
+  </span>
+)
+
 /**
- * Every set as a table: regions down the side, kinds of card across. Each cell is how many of that set you've
- * started, with a check once it's all under way. Tap one to see its places.
+ * Every set as a heat map: regions down the side, kinds of card across, greener the more of the set you've started,
+ * with a check once it's all under way. Point at one for its count; tap it to see its places.
  */
-export function SetsTable({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void }) {
-  const cols = 'minmax(6.5rem,1fr) repeat(4, minmax(2.6rem, 4.75rem))'
-  const row = (region: string, i: number) => (
-    <div key={region} className="grid items-center gap-1 py-[3px] sm:gap-1.5" style={{ gridTemplateColumns: cols }} role="row">
+export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void }) {
+  const [sel, setSel] = useState<string | null>(null)
+  const cols = 'minmax(6.5rem,1fr) repeat(4, minmax(2.25rem, 4rem))'
+  const all = [...sets.values()].filter((s) => s.region !== WHOLE)
+  const finished = all.filter((s) => s.done === s.cards.length).length
+  const hovered = sel ? sets.get(sel) : undefined
+  const row = (region: string) => (
+    <div key={region} className="grid items-center gap-1" style={{ gridTemplateColumns: cols }} role="row">
       <span className={`truncate pr-1 text-[13px] ${region === WHOLE ? 'text-ink' : 'text-ink-2'}`} role="rowheader">
-        {region === WHOLE ? 'Whole deck' : placeName(region).replace(/^the /, '')}
+        {regionShort(region)}
       </span>
       {TYPES.map((type) => {
         const s = sets.get(`${region}:${type}`)
-        if (!s) return <span key={type} className="text-center text-[12px] text-ink-3" role="cell">–</span>
-        const done = s.done === s.cards.length
+        if (!s) return <span key={type} role="cell" />
+        const full = s.done === s.cards.length
         return (
           <button
             key={type}
             role="cell"
             data-set={s.key}
             onClick={() => onOpen(s.key)}
-            title={`${s.label}: ${s.done} of ${s.cards.length} started`}
-            className="group relative flex h-9 flex-col items-center justify-center gap-1 rounded-lg transition-colors hover:bg-subtle"
+            onPointerEnter={(e) => e.pointerType === 'mouse' && setSel(s.key)}
+            onFocus={() => setSel(s.key)}
+            onBlur={() => setSel((k) => (k === s.key ? null : k))}
+            aria-label={`${s.label}: ${s.done} of ${s.cards.length} started`}
+            className={`flex h-7 items-center justify-center rounded-md outline-offset-1 ${s.done ? '' : 'bg-muted-2'} ${sel === s.key ? 'outline outline-[1.5px] outline-ink' : ''}`}
+            style={{ backgroundColor: setColour(s) }}
           >
-            <span className={`flex items-center gap-0.5 text-[12px] tabular-nums tracking-tight ${done ? 'font-medium text-ink' : s.done ? 'text-ink-2' : 'text-ink-3'}`}>
-              {done && <Check size={12} strokeWidth={2.5} className="text-good" aria-label="Finished" />}
-              {done ? s.cards.length : `${s.done}/${s.cards.length}`}
-            </span>
-            <span className="h-[3px] w-8 overflow-hidden rounded-full bg-muted">
-              {s.done > 0 && <Fill value={s.done / s.cards.length} className="bg-good" delay={i * 0.03} />}
-            </span>
+            {full && <Check size={13} strokeWidth={3} className="text-surface" />}
           </button>
         )
       })}
     </div>
   )
   return (
-    <div role="table" aria-label="Sets">
-      <div className="grid items-end gap-1 pb-1.5 sm:gap-1.5" style={{ gridTemplateColumns: cols }} role="row">
-        <span />
-        {TYPES.map((t) => {
-          const { short, Icon } = TYPE_META[t]
-          return (
-            <span key={t} className="flex flex-col items-center gap-1 text-balance text-center text-[11px] leading-tight text-ink-3" role="columnheader">
-              <Icon size={13} strokeWidth={1.75} />
-              {short}
-            </span>
-          )
-        })}
+    <div>
+      <div className="mb-4 flex min-h-[1lh] items-center justify-between gap-3 text-[12.5px] tabular-nums text-ink-3" aria-live="polite">
+        <span className="min-w-0 truncate">
+          {hovered ? (
+            <>
+              <span className="text-ink-2">
+                {regionShort(hovered.region)} · {SET_WORD[hovered.type]}
+              </span>{' '}
+              · {hovered.done === hovered.cards.length ? `all ${hovered.cards.length} started` : `${hovered.done} of ${hovered.cards.length} started`}
+            </>
+          ) : (
+            `${finished} of ${all.length} finished`
+          )}
+        </span>
+        <Legend />
       </div>
-      {row(WHOLE, 0)}
-      <div className="mb-1 mt-1.5 border-t border-line" />
-      {CONTINENTS.map((r, i) => row(r, i + 1))}
-      <div className="mb-0.5 mt-3 text-[11.5px] text-ink-3">Within them</div>
-      {SUBREGIONS.map((r, i) => row(r, i + 1 + CONTINENTS.length))}
+      <div role="table" aria-label="Sets" className="space-y-1" onPointerLeave={(e) => e.pointerType === 'mouse' && setSel(null)}>
+        <div className="grid items-end gap-1 pb-1" style={{ gridTemplateColumns: cols }} role="row">
+          <span />
+          {TYPES.map((t) => {
+            const { short, Icon } = TYPE_META[t]
+            return (
+              <span key={t} className="flex flex-col items-center gap-1 text-balance text-center text-[11px] leading-tight text-ink-3" role="columnheader">
+                <Icon size={13} strokeWidth={1.75} />
+                {short}
+              </span>
+            )
+          })}
+        </div>
+        {row(WHOLE)}
+        <div className="h-2" />
+        {CONTINENTS.map(row)}
+        <div className="pb-0.5 pt-3 text-[11.5px] text-ink-3">Within them</div>
+        {SUBREGIONS.map(row)}
+      </div>
     </div>
   )
 }
 
-const AHEAD_TICKS = [
-  { days: 0, label: 'Now' },
-  { days: 7, label: '1 wk' },
-  { days: 30, label: '1 mo' },
-  { days: 90, label: '3 mo' },
-  { days: 180, label: '6 mo' },
-  { days: 365, label: '1 yr' },
-]
-const when = (d: number) => (d === 0 ? 'Now' : d < 14 ? `In ${d} day${d === 1 ? '' : 's'}` : d < 60 ? `In ${Math.round(d / 7)} weeks` : d < 330 ? `In ${Math.round(d / 30)} months` : 'In a year')
-
 /**
- * How many of the cards you've answered you'd still know, if you stopped studying today: the whole deck's forgetting
- * curve over the next year. Time runs on a log scale, so the first weeks, where most of the drop happens, get room.
+ * The cards you've answered by how long each would hold if you stopped studying today, as one bar: paler for the
+ * ones that would slip within days, darker for the ones that would last. Point at a part for its count.
  */
-export function Forgetting({ points, total }: { points: { days: number; known: number }[]; total: number }) {
-  const [box, width] = useWidth<HTMLDivElement>()
-  const [hover, setHover] = useState<number | null>(null)
+export function Strength({ counts, month, year }: { counts: number[]; month: number; year: number }) {
   const reduce = useReducedMotion()
-  const H = 130
-  const TOP = 16
-  const BOTTOM = 18
-  const R = 6
-  const last = points[points.length - 1].days
-  const x = (d: number) => (Math.log1p(d) / Math.log1p(last)) * (width - R)
-  const y = (k: number) => TOP + (1 - k / Math.max(1, total)) * (H - TOP - BOTTOM)
-  /** Known at any day, between samples on the same log scale the chart uses. */
-  const at = (d: number) => {
-    const i = Math.max(1, points.findIndex((p) => p.days >= d))
-    const [a, b] = [points[i - 1], points[i]]
-    const t = (Math.log1p(d) - Math.log1p(a.days)) / (Math.log1p(b.days) - Math.log1p(a.days) || 1)
-    return a.known + (b.known - a.known) * Math.min(1, Math.max(0, t))
-  }
-  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.days).toFixed(1)},${y(p.known).toFixed(1)}`).join('')
-  const area = `${line}L${x(last).toFixed(1)},${y(0)}L0,${y(0)}Z`
-  const month = Math.round(at(30))
-  const year = Math.round(at(365))
-  const caption = `You'd still know about ${month.toLocaleString()} of your ${total.toLocaleString()} cards in a month, and ${year.toLocaleString()} in a year.`
-
+  const [sel, setSel] = useState<number | null>(null)
   return (
-    <div ref={box}>
-      {width > 0 ? (
-        <svg
-          width={width}
-          height={H}
-          className="block touch-pan-y overflow-visible"
-          role="img"
-          aria-label={caption}
-          onPointerMove={(e) => {
-            const px = e.clientX - e.currentTarget.getBoundingClientRect().left
-            const d = Math.expm1((Math.max(0, Math.min(width - R, px)) / (width - R)) * Math.log1p(last))
-            setHover(Math.round(d))
-          }}
-          onPointerLeave={() => setHover(null)}
-        >
-          <line x1={0} x2={width - R} y1={y(total)} y2={y(total)} className="stroke-line" strokeDasharray="3 3" />
-          <text x={0} y={y(total) - 5} className="fill-ink-3 text-[10.5px]">
-            all {total.toLocaleString()}
-          </text>
-          <line x1={0} x2={width - R} y1={y(0)} y2={y(0)} className="stroke-line" />
-          <motion.g initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }}>
-            <path d={area} className="fill-good" fillOpacity={0.1} />
-            <path d={line} className="fill-none stroke-good" strokeWidth={2} strokeLinejoin="round" />
-          </motion.g>
-          {AHEAD_TICKS.filter((t) => width >= 420 || t.days !== 180).map((t) => (
-            <text key={t.days} x={x(t.days)} y={H - 3} textAnchor={t.days === 0 ? 'start' : t.days === last ? 'end' : 'middle'} className="fill-ink-3 text-[10.5px]">
-              {t.label}
-            </text>
-          ))}
-          {hover !== null && (
-            <g className="pointer-events-none">
-              <line x1={x(hover)} x2={x(hover)} y1={TOP - 4} y2={y(0)} className="stroke-ink-3" strokeWidth={1} />
-              <circle cx={x(hover)} cy={y(at(hover))} r={4} className="fill-good stroke-surface" strokeWidth={2} />
-            </g>
-          )}
-        </svg>
-      ) : (
-        <div style={{ height: H }} />
-      )}
-      <p className="mt-2 min-h-[2lh] text-[13px] leading-snug tabular-nums text-ink-2" aria-live="polite">
-        {hover !== null ? (
+    <div>
+      <motion.div
+        className="flex h-2.5 origin-left gap-[2px]"
+        initial={reduce ? false : { scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 0.7, delay: 0.1, ease: EASE }}
+        onPointerLeave={() => setSel(null)}
+        role="img"
+        aria-label={STRENGTHS.map((s, i) => `${counts[i]} ${s.says}`).join(', ')}
+      >
+        {counts.map(
+          (n, i) =>
+            n > 0 && (
+              <div
+                key={i}
+                onPointerEnter={() => setSel(i)}
+                onClick={() => setSel((s) => (s === i ? null : i))}
+                className={`h-full min-w-[3px] rounded-[3px] transition-opacity ${sel !== null && sel !== i ? 'opacity-40' : ''}`}
+                style={{ flex: `${n} 1 0`, backgroundColor: tint(i + 1) }}
+              />
+            ),
+        )}
+      </motion.div>
+      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-3">
+        {STRENGTHS.map((s, i) => (
+          <span key={s.label} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: tint(i + 1) }} />
+            {s.label}
+            <span className="tabular-nums text-ink-2">{counts[i].toLocaleString()}</span>
+          </span>
+        ))}
+      </div>
+      <p className="mt-2 min-h-[2lh] text-balance text-[13px] leading-snug tabular-nums text-ink-2 sm:min-h-[1lh]" aria-live="polite">
+        {sel !== null ? (
           <>
-            <span className="font-medium text-ink">{when(hover)}</span>: about {Math.round(at(hover)).toLocaleString()} of {total.toLocaleString()} (
-            {Math.round((at(hover) / Math.max(1, total)) * 100)}%)
+            <span className="font-medium text-ink">{counts[sel].toLocaleString()}</span> {STRENGTHS[sel].says}.
           </>
         ) : (
-          caption
+          `If you stopped today you'd still know about ${month.toLocaleString()} in a month, and ${year.toLocaleString()} in a year.`
         )}
       </p>
     </div>
@@ -347,8 +372,8 @@ export function Forgetting({ points, total }: { points: { days: number; known: n
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'narrow' })
 const WEEKDAY_LONG = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
 
-/** Reviews due each of the next two weeks, as bars. Point at one for its day and count. */
-export function Ahead({ load, cap }: { load: number[]; cap: number }) {
+/** Reviews due each of the next two weeks, as bars. Point at one for its day, count and roughly how long it'll take. */
+export function Ahead({ load, cap, perCard }: { load: number[]; cap: number; perCard: number }) {
   const reduce = useReducedMotion()
   const [hover, setHover] = useState<number | null>(null)
   const days = load.slice(0, 14).map((n) => Math.min(n, cap))
@@ -360,7 +385,7 @@ export function Ahead({ load, cap }: { load: number[]; cap: number }) {
     return t
   }
   const name = (i: number) => (i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : WEEKDAY_LONG.format(date(i)))
-  const count = (n: number) => `${n} review${n === 1 ? '' : 's'}`
+  const count = (n: number) => `${n} review${n === 1 ? '' : 's'}${n && perCard ? `, about ${Math.max(1, Math.round((n * perCard) / 60_000))} min` : ''}`
   return (
     <div>
       <div className="flex h-24 items-end gap-[3px] pt-4 sm:gap-1" onPointerLeave={() => setHover(null)}>
@@ -402,7 +427,7 @@ export function Ahead({ load, cap }: { load: number[]; cap: number }) {
         ) : (
           <>
             Tomorrow {count(days[1] ?? 0)}
-            {peak > 1 && ` · busiest ${WEEKDAY_LONG.format(date(peak))} with ${days[peak]}`}
+            {peak > 1 && ` · busiest ${WEEKDAY_LONG.format(date(peak))}, ${days[peak]}`}
           </>
         )}
       </p>

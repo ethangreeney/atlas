@@ -1,14 +1,13 @@
-import { ChevronLeft, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
 import { ALL_CARDS, answerOf, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type DeckCard, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
-import { TYPES, WHOLE, byType, days, forgetting, placesStarted, recallNow, sets, strugglingNow, studyTime, typeSummary, type DeckSet, type Struggle } from '../lib/insights'
+import { SET_WORD, byType, closest, days, forgetting, placesStarted, regionShort, recallNow, sets, strength, strugglingNow, studyTime, type DeckSet, type Struggle } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
-import { Ahead, CountUp, Forgetting, Heading, Heatmap, LastAnswers, Numbers, SetsTable, Types } from './Insights'
-import { Reminders } from './Reminders'
+import { Ahead, CountUp, Heading, Heatmap, LastAnswers, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
 import { formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
@@ -58,17 +57,17 @@ const duration = (ms: number) => {
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 /** Small flag beside a place's name, or an empty slot of the same size so names line up. */
-const Thumb = ({ note }: { note: Note }) => {
+const Thumb = ({ note, small }: { note: Note; small?: boolean }) => {
   const file = note.flagBack ?? note.flag
   return (
-    <span className="flex h-5 w-7 shrink-0 items-center justify-center">
+    <span className={`flex shrink-0 items-center justify-center ${small ? 'h-4 w-[22px]' : 'h-5 w-7'}`}>
       {file && (
         <img
           src={mediaUrl(file)}
           alt=""
           draggable={false}
           loading="lazy"
-          className={`max-h-5 max-w-7 ${file.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`}
+          className={`${small ? 'max-h-4 max-w-[22px]' : 'max-h-5 max-w-7'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`}
         />
       )}
     </span>
@@ -155,6 +154,40 @@ function Hardest({ items }: { items: Struggle[] }) {
   )
 }
 
+/** The sets nearest finished, each with the flags of the places still to start. */
+function Closest({ items, onOpen }: { items: DeckSet[]; onOpen: (key: string) => void }) {
+  return (
+    <ul className="-mx-2">
+      {items.map((s) => {
+        return (
+          <li key={s.key}>
+            <button
+              data-set={s.key}
+              onClick={() => onOpen(s.key)}
+              title={s.label}
+              className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle"
+            >
+              <span className="flex w-7 shrink-0 justify-center text-ink-3">
+                <TypeIcon type={s.type} size={15} />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
+                {regionShort(s.region)}
+                <span className="text-ink-3"> · {SET_WORD[s.type]}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1 max-sm:hidden" aria-hidden>
+                {s.left.slice(0, 3).map((c) => (
+                  <Thumb key={c.id} note={c.note} small />
+                ))}
+              </span>
+              <span className="w-12 shrink-0 text-right text-[12.5px] tabular-nums text-ink-3">{s.left.length} left</span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 const Row = ({ id, onClick, children }: { id: string; onClick: () => void; children: React.ReactNode }) => (
   <li>
     <button data-note={id} onClick={onClick} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle">
@@ -171,7 +204,15 @@ function status(r: CardRow | undefined, now: Date) {
   return { label: ms > 0 ? `Due in ${formatInterval(ms)}` : 'Due now', cls: 'text-ink-2' }
 }
 
-const span = (days: number) => (days === 1 ? '1 day' : days < 90 ? `${days} days` : `${Math.round(days / 30)} months`)
+const DATE = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' })
+/** The day the last new card comes in, `days` days of study from today (today counts as the first). */
+const finishDate = (days: number) => {
+  const t = new Date()
+  t.setDate(t.getDate() + Math.max(0, days - 1))
+  return DATE.format(t)
+}
+/** Hardest cards shown before "more". */
+const HARD_SHOWN = 5
 
 /** Interpolates two view boxes of the same aspect as a zoom about a fixed point, so the motion reads as moving in, not sliding. */
 function between(a: View, b: View, t: number): View {
@@ -526,8 +567,10 @@ export default function Progress({ onClose, onDrill }: Props) {
   const [streak, setStreak] = useState<number | null>(null)
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState<Note | null>(null)
-  /** The set open, by key. */
+  /** The set open, by key, and whether the page of every set is open beneath it. */
   const [openSet, setOpenSet] = useState<string | null>(null)
+  const [allSets, setAllSets] = useState(false)
+  const [allHard, setAllHard] = useState(false)
   const [region, setRegion] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -582,7 +625,7 @@ export default function Progress({ onClose, onDrill }: Props) {
     else dialogRef.current?.focus()
   }, [])
 
-  // Escape steps back one level: detail, then the set, then search, then the zoomed region, then the page itself. Tab stays inside.
+  // Escape steps back one level: detail, then the set, then search, then every set, then the zoomed region, then the page itself. Tab stays inside.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       keyed.current = true
@@ -593,6 +636,7 @@ export default function Progress({ onClose, onDrill }: Props) {
       if (detail) setDetail(null)
       else if (openSet) setOpenSet(null)
       else if (query) setQuery('')
+      else if (allSets) setAllSets(false)
       else if (region !== null) setRegion(null)
       else close()
     }
@@ -603,13 +647,13 @@ export default function Progress({ onClose, onDrill }: Props) {
       window.removeEventListener('keydown', onKey, { capture: true })
       window.removeEventListener('pointerdown', onPointer, { capture: true })
     }
-  }, [detail, openSet, query, region, close])
+  }, [detail, openSet, allSets, query, region, close])
 
   // By keyboard, the control just used (a region, World, a place, Back) goes with the view it was in; focus moves to its counterpart.
-  const was = useRef({ detail, region, openSet })
+  const was = useRef({ detail, region, openSet, allSets })
   useEffect(() => {
     const prev = was.current
-    was.current = { detail, region, openSet }
+    was.current = { detail, region, openSet, allSets }
     const box = dialogRef.current
     if (!keyed.current || !box || box.contains(document.activeElement)) return
     const id = prev.detail && CSS.escape(prev.detail.id)
@@ -621,14 +665,18 @@ export default function Progress({ onClose, onDrill }: Props) {
           ? openSet
             ? '[data-back]'
             : `[data-set="${CSS.escape(prev.openSet ?? '')}"]`
-          : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
+          : allSets !== prev.allSets
+            ? allSets
+              ? '[data-back]'
+              : '[data-all-sets]'
+            : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
     if (sel) (box.querySelector<HTMLElement>(sel) ?? box).focus({ preventScroll: true })
-  }, [detail, region, openSet])
+  }, [detail, region, openSet, allSets])
 
   const searching = query.trim() !== ''
   // Going back (from a place to its set, or to the page) picks up where you'd scrolled to; anywhere new starts at the top.
-  const view = detail ? `place:${detail.id}` : openSet ? `set:${openSet}` : searching ? 'search' : 'page'
-  const depth = detail ? 2 : openSet ? 1 : 0
+  const view = detail ? `place:${detail.id}` : openSet ? `set:${openSet}` : searching ? 'search' : allSets ? 'sets' : 'page'
+  const depth = (detail ? 1 : 0) + (openSet ? 1 : 0) + (allSets ? 1 : 0)
   const scrolled = useRef(new Map<string, number>())
   const shown = useRef({ view, depth })
   useEffect(() => {
@@ -658,6 +706,7 @@ export default function Progress({ onClose, onDrill }: Props) {
     const perDay = days(logs)
     const counts = [...perDay.values()].map((d) => d.answers)
     const all = sets(rows)
+    const curve = forgetting(rows)
     return {
       days: perDay,
       summary: logs.length
@@ -667,9 +716,10 @@ export default function Progress({ onClose, onDrill }: Props) {
       started: placesStarted(rows),
       time: studyTime(logs),
       sets: all,
-      finished: [...all.values()].filter((x) => x.region !== WHOLE && x.done === x.cards.length).length,
+      closest: closest(all),
       types: byType(rows, logs),
-      curve: forgetting(rows),
+      curve,
+      strength: strength(rows),
       struggling: strugglingNow(rows, logs),
     }
   }, [rows, logs])
@@ -706,27 +756,30 @@ export default function Progress({ onClose, onDrill }: Props) {
     ) : (
       <p className="pt-2 text-[13.5px] text-ink-3">Nothing matches “{query.trim()}”.</p>
     )
+  else if (allSets && insight)
+    body = (
+      <div>
+        <button data-back onClick={() => setAllSets(false)} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
+          <ChevronLeft size={16} strokeWidth={1.75} /> Back
+        </button>
+        <h2 className="mb-1 mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">Sets</h2>
+        <SetsGrid sets={insight.sets} onOpen={setOpenSet} />
+      </div>
+    )
   else if (rows && levels && ahead && insight)
     body = (
       <>
-        <div className="mt-1">
-          <h2 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px]">
+        <Heatmap days={insight.days} summary={insight.summary}>
+          <h2 className="mt-1 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px]">
             {streak ? `${streak}-day streak` : 'Progress'}
           </h2>
           <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">
             {learned.toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards learned
             {streak === 0 ? ' · study today to start a streak' : ''}
           </p>
-        </div>
-        <div className="mt-2 text-[12.5px] text-ink-3">
-          <Reminders />
-        </div>
+        </Heatmap>
 
-        <div className="mt-5">
-          <Heatmap days={insight.days} summary={insight.summary} />
-        </div>
-
-        <div className="mt-6">
+        <div className="mt-7">
           <Numbers
             items={[
               { value: <CountUp to={insight.recall.recalled} />, label: "you'd get right now", sub: `of ${insight.recall.learned.toLocaleString()} started` },
@@ -738,52 +791,70 @@ export default function Progress({ onClose, onDrill }: Props) {
 
         <MasteryMap levels={levels} region={region} onRegion={setRegion} onPick={(id) => open(NOTE_BY_ID.get(id))} />
 
-        <section className="mt-9">
-          <Heading aside={`${insight.finished} of ${insight.sets.size - TYPES.length} finished`}>Sets</Heading>
-          <SetsTable sets={insight.sets} onOpen={setOpenSet} />
+        <section className="mt-8">
+          <Heading
+            aside={
+              <button
+                data-all-sets
+                onClick={() => setAllSets(true)}
+                className="relative flex items-center text-[12px] text-ink-3 transition-colors after:absolute after:-inset-x-2 after:-inset-y-2.5 hover:text-ink"
+              >
+                All sets <ChevronRight size={13} strokeWidth={1.75} className="-mr-0.5" />
+              </button>
+            }
+          >
+            Closest to finishing
+          </Heading>
+          {insight.closest.length ? <Closest items={insight.closest} onOpen={setOpenSet} /> : <p className="text-[13.5px] text-ink-3">Every set is under way.</p>}
         </section>
 
-        <section className="mt-9">
-          <Heading>By kind of card</Heading>
-          {typeSummary(insight.types) && <p className="-mt-1 mb-3.5 text-balance text-[13.5px] leading-snug text-ink-2">{typeSummary(insight.types)}</p>}
-          <Types stats={insight.types} />
-        </section>
-
-        {insight.curve.total > 0 && (
-          <section className="mt-9">
-            <Heading>If you stopped today</Heading>
-            <Forgetting points={insight.curve.points} total={insight.curve.total} />
-          </section>
-        )}
-
-        <section className="mt-9">
-          <Heading aside="reviews due">Next two weeks</Heading>
-          <Ahead load={ahead.load} cap={settings.reviewsPerDay} />
-          <p className="mt-1 text-balance text-[13px] leading-snug tabular-nums text-ink-3">
-            {ahead.remaining > 0
-              ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} in about ${span(ahead.days)}.`
-              : `Every card${filtered ? ' in these filters' : ''} is under way.`}
-          </p>
-        </section>
-
-        <section className="mt-9">
+        <section className="mt-8">
           <Heading aside={insight.struggling.length > 0 ? 'last 5 answers →' : undefined}>Hardest right now</Heading>
           {insight.struggling.length ? (
             <>
-              <Hardest items={insight.struggling} />
-              <button
-                onClick={() => {
-                  onDrill(insight.struggling.map((x) => x.card.id))
-                  close()
-                }}
-                className="mt-3 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
-              >
-                Drill these {insight.struggling.length}
-              </button>
+              <Hardest items={allHard ? insight.struggling : insight.struggling.slice(0, HARD_SHOWN)} />
+              <div className="mt-3 flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    onDrill(insight.struggling.map((x) => x.card.id))
+                    close()
+                  }}
+                  className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
+                >
+                  {allHard || insight.struggling.length <= HARD_SHOWN ? `Drill these ${insight.struggling.length}` : `Drill all ${insight.struggling.length}`}
+                </button>
+                {!allHard && insight.struggling.length > HARD_SHOWN && (
+                  <button onClick={() => setAllHard(true)} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
+                    Show {insight.struggling.length - HARD_SHOWN} more
+                  </button>
+                )}
+              </div>
             </>
           ) : (
             <p className="text-[13.5px] text-ink-3">Nothing's giving you trouble lately.</p>
           )}
+        </section>
+
+        <section className="mt-8">
+          <Heading>By kind of card</Heading>
+          <Types stats={insight.types} />
+        </section>
+
+        {insight.curve.total > 0 && (
+          <section className="mt-8">
+            <Heading>How long they'll last</Heading>
+            <Strength counts={insight.strength} month={insight.curve.month} year={insight.curve.year} />
+          </section>
+        )}
+
+        <section className="mt-8">
+          <Heading aside="reviews due">Next two weeks</Heading>
+          <Ahead load={ahead.load} cap={settings.reviewsPerDay} perCard={insight.time.perCard} />
+          <p className="mt-1 text-balance text-[13px] leading-snug tabular-nums text-ink-3">
+            {ahead.remaining > 0
+              ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} around ${finishDate(ahead.days)}.`
+              : `Every card${filtered ? ' in these filters' : ''} is under way.`}
+          </p>
         </section>
       </>
     )
@@ -819,6 +890,8 @@ export default function Progress({ onClose, onDrill }: Props) {
               onChange={(e) => {
                 setQuery(e.target.value)
                 setDetail(null)
+                setOpenSet(null)
+                setAllSets(false)
               }}
               onKeyDown={(e) => e.key === 'Enter' && open(results[0])}
               placeholder="Search a country or capital…"
@@ -840,7 +913,7 @@ export default function Progress({ onClose, onDrill }: Props) {
         <div
           ref={bodyRef}
           onScroll={(e) => scrolled.current.set(shown.current.view, e.currentTarget.scrollTop)}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 sm:px-7 sm:pb-8"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 [scrollbar-width:none] sm:px-7 sm:pb-8 [&::-webkit-scrollbar]:hidden"
         >
           {body}
         </div>

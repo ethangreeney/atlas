@@ -3,10 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import { getGoogleClientId, signInWithGoogle, signOut, useAuth } from '../lib/auth'
 import { disableReminders } from '../lib/push'
 import { clearLocal, flush, syncNow } from '../lib/sync'
+import { Reminders } from './Reminders'
 
 type Props = { onSynced: () => void }
 
-/** "Sign in" text button, or the user's avatar with a tiny menu. Hidden entirely when sign-in isn't configured. */
+/** "Sign in" text button, or the user's avatar with a tiny menu: the daily reminder and signing out. Hidden entirely when sign-in isn't configured. */
 export function Account({ onSynced }: Props) {
   const auth = useAuth()
   const [enabled, setEnabled] = useState(false)
@@ -87,6 +88,9 @@ export function Account({ onSynced }: Props) {
           >
             <div className="truncate px-2.5 py-2 text-[12px] text-ink-3">{auth.user.email}</div>
             <div className="px-2.5 pb-2 text-[11px] text-ink-3">Progress syncs to this account.</div>
+            <div className="mx-1 mb-1 border-t border-line px-1.5 pt-1 text-[13px] text-ink-2 empty:hidden">
+              <Reminders />
+            </div>
             <button
               onClick={leave}
               disabled={busy}

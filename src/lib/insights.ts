@@ -81,24 +81,15 @@ export function byType(rows: Map<string, CardRow>, logs: RevlogRow[], now = new 
   })
 }
 
-const TYPE_NAME: Record<CardType, string> = { flag: 'flags', map: 'maps', capital: 'capitals', country: 'countries from capitals' }
-
-/** One line naming the kind of card you hold best and the one you forget most, once there's enough to tell. */
-export function typeSummary(stats: TypeStat[]) {
-  const rated = stats.filter((s) => s.recall !== null).map((s) => ({ type: s.type, pct: Math.round(s.recall! * 100) }))
-  if (rated.length < 2) return null
-  const top = Math.max(...rated.map((s) => s.pct))
-  const low = Math.min(...rated.map((s) => s.pct))
-  if (top - low < 3) return `When cards come back for review, you remember about ${top}% of every kind.`
-  const names = (pct: number) => rated.filter((s) => s.pct === pct).map((s) => TYPE_NAME[s.type]).join(' and ')
-  return `When cards come back for review, you remember ${names(top)} best (${top}%) and ${names(low)} least (${low}%).`
-}
-
 /** Regions that read with "the": the Caribbean, the Middle East. */
 const THE = new Set(['Caribbean', 'Middle_East', 'European_Union', 'Mediterranean'])
 export const placeName = (region: string) => (THE.has(region) ? 'the ' : '') + regionLabel(region)
 /** The row that holds every card of a kind, above the regions. */
 export const WHOLE = 'All'
+/** A set's region on its own, as a row label: "Caribbean", "Whole deck". */
+export const regionShort = (region: string) => (region === WHOLE ? 'Whole deck' : placeName(region).replace(/^the /, ''))
+/** A set's kind of card, after its region: "Caribbean · from capitals". */
+export const SET_WORD: Record<CardType, string> = { capital: 'capitals', country: 'from capitals', flag: 'flags', map: 'on the map' }
 const setName = (region: string, type: CardType) => {
   if (region === WHOLE) return { flag: 'All flags', map: 'Every place on the map', capital: 'All capitals', country: 'All countries from their capitals' }[type]
   const r = placeName(region)
@@ -130,24 +121,49 @@ export function sets(rows: Map<string, CardRow>): Map<string, DeckSet> {
   return out
 }
 
-/** Days from now at which the forgetting curve is sampled: dense early, where it falls fastest. */
-const CURVE_DAYS = [0, 1, 2, 3, 4, 5, 7, 10, 14, 21, 30, 45, 60, 90, 120, 180, 240, 300, 365]
-
 /**
- * If you stopped studying now: how many of the cards you've answered FSRS expects you'd still get right, day by day
- * over the next year.
+ * The sets nearest finished: fewest cards left to start, then furthest along. One whose last cards would finish a set
+ * already picked is left out, so Europe's flags and the EU's don't both wait on the same flag.
  */
+export function closest(all: Map<string, DeckSet>, n = 3) {
+  const out: DeckSet[] = []
+  const covered = new Set<string>()
+  const open = [...all.values()].filter((s) => s.left.length)
+  open.sort((a, b) => a.left.length - b.left.length || b.done / b.cards.length - a.done / a.cards.length)
+  for (const s of open) {
+    if (s.left.every((c) => covered.has(c.id))) continue
+    out.push(s)
+    for (const c of s.left) covered.add(c.id)
+    if (out.length === n) break
+  }
+  return out
+}
+
+/** If you stopped studying now: how many of the cards you've answered FSRS expects you'd still get right in a month, and in a year. */
 export function forgetting(rows: Map<string, CardRow>, now = new Date()) {
   const cards = [...rows.values()].filter(learned)
-  return {
-    total: cards.length,
-    points: CURVE_DAYS.map((d) => {
-      const at = new Date(+now + d * DAY_MS)
-      let sum = 0
-      for (const r of cards) sum += scheduler.get_retrievability(r, at, false)
-      return { days: d, known: sum }
-    }),
+  const known = (days: number) => {
+    const at = new Date(+now + days * DAY_MS)
+    let sum = 0
+    for (const r of cards) sum += scheduler.get_retrievability(r, at, false)
+    return Math.round(sum)
   }
+  return { total: cards.length, month: known(30), year: known(365) }
+}
+
+/** How long a memory holds before it starts to slip: FSRS stability, the days until recall falls to 90%. */
+export const STRENGTHS = [
+  { label: 'Days', below: 7, says: 'would start to slip within days' },
+  { label: 'Weeks', below: 30, says: 'would hold for weeks' },
+  { label: 'Months', below: 365, says: 'would hold for months' },
+  { label: 'A year+', below: Infinity, says: 'would hold for a year or more' },
+]
+
+/** The cards you've answered, counted by how long each would hold if you stopped studying. */
+export function strength(rows: Map<string, CardRow>) {
+  const counts = STRENGTHS.map(() => 0)
+  for (const r of rows.values()) if (learned(r)) counts[STRENGTHS.findIndex((s) => r.stability < s.below)]++
+  return counts
 }
 
 export type Struggle = { row: CardRow; card: DeckCard; last: number[] }

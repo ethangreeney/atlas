@@ -175,12 +175,12 @@ export type Slipping = { row: CardRow; card: DeckCard; recall: number }
  * The cards you've answered that you're most likely to have forgotten by now: FSRS's chance you'd get each right this
  * minute, lowest first, only those under 90%. A card you've just got right is back near 100%, so it drops off at once.
  */
-export function forgotten(rows: Map<string, CardRow>, now = new Date(), n = 10): Slipping[] {
+export function forgotten(rows: Map<string, CardRow>, now = new Date()): Slipping[] {
   const out: Slipping[] = []
   for (const r of rows.values()) {
     if (!learned(r)) continue
     const chance = recall(r, now)
     if (chance < SLIPPING) out.push({ row: r, card: CARD_BY_ID.get(r.id)!, recall: chance })
   }
-  return out.sort((a, b) => a.recall - b.recall || +new Date(a.row.due) - +new Date(b.row.due)).slice(0, n)
+  return out.sort((a, b) => a.recall - b.recall || +new Date(a.row.due) - +new Date(b.row.due))
 }

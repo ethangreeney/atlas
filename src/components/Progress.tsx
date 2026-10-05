@@ -45,6 +45,8 @@ const COUNTRIES = NOTES.filter((n) => kindOf(n) === 'sovereign')
 const COUNTRY_IDS = new Set(COUNTRIES.map((n) => n.id))
 /** Fill opacity of the good colour for each mastery step; step 0 is plain land. */
 const SHADE = [0, 0.3, 0.5, 0.75, 1]
+/** How many of the cards most likely forgotten are listed and drilled: the lowest, the ones most worth it. */
+const LOWEST = 10
 /** Marks the history entry pushed on open, so Back closes the page and closing pops it again. */
 const TOKEN = Math.random().toString(36).slice(2)
 
@@ -737,6 +739,7 @@ export default function Progress({ onClose, onDrill }: Props) {
   }, [rows, logs])
 
   const open = (note: Note | undefined) => note && setDetail(note)
+  const lowest = insight?.slipping.slice(0, LOWEST) ?? []
 
   let body: React.ReactNode = null
   const shownSet = openSet ? insight?.sets.get(openSet) : undefined
@@ -830,12 +833,12 @@ export default function Progress({ onClose, onDrill }: Props) {
               <div className="mt-3 flex items-center gap-4">
                 <button
                   onClick={() => {
-                    onDrill(insight.slipping.map((x) => x.card.id))
+                    onDrill(lowest.map((x) => x.card.id))
                     close()
                   }}
                   className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
                 >
-                  Review {insight.slipping.length === 1 ? 'it' : 'these'} first
+                  Review {insight.slipping.length === 1 ? 'it' : insight.slipping.length > lowest.length ? `the lowest ${lowest.length}` : 'these'} first
                 </button>
                 <button onClick={() => setShowSlipping((v) => !v)} aria-expanded={showSlipping} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
                   {showSlipping ? 'Hide them' : 'Show them'}
@@ -843,7 +846,7 @@ export default function Progress({ onClose, onDrill }: Props) {
               </div>
               {showSlipping && (
                 <div className="mt-3">
-                  <Forgotten items={insight.slipping} />
+                  <Forgotten items={lowest} />
                 </div>
               )}
             </>

@@ -214,8 +214,6 @@ const finishDate = (days: number) => {
   t.setDate(t.getDate() + Math.max(0, days - 1))
   return DATE.format(t)
 }
-/** Cards most likely forgotten shown before "more". */
-const SLIP_SHOWN = 5
 
 /** Interpolates two view boxes of the same aspect as a zoom about a fixed point, so the motion reads as moving in, not sliding. */
 function between(a: View, b: View, t: number): View {
@@ -577,7 +575,8 @@ export default function Progress({ onClose, onDrill }: Props) {
   /** The set open, by key, and whether the page of every set is open beneath it. */
   const [openSet, setOpenSet] = useState<string | null>(null)
   const [allSets, setAllSets] = useState(false)
-  const [allSlipping, setAllSlipping] = useState(false)
+  /** The cards most likely forgotten stay out of sight until asked for, so drilling them is still recall. */
+  const [showSlipping, setShowSlipping] = useState(false)
   const [region, setRegion] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -817,10 +816,12 @@ export default function Progress({ onClose, onDrill }: Props) {
         </section>
 
         <section className="mt-8">
-          <Heading aside={insight.slipping.length > 0 ? "chance you'd get it right" : undefined}>Most likely to have forgotten</Heading>
+          <Heading aside={showSlipping ? "chance you'd get it right" : undefined}>Most likely to have forgotten</Heading>
           {insight.slipping.length ? (
             <>
-              <Forgotten items={allSlipping ? insight.slipping : insight.slipping.slice(0, SLIP_SHOWN)} />
+              <p className="text-[13.5px] tabular-nums text-ink-2">
+                {insight.slipping.length === 1 ? 'One card' : `${insight.slipping.length} cards`} below a 90% chance you'd get {insight.slipping.length === 1 ? 'it' : 'them'} right, the lowest at {Math.floor(insight.slipping[0].recall * 100)}%.
+              </p>
               <div className="mt-3 flex items-center gap-4">
                 <button
                   onClick={() => {
@@ -829,14 +830,17 @@ export default function Progress({ onClose, onDrill }: Props) {
                   }}
                   className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
                 >
-                  {allSlipping || insight.slipping.length <= SLIP_SHOWN ? 'Review these first' : `Review all ${insight.slipping.length} first`}
+                  Review {insight.slipping.length === 1 ? 'it' : 'these'} first
                 </button>
-                {!allSlipping && insight.slipping.length > SLIP_SHOWN && (
-                  <button onClick={() => setAllSlipping(true)} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
-                    Show {insight.slipping.length - SLIP_SHOWN} more
-                  </button>
-                )}
+                <button onClick={() => setShowSlipping((v) => !v)} aria-expanded={showSlipping} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
+                  {showSlipping ? 'Hide them' : 'Show them'}
+                </button>
               </div>
+              {showSlipping && (
+                <div className="mt-3">
+                  <Forgotten items={insight.slipping} />
+                </div>
+              )}
             </>
           ) : (
             <p className="text-[13.5px] text-ink-3">Nothing's slipping. You'd likely get every card you've learned right.</p>

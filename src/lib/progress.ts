@@ -1,7 +1,7 @@
 import { createEmptyCard, fsrs, type Card } from 'ts-fsrs'
 import type { CardRow } from './db'
 import { ALL_CARDS, NOTES, type DeckCard, type Note } from './deck'
-import { dayEnd, matchesFilters, next, Rating, scheduler, State } from './scheduler'
+import { dayEnd, matchesFilters, next, Rating, scheduler, State, waitsForTomorrow } from './scheduler'
 import type { Settings } from './settings'
 
 /** Anki's line: a card whose interval has reached three weeks is mature. */
@@ -32,9 +32,10 @@ const DAY_MS = 86_400_000
 /**
  * A rough look ahead, assuming every answer is Good (real lapses add a little on top):
  * how many days until every new card in the filters has been introduced at the current pace,
- * and the busiest day of reviews between now and a month after that.
+ * and the busiest day of reviews between now and a month after that. `seenToday`: places already answered today,
+ * whose due reviews wait for tomorrow (one card per place a day), so they count there.
  */
-export function forecast(rows: Map<string, CardRow>, settings: Settings, now = new Date()) {
+export function forecast(rows: Map<string, CardRow>, settings: Settings, seenToday: Set<string> = new Set(), now = new Date()) {
   // Same parameters as the real scheduler (weights refitted since the page loaded too), without the random fuzz, so
   // the estimate is steady.
   const steady = fsrs({ ...scheduler.parameters, enable_fuzz: false })
@@ -70,7 +71,8 @@ export function forecast(rows: Map<string, CardRow>, settings: Settings, now = n
   for (const c of cards) {
     const r = rows.get(c.id)
     if (!r || r.state === State.New) continue
-    const due = new Date(Math.max(+new Date(r.due), +now))
+    let due = new Date(Math.max(+new Date(r.due), +now))
+    if (due < today && waitsForTomorrow(r, seenToday.has(c.note.id), now)) due = today
     const d = dayOf(due)
     if (d >= horizon) continue
     load[d]++

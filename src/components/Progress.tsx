@@ -8,7 +8,7 @@ import { restoreFocus, trapTab } from '../lib/focus'
 import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
 import { Ahead, CountUp, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
-import { formatInterval, State } from '../lib/scheduler'
+import { dayKey, formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
 import { speak } from '../lib/tts'
@@ -705,7 +705,12 @@ export default function Progress({ onClose, onDrill }: Props) {
 
   const results = useMemo(() => search(query), [query])
   const levels = useMemo(() => rows && mastery(rows), [rows])
-  const ahead = useMemo(() => rows && forecast(rows, settings), [rows, settings])
+  const ahead = useMemo(() => {
+    if (!rows) return null
+    const key = dayKey(new Date())
+    const seenToday = new Set((logs ?? []).filter((l) => dayKey(new Date(l.review)) === key).flatMap((l) => CARD_BY_ID.get(l.cardId)?.note.id ?? []))
+    return forecast(rows, settings, seenToday)
+  }, [rows, logs, settings])
   const learned = useMemo(() => (rows ? [...rows.values()].filter((r) => r.state !== State.New && CARD_BY_ID.has(r.id)).length : 0), [rows])
   const filtered = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const insight = useMemo(() => {

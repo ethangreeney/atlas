@@ -109,6 +109,17 @@ export const dayEnd = (d: Date) => {
   if (t <= d) t.setDate(t.getDate() + 1)
   return t
 }
+/**
+ * One card per place a day, so one doesn't give another away: a review whose place has already come up today waits
+ * for tomorrow. But only once: a review already due on an earlier day comes anyway.
+ */
+export const waitsForTomorrow = (r: Card, placeSeen: boolean, now: Date) => {
+  if (r.state !== State.Review || !placeSeen) return false
+  const start = dayEnd(now)
+  start.setDate(start.getDate() - 1)
+  return +new Date(r.due) >= +start
+}
+
 export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, seenNotes: [], grades: [0, 0, 0, 0], updated: 0 })
 
 export const freshRow = (c: DeckCard, now: Date): CardRow => ({ ...createEmptyCard(now), id: c.id, noteId: c.note.id, updated: 0 })
@@ -186,7 +197,7 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
     .sort((a, b) => +row(a).due - +row(b).due)
 
   const reviewBudget = Math.max(0, settings.reviewsPerDay - day.reviewCount)
-  let reviews = cards.filter((c) => row(c).state === State.Review && row(c).due < end && !seen.has(c.note.id))
+  let reviews = cards.filter((c) => row(c).state === State.Review && row(c).due < end && !waitsForTomorrow(row(c), seen.has(c.note.id), now))
   // More due than the day's limit: keep the ones most likely still remembered. They're the cheapest to save, and the
   // rest need relearning either way (FSRS sort-order simulations).
   if (reviews.length > reviewBudget) {
@@ -208,9 +219,11 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   const warmup = graded < WARMUP_CARDS
   const tier = (c: DeckCard) => (warmup && (c.type === 'flag' || c.type === 'map') && STARTERS.has(c.note.country) ? 0 : 1)
   const fameKey = (c: DeckCard) => (FAME.get(c.note.id) ?? FAME.size) + (rank(c) / 2 ** 32) * FAME_SPREAD
-  // One card per place a day, so this is also how many new cards could still come today.
+  // One card per place a day, so this is also how many new cards could still come today. A place with a review due
+  // today gives that its turn; its next new card comes another day.
+  const reviewing = new Set(reviews.map((c) => c.note.id))
   const unseen = cards
-    .filter((c) => row(c).state === State.New && !seen.has(c.note.id))
+    .filter((c) => row(c).state === State.New && !seen.has(c.note.id) && !reviewing.has(c.note.id))
     .sort((a, b) => tier(a) - tier(b) || fameKey(a) - fameKey(b))
     .filter((c) => (seenNew.has(c.note.id) ? false : (seenNew.add(c.note.id), true)))
   const fresh = unseen.slice(0, newBudget)

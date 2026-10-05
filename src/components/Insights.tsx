@@ -435,12 +435,3 @@ export function Ahead({ load, cap, perCard }: { load: number[]; cap: number; per
     </div>
   )
 }
-
-/** Your last few answers on a card, oldest first: red for a miss, green for right. */
-export const LastAnswers = ({ ratings }: { ratings: number[] }) => (
-  <span className="flex shrink-0 items-center gap-1" aria-label={`Last ${ratings.length}: ${ratings.map((r) => (r === 1 ? 'missed' : 'right')).join(', ')}`}>
-    {ratings.map((r, i) => (
-      <span key={i} className={`h-2 w-2 rounded-full ${r === 1 ? 'bg-again' : 'bg-good'}`} />
-    ))}
-  </span>
-)

@@ -166,26 +166,21 @@ export function strength(rows: Map<string, CardRow>) {
   return counts
 }
 
-export type Struggle = { row: CardRow; card: DeckCard; last: number[] }
+/** Below this chance of recall a card has more likely than not slipped from where FSRS meant to catch it (it books each review for 90%). */
+export const SLIPPING = 0.9
+
+export type Slipping = { row: CardRow; card: DeckCard; recall: number }
 
 /**
- * The cards giving you trouble lately, rather than ever: missed at least once in your last five answers on them
- * (after the first time you saw it), and not yet a sturdy memory. Most misses first, then the weakest memory.
+ * The cards you've answered that you're most likely to have forgotten by now: FSRS's chance you'd get each right this
+ * minute, lowest first, only those under 90%. A card you've just got right is back near 100%, so it drops off at once.
  */
-export function strugglingNow(rows: Map<string, CardRow>, logs: RevlogRow[], n = 10): Struggle[] {
-  const byCard = new Map<string, RevlogRow[]>()
-  for (const l of logs) if (CARD_BY_ID.has(l.cardId)) byCard.set(l.cardId, [...(byCard.get(l.cardId) ?? []), l])
-  const out: (Struggle & { misses: number })[] = []
-  for (const [id, list] of byCard) {
-    const row = rows.get(id)
-    if (!learned(row) || row.stability >= 21) continue
-    list.sort((a, b) => +new Date(a.review) - +new Date(b.review))
-    const last = list
-      .slice(1)
-      .slice(-5)
-      .map((l) => l.rating)
-    const misses = last.filter((r) => r === 1).length
-    if (misses) out.push({ row, card: CARD_BY_ID.get(id)!, last, misses })
+export function forgotten(rows: Map<string, CardRow>, now = new Date(), n = 10): Slipping[] {
+  const out: Slipping[] = []
+  for (const r of rows.values()) {
+    if (!learned(r)) continue
+    const recall = scheduler.get_retrievability(r, now, false)
+    if (recall < SLIPPING) out.push({ row: r, card: CARD_BY_ID.get(r.id)!, recall })
   }
-  return out.sort((a, b) => b.misses - a.misses || a.row.stability - b.row.stability).slice(0, n)
+  return out.sort((a, b) => a.recall - b.recall || +new Date(a.row.due) - +new Date(b.row.due)).slice(0, n)
 }

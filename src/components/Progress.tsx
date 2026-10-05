@@ -5,9 +5,9 @@ import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
 import { ALL_CARDS, answerOf, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type DeckCard, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
-import { SET_WORD, byType, closest, days, forgetting, placesStarted, regionShort, recallNow, sets, strength, strugglingNow, studyTime, type DeckSet, type Struggle } from '../lib/insights'
+import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
-import { Ahead, CountUp, Heading, Heatmap, LastAnswers, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
+import { Ahead, CountUp, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
 import { formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
@@ -111,10 +111,10 @@ const Peek = ({ card, id, above }: { card: DeckCard; id: string; above: boolean 
 }
 
 /**
- * The cards giving you trouble, each with its last few answers. Hovering one (tapping it on a phone, or Enter) shows
- * the card, question and answer, without leaving the page.
+ * The cards you've most likely forgotten, each with FSRS's chance you'd still get it right. Hovering one (tapping it on
+ * a phone, or Enter) shows the card, question and answer, without leaving the page.
  */
-function Hardest({ items }: { items: Struggle[] }) {
+function Forgotten({ items }: { items: Slipping[] }) {
   const [peek, setPeek] = useState<string | null>(null)
   const list = useRef<HTMLUListElement>(null)
   const mouse = useRef(false)
@@ -127,7 +127,7 @@ function Hardest({ items }: { items: Struggle[] }) {
   }, [peek])
   return (
     <ul ref={list} className="-mx-2" onPointerLeave={(e) => e.pointerType === 'mouse' && setPeek(null)}>
-      {items.map(({ card: c, last }, i) => {
+      {items.map(({ card: c, recall }, i) => {
         const open = peek === c.id
         return (
           <li key={c.id} className="relative" onPointerEnter={(e) => e.pointerType === 'mouse' && setPeek(c.id)}>
@@ -145,7 +145,9 @@ function Hardest({ items }: { items: Struggle[] }) {
                 {c.note.country}
                 <span className="text-ink-3"> · {TYPE_WORD[c.type]}</span>
               </span>
-              <LastAnswers ratings={last} />
+              <span className="shrink-0 text-[12.5px] tabular-nums text-ink-2" aria-label={`${Math.floor(recall * 100)}% chance you'd get it right`}>
+                {Math.floor(recall * 100)}%
+              </span>
             </button>
             {open && <Peek card={c} id={`peek-${i}`} above={i >= items.length / 2} />}
           </li>
@@ -212,8 +214,8 @@ const finishDate = (days: number) => {
   t.setDate(t.getDate() + Math.max(0, days - 1))
   return DATE.format(t)
 }
-/** Hardest cards shown before "more". */
-const HARD_SHOWN = 5
+/** Cards most likely forgotten shown before "more". */
+const SLIP_SHOWN = 5
 
 /** Interpolates two view boxes of the same aspect as a zoom about a fixed point, so the motion reads as moving in, not sliding. */
 function between(a: View, b: View, t: number): View {
@@ -575,7 +577,7 @@ export default function Progress({ onClose, onDrill }: Props) {
   /** The set open, by key, and whether the page of every set is open beneath it. */
   const [openSet, setOpenSet] = useState<string | null>(null)
   const [allSets, setAllSets] = useState(false)
-  const [allHard, setAllHard] = useState(false)
+  const [allSlipping, setAllSlipping] = useState(false)
   const [region, setRegion] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -726,7 +728,7 @@ export default function Progress({ onClose, onDrill }: Props) {
       types: byType(rows, logs),
       curve,
       strength: strength(rows),
-      struggling: strugglingNow(rows, logs),
+      slipping: forgotten(rows),
     }
   }, [rows, logs])
 
@@ -815,29 +817,29 @@ export default function Progress({ onClose, onDrill }: Props) {
         </section>
 
         <section className="mt-8">
-          <Heading aside={insight.struggling.length > 0 ? 'last 5 answers →' : undefined}>Hardest right now</Heading>
-          {insight.struggling.length ? (
+          <Heading aside={insight.slipping.length > 0 ? "chance you'd get it right" : undefined}>Most likely to have forgotten</Heading>
+          {insight.slipping.length ? (
             <>
-              <Hardest items={allHard ? insight.struggling : insight.struggling.slice(0, HARD_SHOWN)} />
+              <Forgotten items={allSlipping ? insight.slipping : insight.slipping.slice(0, SLIP_SHOWN)} />
               <div className="mt-3 flex items-center gap-4">
                 <button
                   onClick={() => {
-                    onDrill(insight.struggling.map((x) => x.card.id))
+                    onDrill(insight.slipping.map((x) => x.card.id))
                     close()
                   }}
                   className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
                 >
-                  {allHard || insight.struggling.length <= HARD_SHOWN ? `Drill these ${insight.struggling.length}` : `Drill all ${insight.struggling.length}`}
+                  {allSlipping || insight.slipping.length <= SLIP_SHOWN ? 'Review these first' : `Review all ${insight.slipping.length} first`}
                 </button>
-                {!allHard && insight.struggling.length > HARD_SHOWN && (
-                  <button onClick={() => setAllHard(true)} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
-                    Show {insight.struggling.length - HARD_SHOWN} more
+                {!allSlipping && insight.slipping.length > SLIP_SHOWN && (
+                  <button onClick={() => setAllSlipping(true)} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
+                    Show {insight.slipping.length - SLIP_SHOWN} more
                   </button>
                 )}
               </div>
             </>
           ) : (
-            <p className="text-[13.5px] text-ink-3">Nothing's giving you trouble lately.</p>
+            <p className="text-[13.5px] text-ink-3">Nothing's slipping. You'd likely get every card you've learned right.</p>
           )}
         </section>
 

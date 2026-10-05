@@ -2,7 +2,7 @@ import { Check, Flag, Globe, Landmark, MapPin } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import type { CardType } from '../lib/deck'
-import { CONTINENTS, SET_WORD, STRENGTHS, SUBREGIONS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
+import { BEYOND, CONTINENTS, SET_WORD, STRENGTHS, SUBREGIONS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
 import { dayKey } from '../lib/scheduler'
 
 /** Fill opacity of the good colour for each step of more; step 0 is empty. Matches the map. */
@@ -312,6 +312,8 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
         {CONTINENTS.map(row)}
         <div className="pb-0.5 pt-3 text-[11.5px] text-ink-3">Within them</div>
         {SUBREGIONS.map(row)}
+        <div className="pb-0.5 pt-3 text-[11.5px] text-ink-3">Also on the map</div>
+        {BEYOND.map(row)}
       </div>
     </div>
   )

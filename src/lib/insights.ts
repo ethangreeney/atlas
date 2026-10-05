@@ -1,5 +1,5 @@
 import type { CardRow, RevlogRow } from './db'
-import { ALL_CARDS, CARD_BY_ID, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
+import { ALL_CARDS, CARD_BY_ID, KINDS, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
 import { dayKey, recall, State } from './scheduler'
 
 const DAY_MS = 86_400_000
@@ -83,7 +83,10 @@ export function byType(rows: Map<string, CardRow>, logs: RevlogRow[], now = new 
 
 /** Regions that read with "the": the Caribbean, the Middle East. */
 const THE = new Set(['Caribbean', 'Middle_East', 'European_Union', 'Mediterranean'])
-export const placeName = (region: string) => (THE.has(region) ? 'the ' : '') + regionLabel(region)
+/** Places in no region, so only the map asks about them: the seas and oceans, and the continents themselves. */
+export const BEYOND = KINDS.filter((k) => k.id === 'sea' || k.id === 'continent').map((k) => k.tag!)
+const KIND_NAME = new Map(KINDS.map((k) => [k.tag, k.label]))
+export const placeName = (region: string) => KIND_NAME.get(region) ?? (THE.has(region) ? 'the ' : '') + regionLabel(region)
 /** The row that holds every card of a kind, above the regions. */
 export const WHOLE = 'All'
 /** A set's region on its own, as a row label: "Caribbean", "Whole deck". */
@@ -107,11 +110,11 @@ const MIN_SET = 5
 
 /**
  * Every set, one region and one kind of card each: all of South America's flags, all the Caribbean's capitals. The
- * whole deck's flags, maps and so on come first.
+ * whole deck's flags, maps and so on come first, and the seas and continents, which only have maps, last.
  */
 export function sets(rows: Map<string, CardRow>): Map<string, DeckSet> {
   const out = new Map<string, DeckSet>()
-  for (const region of [WHOLE, ...REGIONS])
+  for (const region of [WHOLE, ...REGIONS, ...BEYOND])
     for (const type of TYPES) {
       const cards = ALL_CARDS.filter((c) => c.type === type && (region === WHOLE || c.note.tags.includes(region))).sort((a, b) => a.note.country.localeCompare(b.note.country))
       if (cards.length < MIN_SET) continue

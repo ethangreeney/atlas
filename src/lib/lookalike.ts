@@ -1,7 +1,7 @@
 import { NOTES, type Note } from './deck'
 import { normalize } from './answer'
 
-export type LookAlike = { name: string; note: string; flag: string | null }
+export type LookAlike = { id: string | null; name: string; note: string; flag: string | null }
 
 const BY_NAME = new Map(NOTES.map((n) => [normalize(n.country), n]))
 
@@ -27,5 +27,18 @@ export const lookAlikes = (n: Note): LookAlike[] =>
     const m = item.match(/^(.*?)\s*\((.*)\)$/)
     const [name, note] = m ? [m[1], m[2]] : [item, '']
     const other = BY_NAME.get(normalize(name))
-    return { name: other?.country ?? name, note, flag: other && other.id !== n.id ? (other.flagBack ?? other.flag) : null }
+    const known = other && other.id !== n.id ? other : null
+    return { id: known?.id ?? null, name: other?.country ?? name, note, flag: known ? (known.flagBack ?? known.flag) : null }
   })
+
+/** Each place's look-alike flags in the deck, both ways round: Chad's lists Romania, so Romania's gets Chad. */
+const PARTNERS = new Map<string, Set<string>>()
+const pair = (a: string, b: string) => PARTNERS.set(a, (PARTNERS.get(a) ?? new Set()).add(b))
+for (const n of NOTES)
+  for (const l of lookAlikes(n))
+    if (l.id) {
+      pair(n.id, l.id)
+      pair(l.id, n.id)
+    }
+const NONE = new Set<string>()
+export const flagPartners = (noteId: string) => PARTNERS.get(noteId) ?? NONE

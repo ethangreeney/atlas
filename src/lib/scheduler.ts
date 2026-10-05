@@ -1,5 +1,6 @@
 import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type FSRS, type Grade, type ReviewLog } from 'ts-fsrs'
 import { ALL_CARDS, kindOf, type DeckCard } from './deck'
+import { flagPartners } from './lookalike'
 import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
 import type { Settings } from './settings'
@@ -217,7 +218,10 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   let graded = 0
   for (const r of rows.values()) if (r.state !== State.New) graded++
   const warmup = graded < WARMUP_CARDS
-  const tier = (c: DeckCard) => (warmup && (c.type === 'flag' || c.type === 'map') && STARTERS.has(c.note.country) ? 0 : 1)
+  // A flag whose look-alike you've started comes next, so Chad's arrives while Romania's is fresh, not weeks later.
+  const started = (noteId: string) => (rows.get(`${noteId}:flag`)?.state ?? State.New) !== State.New
+  const paired = (c: DeckCard) => c.type === 'flag' && [...flagPartners(c.note.id)].some(started)
+  const tier = (c: DeckCard) => (warmup && (c.type === 'flag' || c.type === 'map') && STARTERS.has(c.note.country) ? 0 : paired(c) ? 1 : 2)
   const fameKey = (c: DeckCard) => (FAME.get(c.note.id) ?? FAME.size) + (rank(c) / 2 ** 32) * FAME_SPREAD
   // One card per place a day, so this is also how many new cards could still come today. A place with a review due
   // today gives that its turn; its next new card comes another day.

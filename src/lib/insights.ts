@@ -1,6 +1,6 @@
 import type { CardRow, RevlogRow } from './db'
 import { ALL_CARDS, CARD_BY_ID, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
-import { dayKey, scheduler, State } from './scheduler'
+import { dayKey, recall, State } from './scheduler'
 
 const DAY_MS = 86_400_000
 const learned = (r: CardRow | undefined): r is CardRow => !!r && r.state !== State.New && CARD_BY_ID.has(r.id)
@@ -13,7 +13,7 @@ export function recallNow(rows: Map<string, CardRow>, now = new Date()) {
   for (const r of rows.values()) {
     if (!learned(r)) continue
     count++
-    recalled += scheduler.get_retrievability(r, now, false)
+    recalled += recall(r, now)
   }
   return { learned: count, recalled: Math.round(recalled) }
 }
@@ -145,7 +145,7 @@ export function forgetting(rows: Map<string, CardRow>, now = new Date()) {
   const known = (days: number) => {
     const at = new Date(+now + days * DAY_MS)
     let sum = 0
-    for (const r of cards) sum += scheduler.get_retrievability(r, at, false)
+    for (const r of cards) sum += recall(r, at)
     return Math.round(sum)
   }
   return { total: cards.length, month: known(30), year: known(365) }
@@ -179,8 +179,8 @@ export function forgotten(rows: Map<string, CardRow>, now = new Date(), n = 10):
   const out: Slipping[] = []
   for (const r of rows.values()) {
     if (!learned(r)) continue
-    const recall = scheduler.get_retrievability(r, now, false)
-    if (recall < SLIPPING) out.push({ row: r, card: CARD_BY_ID.get(r.id)!, recall })
+    const chance = recall(r, now)
+    if (chance < SLIPPING) out.push({ row: r, card: CARD_BY_ID.get(r.id)!, recall: chance })
   }
   return out.sort((a, b) => a.recall - b.recall || +new Date(a.row.due) - +new Date(b.row.due)).slice(0, n)
 }

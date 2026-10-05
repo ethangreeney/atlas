@@ -1,4 +1,4 @@
-import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type Grade } from 'ts-fsrs'
+import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type FSRS, type Grade, type ReviewLog } from 'ts-fsrs'
 import { ALL_CARDS, kindOf, type DeckCard } from './deck'
 import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
@@ -68,6 +68,40 @@ export const dayKey = (d: Date) => {
   if (t.getHours() < ROLLOVER_HOURS) t.setDate(t.getDate() - 1)
   return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`
 }
+/** The learner's day (4am rollover) as a whole number, for counting days between two times. */
+export const dayNumber = (d: Date) => {
+  const [y, m, day] = dayKey(d).split('-').map(Number)
+  return Date.UTC(y, m - 1, day) / 86_400_000
+}
+
+/**
+ * FSRS tells a same-day retry from a review a day later by the UTC date, but the learner's day is local and rolls over
+ * at 4am: in New Zealand UTC midnight falls at 1pm, so a retry at 1:05 of a card missed at 12:55 counted as a day
+ * apart and its memory was overrated. So FSRS is handed the local clock, 4h back, written as UTC: its dates then
+ * change exactly when the learner's day does. Times coming back are turned into real ones again.
+ */
+const offset = (d: Date) => -d.getTimezoneOffset() * 60_000
+const ROLLOVER_MS = ROLLOVER_HOURS * 3_600_000
+const toLocal = (d: Date) => new Date(+d + offset(d) - ROLLOVER_MS)
+const fromLocal = (d: Date) => {
+  const wall = +d + ROLLOVER_MS
+  return new Date(wall - offset(new Date(wall - offset(new Date(wall)))))
+}
+const cardIn = <T extends Card>(c: T): T => ({ ...c, due: toLocal(new Date(c.due)), ...(c.last_review && { last_review: toLocal(new Date(c.last_review)) }) })
+
+/** The next state of a card answered `grade` at `now`, and its log entry, counted in the learner's days. */
+export function next<T extends Card>(card: T, now: Date, grade: Grade, f: FSRS = scheduler): { card: Card; log: ReviewLog } {
+  const r = f.next(cardIn(card), toLocal(now), grade)
+  // The log's due is the card's last review (or its due date if it had none), as ts-fsrs records it.
+  return { card: { ...r.card, due: fromLocal(r.card.due), last_review: now }, log: { ...r.log, due: new Date(card.last_review ?? card.due), review: now } }
+}
+
+/** FSRS's chance the learner would get a card right at `now`, with the days since its last review counted their way. */
+export function recall(card: Card, now: Date) {
+  if (card.state === State.New || !card.last_review) return 0
+  return scheduler.forgetting_curve(Math.max(0, dayNumber(now) - dayNumber(new Date(card.last_review))), +card.stability.toFixed(8))
+}
+
 /** Local 4am that ends the day containing `d`; the day starts at the previous local 4am, which isn't always 24h earlier. */
 export const dayEnd = (d: Date) => {
   const t = new Date(d)
@@ -156,8 +190,8 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   // More due than the day's limit: keep the ones most likely still remembered. They're the cheapest to save, and the
   // rest need relearning either way (FSRS sort-order simulations).
   if (reviews.length > reviewBudget) {
-    const recall = new Map(reviews.map((c) => [c.id, scheduler.get_retrievability(row(c), now, false)]))
-    reviews = reviews.sort((a, b) => recall.get(b.id)! - recall.get(a.id)!).slice(0, reviewBudget)
+    const chance = new Map(reviews.map((c) => [c.id, recall(row(c), now)]))
+    reviews = reviews.sort((a, b) => chance.get(b.id)! - chance.get(a.id)!).slice(0, reviewBudget)
   }
   // Order doesn't matter for memory when everything gets done, so shuffle (the same way all day): a fixed order
   // would let one answer cue the next.
@@ -247,8 +281,7 @@ export const GRADES: { grade: Grade; key: string; label: string }[] = [
 ]
 
 export function previewIntervals(card: Card, now: Date) {
-  const p = scheduler.repeat(card, now)
-  return GRADES.map((g) => formatInterval(+p[g.grade].card.due - +now))
+  return GRADES.map((g) => formatInterval(+next(card, now, g.grade).card.due - +now))
 }
 
 /** Anki's leech rule: tag at the threshold, then every half-threshold after. Never suspend. */

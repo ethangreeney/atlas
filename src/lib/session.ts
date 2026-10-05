@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
 import { CARD_BY_ID, type DeckCard } from './deck'
-import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, scheduler, type Queue } from './scheduler'
+import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
 
@@ -162,7 +162,7 @@ export function useSession() {
       }
       const before = rows.current.get(card.id)
       const prev = before ?? freshRow(card, now)
-      let { card: next, log } = scheduler.next(prev, now, g)
+      let { card: next, log } = nextState(prev, now, g)
       if (known) {
         const days = KNOWN_DAYS + Math.round(Math.random() * KNOWN_DAYS)
         next = { ...next, stability: Math.max(next.stability, days), scheduled_days: days, due: new Date(+now + days * 86_400_000) }

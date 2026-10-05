@@ -1,7 +1,7 @@
 import { createEmptyCard, fsrs, type Card } from 'ts-fsrs'
 import type { CardRow } from './db'
 import { ALL_CARDS, NOTES, type DeckCard, type Note } from './deck'
-import { dayEnd, matchesFilters, Rating, scheduler, State } from './scheduler'
+import { dayEnd, matchesFilters, next, Rating, scheduler, State } from './scheduler'
 import type { Settings } from './settings'
 
 /** Anki's line: a card whose interval has reached three weeks is mature. */
@@ -59,7 +59,7 @@ export function forecast(rows: Map<string, CardRow>, settings: Settings, now = n
     let c = card
     let t = from
     for (let i = 0; i < 40; i++) {
-      c = steady.next(c, t, Rating.Good).card
+      c = next(c, t, Rating.Good, steady).card
       t = new Date(Math.max(+c.due, +t))
       const d = dayOf(t)
       if (d >= horizon) return

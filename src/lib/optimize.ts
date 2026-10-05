@@ -1,6 +1,6 @@
 import { db, type RevlogRow } from './db'
 import type { FitRequest } from './optimize.worker'
-import { applyWeights, dayKey, loadFitted, State, validWeights } from './scheduler'
+import { applyWeights, dayNumber, loadFitted, State, validWeights } from './scheduler'
 import { schedulePush } from './sync'
 
 /** Below this the optimizer mostly hands back the defaults it started from. */
@@ -8,12 +8,6 @@ const MIN_REVIEWS = 400
 /** Refit once the log has grown by a quarter, or a month has passed with anything new. */
 const GROWTH = 1.25
 const REFIT_MS = 30 * 86_400_000
-
-/** Whole days between two reviews, counted on the learner's 4am-rollover calendar like the scheduler. */
-const dayNumber = (d: Date) => {
-  const [y, m, day] = dayKey(d).split('-').map(Number)
-  return Date.UTC(y, m - 1, day) / 86_400_000
-}
 
 /**
  * Every card's history as FSRS training items: each prefix of two or more reviews, starting from the first answer

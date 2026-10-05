@@ -152,8 +152,8 @@ const STARTERS = new Set([
 ])
 /** How many cards a learner grades before the warm-up ends. */
 const WARMUP_CARDS = 6
-/** Places from famous to obscure (scripts/build-fame.ts), so new cards start with ones people have heard of. */
-const FAME = new Map((fame as string[]).map((id, i) => [id, i]))
+/** Places from best known to least, ranked by hand (scripts/build-fame.ts slots in new ones), so new cards start with ones people know. */
+const FAME = new Map((fame as { id: string }[]).map((p, i) => [p.id, i]))
 /** How far, in places, a new card can drift from its fame rank, so each day still mixes regions and card types. */
 const FAME_SPREAD = 40
 

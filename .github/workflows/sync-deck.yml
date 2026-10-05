@@ -32,8 +32,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm -s sync:deck | tee "$RUNNER_TEMP/report.txt"
-          # New or removed places need a spot in the order new cards are introduced.
-          if grep -qE '^(added|removed) ' "$RUNNER_TEMP/report.txt"; then pnpm -s build:fame; fi
+          # Keeps the hand-ranked order new cards come in up to date: new places go in by Wikipedia links, marked for review.
+          pnpm -s build:fame | tee "$RUNNER_TEMP/fame.txt"
           {
             echo 'Ultimate Geography changed upstream. Against the deck the app ships now:'
             echo
@@ -41,6 +41,16 @@ jobs:
             cat "$RUNNER_TEMP/report.txt"
             echo '```'
             echo
+            if grep -q '^placed ' "$RUNNER_TEMP/fame.txt"; then
+              echo 'New places went into the order new cards come in by how often Wikipedia links to them, which undersells places everyone knows but few articles mention (seas especially):'
+              echo
+              echo '```'
+              cat "$RUNNER_TEMP/fame.txt"
+              echo '```'
+              echo
+              echo 'Each is marked `review` in `src/data/fame.json`. Check its spot (or ask Claude to), move its line if it belongs elsewhere, and delete the `review` field.'
+              echo
+            fi
             echo 'Check each change is right before merging. To keep the current version of something, add it to `scripts/deck-overrides.ts` and run `pnpm sync:deck` on this branch. Merging does not deploy.'
           } > "$RUNNER_TEMP/body.md"
 

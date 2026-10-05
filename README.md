@@ -59,7 +59,7 @@ npx wrangler d1 migrations apply atlas --local
 pnpm build && npx wrangler pages dev dist
 ```
 
-`pnpm sync:deck` pulls Ultimate Geography from its GitHub source (master, not the last release, which can lag a year), applies our corrections from `scripts/deck-overrides.ts`, rewrites `src/data/deck.json` and the images in `public/media`, and prints what changed. A GitHub Action runs it every Monday and opens a pull request when anything did. After it adds places, `pnpm build:fame` ranks them. `scripts/pronunciation/` builds the phonetic spelling for every name (see the notes at the top of each script), and `scripts/build-audio.py` renders the clips from it.
+`pnpm sync:deck` pulls Ultimate Geography from its GitHub source (master, not the last release, which can lag a year), applies our corrections from `scripts/deck-overrides.ts`, rewrites `src/data/deck.json` and the images in `public/media`, and prints what changed. A GitHub Action runs it every Monday and opens a pull request when anything did. New cards come in the order of `src/data/fame.json`: every place ranked by hand from best known to least. `pnpm build:fame` keeps it in step with the deck. A new place goes in where Wikipedia's link count puts it and is marked `review` until someone checks its spot; the Monday pull request lists any. `scripts/pronunciation/` builds the phonetic spelling for every name (see the notes at the top of each script), and `scripts/build-audio.py` renders the clips from it.
 
 Deploy:
 

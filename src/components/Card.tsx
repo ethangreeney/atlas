@@ -7,6 +7,7 @@ import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
 import type { CardRow } from '../lib/db'
 import { lookAlikes } from '../lib/lookalike'
 import { useHoldToZoom } from '../lib/zoom'
+import { Zoomable } from './Zoom'
 
 export type ExitTarget = { x: number; y: number; rotate: number }
 
@@ -101,15 +102,19 @@ export const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => 
 const Info = ({ children }: { children: React.ReactNode }) =>
   children ? <div className="max-w-[34ch] text-balance text-[13px] leading-snug text-ink-3 short:max-w-[42ch] short:text-[12px]">{children}</div> : null
 
-/** The question side says only what the picture is; the answer side can name it. Hold it to see it up close. */
+const ZOOM_LABEL = 'See it up close (F)'
+
+/** The question side says only what the picture is; the answer side can name it. Hold it, or press its corner button, to see it up close. */
 const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
-  <img
-    src={mediaUrl(file)}
-    alt={alt}
-    draggable={false}
-    {...useHoldToZoom(file, alt)}
-    className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)] short:max-h-[min(190px,100cqh_-_56px)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
-  />
+  <Zoomable file={file} alt={alt} label={ZOOM_LABEL}>
+    <img
+      src={mediaUrl(file)}
+      alt={alt}
+      draggable={false}
+      {...useHoldToZoom(file, alt)}
+      className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)] short:max-h-[min(190px,100cqh_-_56px)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+    />
+  </Zoomable>
 )
 
 /** A look-alike's flag, small beside its name; hold it to see it up close too. Decorative otherwise: the name is right there. */
@@ -117,13 +122,16 @@ const MiniFlag = ({ file, name }: { file: string; name: string }) => (
   <img src={mediaUrl(file)} alt="" draggable={false} {...useHoldToZoom(file, `Flag of ${name}`)} className="img-shadow max-h-full max-w-full rounded-[2px]" />
 )
 const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
-  <img
-    src={mediaUrl(file)}
-    alt={alt}
-    draggable={false}
-    // Short screens size maps by the card's height (cqh), so the answer beneath still fits.
-    className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)] short:max-w-[min(400px,74vw,100%)] short:max-h-[min(300px,100cqh_-_56px)]' : 'w-[min(190px,40vw)] short:max-w-[min(190px,40vw)] short:max-h-[clamp(24px,100cqh_-_110px,110px)]'} rounded-xl img-shadow img-dim short:w-auto`}
-  />
+  <Zoomable file={file} alt={alt} label={ZOOM_LABEL}>
+    <img
+      src={mediaUrl(file)}
+      alt={alt}
+      draggable={false}
+      {...useHoldToZoom(file, alt)}
+      // Short screens size maps by the card's height (cqh), so the answer beneath still fits.
+      className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)] short:max-w-[min(400px,74vw,100%)] short:max-h-[min(300px,100cqh_-_56px)]' : 'w-[min(190px,40vw)] short:max-w-[min(190px,40vw)] short:max-h-[clamp(24px,100cqh_-_110px,110px)]'} rounded-xl img-shadow img-dim short:w-auto`}
+    />
+  </Zoomable>
 )
 
 /** Flags easily mistaken for this one, small, each with how it differs. */

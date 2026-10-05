@@ -13,6 +13,7 @@ import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
 import { speak } from '../lib/tts'
 import { isZoomed, zoom } from '../lib/zoom'
+import { Zoomable } from './Zoom'
 import { Say } from './Card'
 
 type View = [number, number, number, number]
@@ -487,9 +488,11 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
       </button>
       <div className="mt-2 flex flex-col items-center gap-3 text-center">
         {flag && (
-          <button onClick={() => zoom({ file: flag, alt: `Flag of ${note.country}` })} title="See it up close" className="cursor-zoom-in">
-            <img src={mediaUrl(flag)} alt={`Flag of ${note.country}`} draggable={false} className={`max-h-20 max-w-[140px] ${flag.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`} />
-          </button>
+          <Zoomable file={flag} alt={`Flag of ${note.country}`}>
+            <button onClick={() => zoom({ file: flag, alt: `Flag of ${note.country}` })} tabIndex={-1} className="cursor-zoom-in">
+              <img src={mediaUrl(flag)} alt={`Flag of ${note.country}`} draggable={false} className={`max-h-20 max-w-[140px] ${flag.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`} />
+            </button>
+          </Zoomable>
         )}
         <div>
           <div className="text-balance text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
@@ -502,7 +505,13 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
           )}
         </div>
         {info && <p className="max-w-[40ch] text-balance text-[13px] leading-snug text-ink-3">{info}</p>}
-        {note.map && <img src={mediaUrl(note.map)} alt={`Map of ${note.country}`} draggable={false} className="img-shadow img-dim mt-1 w-[min(320px,100%)] rounded-xl" />}
+        {note.map && (
+          <Zoomable file={note.map} alt={`Map of ${note.country}`} className="mt-1 w-[min(320px,100%)]">
+            <button onClick={() => zoom({ file: note.map!, alt: `Map of ${note.country}` })} tabIndex={-1} className="block w-full cursor-zoom-in">
+              <img src={mediaUrl(note.map)} alt={`Map of ${note.country}`} draggable={false} className="img-shadow img-dim w-full rounded-xl" />
+            </button>
+          </Zoomable>
+        )}
       </div>
       <ul className="mt-6 divide-y divide-line border-y border-line">
         {(CARDS_BY_NOTE.get(note.id) ?? []).map((c) => {

@@ -1,3 +1,4 @@
+import { Maximize2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -8,21 +9,24 @@ const EASE = [0.2, 0.8, 0.2, 1] as const
 /** Keys that only change another key, which shouldn't close the flag on their own. */
 const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'])
 
+/** Photos and maps are pictures of fixed size: blown up past this many times their own width they only get blurrier. Vector flags have no limit. */
+const RASTER_MAX = 2.5
+
 /**
- * A flag up close: as large as the screen allows over a dimmed page. A tap, a click or any key puts it away, and that
- * key does nothing else, so Space here never grades the card beneath. Only a press that starts here closes it: lifting
- * the finger that held the flag lands here too, and must leave it open.
+ * A flag or map up close: as large as the screen allows over a dimmed page. A tap, a click or any key puts it away,
+ * and that key does nothing else, so Space here never grades the card beneath. Only a press that starts here closes
+ * it: lifting the finger that held the image lands here too, and must leave it open.
  */
 export function Zoom() {
   const z = useZoomed()
   const reduce = useReducedMotion()
-  /** Width over height, once the image has loaded, so it can be sized to fit whole. */
-  const [aspect, setAspect] = useState<number | null>(null)
+  /** Width over height, and the widest it can go without blurring, once the image has loaded, so it can be sized to fit whole. */
+  const [size, setSize] = useState<{ aspect: number; max: number } | null>(null)
   const armed = useRef(false)
   const [file, setFile] = useState(z?.file)
   if (file !== z?.file) {
     setFile(z?.file)
-    setAspect(null)
+    setSize(null)
   }
 
   useEffect(() => {
@@ -58,17 +62,48 @@ export function Zoom() {
             src={mediaUrl(z.file)}
             alt={z.alt}
             draggable={false}
-            onLoad={(e) => setAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight || 1.5)}
+            onLoad={(e) => {
+              const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+              setSize({ aspect: w / h || 1.5, max: z.file.endsWith('.svg') || !w ? Infinity : w * RASTER_MAX })
+            }}
             initial={reduce ? false : { scale: 0.94 }}
             animate={{ scale: 1 }}
             exit={reduce ? undefined : { scale: 0.97 }}
             transition={{ duration: 0.22, ease: EASE }}
-            className={`h-auto ${z.file.includes('-nobox') ? '' : 'img-shadow rounded-[6px]'}`}
-            style={{ width: `min(92vw, 960px, calc(80dvh * ${aspect ?? 1.5}))`, opacity: aspect ? 1 : 0 }}
+            className={`h-auto ${z.file.includes('-map-') ? 'img-shadow img-dim rounded-2xl' : z.file.includes('-nobox') ? '' : 'img-shadow rounded-[6px]'}`}
+            style={{
+              width: `min(100%, ${size && size.max < Infinity ? `${Math.round(size.max)}px` : '100%'}, calc((100dvh - 3rem) * ${size?.aspect ?? 1.5}))`,
+              opacity: size ? 1 : 0,
+            }}
           />
         </motion.div>
       )}
     </AnimatePresence>,
     document.body,
+  )
+}
+
+/**
+ * An image that can be seen up close: hold it, or press the button in its corner, which says so. The button keeps its
+ * press and click to itself, so on a card it neither turns the card over nor starts a swipe.
+ */
+export function Zoomable({ file, alt, label = 'See it up close', className = '', children }: { file: string; alt: string; label?: string; className?: string; children: React.ReactNode }) {
+  return (
+    <span className={`group/zoom relative inline-flex max-w-full ${className}`}>
+      {children}
+      <button
+        type="button"
+        aria-label={label}
+        title={label}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+          zoom({ file, alt })
+        }}
+        className="absolute right-1.5 top-1.5 flex h-6 w-6 cursor-zoom-in items-center justify-center rounded-full bg-surface/85 text-ink-2 opacity-60 shadow-sm backdrop-blur-sm transition-opacity after:absolute after:-inset-2 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover/zoom:opacity-100 pointer-coarse:opacity-90"
+      >
+        <Maximize2 size={12} strokeWidth={2} />
+      </button>
+    </span>
   )
 }

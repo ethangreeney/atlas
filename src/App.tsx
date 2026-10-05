@@ -220,8 +220,13 @@ export default function App() {
           break
         case 'f':
         case 'F':
-          // The flag on a flag card, up close: the question's side or the answer's, whichever is showing.
-          if (card?.type === 'flag') zoom({ file: (flipped && card.note.flagBack) || card.note.flag!, alt: flipped ? `Flag of ${card.note.country}` : 'Flag' })
+          // The card's picture up close, whichever side is showing: its flag or map, or the map shown with the answer.
+          if (card) {
+            const n = card.note
+            if (flipped && n.map && (card.type === 'map' || showMap)) zoom({ file: n.map, alt: `Map of ${n.country}` })
+            else if (!flipped && card.type === 'map') zoom({ file: n.map!, alt: 'Map' })
+            else if (card.type === 'flag') zoom({ file: (flipped && n.flagBack) || n.flag!, alt: flipped ? `Flag of ${n.country}` : 'Flag' })
+          }
           break
         case 'p':
         case 'P':
@@ -240,7 +245,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, doUndo, know, say, card, flipped, filtersOpen, progressOpen, suggested])
+  }, [flip, doGrade, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, suggested])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -329,7 +334,7 @@ export default function App() {
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
             <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom flag <span className="mx-1">·</span> <kbd>p</kbd> progress
+            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress
             </span>
           </div>
           {/* Padded to the footer's height (and pulled back) so the links' full-height tap targets aren't clipped. */}

@@ -890,7 +890,7 @@ export default function Progress({ onClose, onDrill }: Props) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-page/70 pad-safe backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-page/90 pad-safe"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

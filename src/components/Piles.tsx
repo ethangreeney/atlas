@@ -124,7 +124,7 @@ export function Piles({ counts, refs, onDrill }: Props) {
           <motion.div
             key="table"
             aria-hidden
-            className="fixed inset-0 bg-page/85 backdrop-blur-md"
+            className="fixed inset-0 bg-page/95"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.12 } }}

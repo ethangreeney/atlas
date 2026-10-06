@@ -117,7 +117,7 @@ export function Welcome() {
         {open && (
           <motion.div
             key="welcome"
-            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-page/70 pad-safe backdrop-blur-sm sm:short:items-center-safe sm:short:overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center whitespace-normal bg-page/90 pad-safe sm:short:items-center-safe sm:short:overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

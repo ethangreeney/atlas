@@ -50,7 +50,7 @@ export function Zoom() {
           role="dialog"
           aria-modal="true"
           aria-label={z.alt}
-          className="fixed inset-0 z-[70] flex cursor-zoom-out items-center justify-center bg-page/90 p-6 pad-safe backdrop-blur-md"
+          className="fixed inset-0 z-[70] flex cursor-zoom-out items-center justify-center bg-page/95 p-6 pad-safe"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -100,7 +100,7 @@ export function Zoomable({ file, alt, label = 'See it up close', className = '',
           e.stopPropagation()
           zoom({ file, alt })
         }}
-        className="absolute right-1.5 top-1.5 flex h-6 w-6 cursor-zoom-in items-center justify-center rounded-full bg-surface/85 text-ink-2 opacity-60 shadow-sm backdrop-blur-sm transition-opacity after:absolute after:-inset-2 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover/zoom:opacity-100 pointer-coarse:opacity-90"
+        className="absolute right-1.5 top-1.5 flex h-6 w-6 cursor-zoom-in items-center justify-center rounded-full bg-surface/90 text-ink-2 opacity-60 shadow-sm transition-opacity after:absolute after:-inset-2 hover:text-ink hover:opacity-100 focus-visible:opacity-100 group-hover/zoom:opacity-100 pointer-coarse:opacity-90"
       >
         <Maximize2 size={12} strokeWidth={2} />
       </button>

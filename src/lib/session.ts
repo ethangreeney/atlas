@@ -265,7 +265,7 @@ export function useSession() {
   }
 
   const learnMore = useCallback(
-    async (n = 20) => {
+    async (n: number) => {
       if (!day) return
       // Past a limit already (one lowered since, say)? Make that up too, so it brings as many as it offered.
       const nd: DayRow = { ...day, extraNew: day.extraNew + n + (queue?.newOver ?? 0), updated: Date.now(), dirty: 1 }

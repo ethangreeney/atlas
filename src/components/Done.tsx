@@ -5,6 +5,8 @@ import { loadStreak } from '../lib/streak'
 import { KeepProgress } from './KeepProgress'
 
 const GRADE_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
+/** How many new cards 'Learn more' adds to the day. */
+const MORE = 10
 
 const Screen = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -29,7 +31,7 @@ const Action = ({ onClick, children }: { onClick: () => void; children: React.Re
   </button>
 )
 
-type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: () => void; onOpenProgress: () => void }
+type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: (n: number) => void; onOpenProgress: () => void }
 
 export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Props) {
   // Every answer today, the same ones the grade row and piles count (learning steps and Knew it included).
@@ -89,7 +91,7 @@ export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Pr
           See your progress
         </button>
       )}
-      {queue.remainingNew > 0 && <Action onClick={onLearnMore}>Learn {Math.min(20, queue.remainingNew)} more</Action>}
+      {queue.remainingNew > 0 && <Action onClick={() => onLearnMore(MORE)}>Learn {Math.min(MORE, queue.remainingNew)} more</Action>}
       <KeepProgress learned={learned} />
     </Screen>
   )

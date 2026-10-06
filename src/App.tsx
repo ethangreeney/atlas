@@ -309,7 +309,7 @@ export default function App() {
                   queue={queue}
                   learned={learned}
                   grades={day?.grades ?? [0, 0, 0, 0]}
-                  onLearnMore={() => learnMore(20)}
+                  onLearnMore={learnMore}
                   onOpenProgress={() => setProgressOpen(true)}
                 />
               )}

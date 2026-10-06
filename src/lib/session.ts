@@ -5,6 +5,7 @@ import { CARD_BY_ID, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
+import { reloadIfUpdated } from './update'
 
 /** A new card marked "Knew it" comes back in 30 to 60 days. */
 const KNOWN_DAYS = 30
@@ -213,6 +214,7 @@ export function useSession() {
       }
       setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review, drill })
       schedulePush()
+      reloadIfUpdated()
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [day, loadDay, drill, settings],

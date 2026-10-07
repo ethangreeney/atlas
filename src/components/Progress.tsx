@@ -8,7 +8,7 @@ import { restoreFocus, trapTab } from '../lib/focus'
 import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
 import { Ahead, CountUp, Fill, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
-import { dayKey, formatInterval, matchesFilters, State } from '../lib/scheduler'
+import { dayKey, formatInterval, LEARN_ALL_MAX, matchesFilters, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
 import { speak } from '../lib/tts'
@@ -915,14 +915,18 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
               {ahead.remaining > 0 ? (
                 <>
                   At {settings.newPerDay} new a day you'll finish {filtered ? 'these cards' : 'the deck'} around {finishDate(ahead.days)}
-                  {'\u00a0· '}
-                  <button
-                    data-learn-all
-                    onClick={learnAll}
-                    className="whitespace-nowrap text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:text-ink hover:decoration-ink-3"
-                  >
-                    or learn all {ahead.remaining} today
-                  </button>
+                  {ahead.remaining <= LEARN_ALL_MAX && (
+                    <>
+                      {'\u00a0· '}
+                      <button
+                        data-learn-all
+                        onClick={learnAll}
+                        className="whitespace-nowrap text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:text-ink hover:decoration-ink-3"
+                      >
+                        or learn all {ahead.remaining} today
+                      </button>
+                    </>
+                  )}
                 </>
               ) : (
                 `Every card${filtered ? ' in these filters' : ''} is under way`

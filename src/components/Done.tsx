@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { dayEnd, formatInterval, GRADES, type Queue } from '../lib/scheduler'
+import { dayEnd, formatInterval, GRADES, LEARN_ALL_MAX, type Queue } from '../lib/scheduler'
 import { loadStreak } from '../lib/streak'
 import { KeepProgress } from './KeepProgress'
 
@@ -91,11 +91,11 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
           See your progress
         </button>
       )}
-      {/* Ten more, or every card left at once, past the daily limit; with ten or fewer left they're the same thing. */}
+      {/* Ten more, and once the end is in sight every card left at once; with ten or fewer left they're the same thing. */}
       {queue.unstarted > 0 && (
         <div className="flex flex-wrap justify-center gap-x-2">
           {queue.remainingNew > 0 && queue.unstarted > MORE && <Action onClick={() => onLearnMore(MORE)}>Learn {Math.min(MORE, queue.remainingNew)} more</Action>}
-          <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>
+          {queue.unstarted <= LEARN_ALL_MAX && <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>}
         </div>
       )}
       <KeepProgress learned={learned} />

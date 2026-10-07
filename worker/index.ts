@@ -180,10 +180,13 @@ async function push(env: Env, uid: string, req: Request) {
     const data = d?.data as { extraNew?: unknown; pulled?: unknown } | null
     const extraNew = data?.extraNew ?? 0
     const pulled = data?.pulled ?? []
-    const okPulled = Array.isArray(pulled) && pulled.length <= CARD_IDS.size && pulled.every((id) => typeof id === 'string' && CARD_IDS.has(id))
-    if (d && isDay(d.day, now) && isTime(d.updated) && Number.isSafeInteger(extraNew) && (extraNew as number) >= 0 && okPulled)
-      stmts.push(upDay.bind(uid, d.day, JSON.stringify({ day: d.day, extraNew, pulled: [...new Set(pulled)] }), clamp(d.updated), now))
-    else rejected.days.push(i)
+    // A card the deck no longer has (one dropped in an update) is left out, rather than refusing the day and every
+    // change after it.
+    const okPulled = Array.isArray(pulled) && pulled.length <= CARD_IDS.size
+    if (d && isDay(d.day, now) && isTime(d.updated) && Number.isSafeInteger(extraNew) && (extraNew as number) >= 0 && okPulled) {
+      const known = [...new Set((pulled as unknown[]).filter((id): id is string => typeof id === 'string' && CARD_IDS.has(id)))]
+      stmts.push(upDay.bind(uid, d.day, JSON.stringify({ day: d.day, extraNew, pulled: known }), clamp(d.updated), now))
+    } else rejected.days.push(i)
   }
   for (const [i, r] of revlog.entries()) {
     const data = isKey(r) ? dataOf(r.data) : null

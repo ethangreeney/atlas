@@ -1,6 +1,7 @@
 import { api, authChanged, getAuth, setBeforeSignIn } from './auth'
 import { applyWeights, emptyDay, loadFitted, resetWeights, validWeights, type Fitted } from './scheduler'
 import { db, type CardRow, type DayRow, type RevlogRow } from './db'
+import { CARD_BY_ID } from './deck'
 
 const PULL_KEY = 'atlas.sync.pulled2' // server clock of the last pull (v2: also pulls the review log)
 const DELETED_KEY = 'atlas.sync.deleted' // undone reviews not yet deleted on the server
@@ -176,7 +177,7 @@ export async function push(leaving = false) {
     const body = JSON.stringify({
       cards: c.map((x) => ({ id: x.id, data: { ...x, dirty: undefined }, updated: x.updated })),
       // Only `extraNew` and `pulled` are kept for a day; the counters are derived from the log.
-      days: d.map((x) => ({ day: x.day, data: { day: x.day, extraNew: x.extraNew, pulled: x.pulled ?? [] }, updated: x.updated })),
+      days: d.map((x) => ({ day: x.day, data: { day: x.day, extraNew: x.extraNew, pulled: (x.pulled ?? []).filter((id) => CARD_BY_ID.has(id)) }, updated: x.updated })),
       revlog: l.map((x) => ({ cardId: x.cardId, review: +new Date(x.review), data: { ...x, id: undefined, dirty: undefined } })),
       deleted: k,
       // The fit goes with the first request.

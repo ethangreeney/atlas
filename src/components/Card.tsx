@@ -371,6 +371,7 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
   }, [flipped])
   return (
     <motion.div
+      data-card={card.id}
       className={`absolute inset-0 [perspective:1400px] short:[container-type:size] ${flipped ? 'touch-pan-y' : ''}`}
       variants={variants}
       initial="enter"

@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import type { Grade } from 'ts-fsrs'
 import { Card, mapsUrl, type ExitTarget, type Typed } from './components/Card'
 import { Welcome } from './components/Welcome'
+import { Celebrate } from './components/Celebrate'
 import { Done, Empty } from './components/Done'
 import { Filters } from './components/Filters'
 import { GradeBar } from './components/GradeBar'
@@ -27,7 +28,7 @@ const Progress = lazy(() => import('./components/Progress'))
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill, celebrate, endCelebrate } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
 
@@ -178,7 +179,7 @@ export default function App() {
       const t = e.target as HTMLElement
       if (t.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key === 'Escape') return setFiltersOpen(false)
-      if (filtersOpen || progressOpen || e.repeat) return
+      if (filtersOpen || progressOpen || celebrate || e.repeat) return
       switch (e.code === 'Space' ? ' ' : e.key) {
         case ' ':
         case 'Spacebar':
@@ -245,7 +246,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, suggested])
+  }, [flip, doGrade, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, celebrate, suggested])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -286,6 +287,7 @@ export default function App() {
             </Suspense>
           )}
         </AnimatePresence>
+        <AnimatePresence>{celebrate && <Celebrate key="celebrate" onClose={endCelebrate} />}</AnimatePresence>
 
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 short:gap-2 short:pt-2.5">
           {/* On a short screen the card takes whatever height the bars leave it. */}

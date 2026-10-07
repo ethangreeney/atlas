@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { State, type Grade } from 'ts-fsrs'
+import { Rating, State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
 import { ALL_CARDS, CARD_BY_ID, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
@@ -9,6 +9,15 @@ import { reloadIfUpdated } from './update'
 
 /** A new card marked "Knew it" comes back in 30 to 60 days. */
 const KNOWN_DAYS = 30
+/** Set once the whole deck has been celebrated on this device, so it only happens once. */
+const CELEBRATED = 'atlas.celebrated'
+const celebrated = () => {
+  try {
+    return !!localStorage.getItem(CELEBRATED)
+  } catch {
+    return false
+  }
+}
 
 type Drill = { ids: string[]; left: string[] }
 /** `drill`: the drill under way when the card was answered, so undoing puts it back as it was. */
@@ -41,6 +50,16 @@ export function useSession() {
    * grade path, so FSRS sees an ordinary early review; the run ends when none are left, or on exit.
    */
   const [drill, setDrill] = useState<Drill | null>(null)
+  /** Cards never answered right yet (Hard or better), so the moment the last one is can be celebrated. */
+  const unpassed = useRef<Set<string> | null>(null)
+  const [celebrate, setCelebrate] = useState(false)
+  const loadUnpassed = useCallback(async () => {
+    const passed = new Set<string>()
+    await db.revlog.each((l) => {
+      if (l.rating >= Rating.Hard) passed.add(l.cardId)
+    })
+    unpassed.current = new Set(ALL_CARDS.filter((c) => !passed.has(c.id)).map((c) => c.id))
+  }, [])
 
   /**
    * Today's counters come from the review log, not the stored day row, so progress made on two devices
@@ -80,6 +99,7 @@ export function useSession() {
         if (cancelled) return
         rows.current = new Map(all.map((r) => [r.id, r]))
         await loadDay(new Date())
+        await loadUnpassed()
       } catch {
         if (cancelled) return
         setSaveError(true)
@@ -89,7 +109,7 @@ export function useSession() {
     return () => {
       cancelled = true
     }
-  }, [loadDay])
+  }, [loadDay, loadUnpassed])
 
   // Roll the day over if the tab was left open past 4am.
   useEffect(() => {
@@ -217,6 +237,16 @@ export function useSession() {
         return
       }
       setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review, drill })
+      // The last card of the deck answered right for the first time.
+      const left = unpassed.current
+      if (g >= Rating.Hard && left?.delete(card.id) && left.size === 0 && !celebrated()) {
+        try {
+          localStorage.setItem(CELEBRATED, new Date().toISOString())
+        } catch {
+          // Shown anyway; it may just show again on another visit.
+        }
+        setCelebrate(true)
+      }
       schedulePush()
       reloadIfUpdated()
     },
@@ -250,6 +280,8 @@ export function useSession() {
         await db.days.put(nd)
         await db.revlog.delete(undo.logId)
       })
+      // An undone right answer may have been the card's only one.
+      if (!(await db.revlog.where('cardId').equals(undo.cardId).filter((l) => l.rating >= Rating.Hard).count())) unpassed.current?.add(undo.cardId)
     } catch {
       setSaveError(true)
       return
@@ -312,6 +344,7 @@ export function useSession() {
   const learnAll = useCallback(() => learnNow(ALL_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id)), [learnNow, settings])
 
   const refresh = useCallback(() => setTick((t) => t + 1), [])
+  const endCelebrate = useCallback(() => setCelebrate(false), [])
 
   const startDrill = useCallback((ids: string[]) => {
     const valid = ids.filter((id) => CARD_BY_ID.has(id))
@@ -336,11 +369,12 @@ export function useSession() {
       pinned.current = null
       setUndo(null)
       await loadDay(new Date())
+      await loadUnpassed()
     } catch {
       setSaveError(true)
     }
     setTick((t) => t + 1)
-  }, [loadDay])
+  }, [loadDay, loadUnpassed])
 
-  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill, celebrate, endCelebrate }
 }

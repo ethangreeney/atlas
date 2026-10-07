@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
-import { CARD_BY_ID, type DeckCard } from './deck'
+import { ALL_CARDS, CARD_BY_ID, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
@@ -44,13 +44,14 @@ export function useSession() {
 
   /**
    * Today's counters come from the review log, not the stored day row, so progress made on two devices
-   * (or before signing in) adds up instead of one copy replacing the other. The row only keeps `extraNew`.
+   * (or before signing in) adds up instead of one copy replacing the other. The row only keeps `extraNew` and `pulled`.
    */
   const loadDay = useCallback(async (now: Date) => {
     const key = dayKey(now)
     const stored = await db.days.get(key)
     const d = emptyDay(key)
     d.extraNew = stored?.extraNew ?? 0
+    d.pulled = stored?.pulled ?? []
     d.updated = stored?.updated ?? 0
     const start = dayEnd(now)
     start.setDate(start.getDate() - 1)
@@ -100,6 +101,9 @@ export function useSession() {
     return () => document.removeEventListener('visibilitychange', check)
   }, [day, loadDay])
 
+  /** In today's study: within the filters, or added to the day by hand. */
+  const inToday = (c: DeckCard, d = day) => matchesFilters(c, settings) || !!d?.pulled?.includes(c.id)
+
   const queue: Queue | null = useMemo(() => {
     if (!day) return null
     const q = buildQueue(new Date(), rows.current, settings, day)
@@ -110,7 +114,7 @@ export function useSession() {
     }
     if (pinned.current) {
       const c = CARD_BY_ID.get(pinned.current)
-      if (c && matchesFilters(c, settings)) {
+      if (c && inToday(c)) {
         shown.current = { id: c.id, rev: rows.current.get(c.id)?.updated ?? 0 }
         return { ...q, current: c }
       }
@@ -119,7 +123,7 @@ export function useSession() {
     if (keep && q.current?.id !== keep.id) {
       const c = CARD_BY_ID.get(keep.id)
       const untouched = (rows.current.get(keep.id)?.updated ?? 0) === keep.rev
-      if (c && untouched && matchesFilters(c, settings)) return { ...q, current: c }
+      if (c && untouched && inToday(c)) return { ...q, current: c }
     }
     shown.current = q.current
       ? { id: q.current.id, rev: keep?.id === q.current.id ? keep.rev : (rows.current.get(q.current.id)?.updated ?? 0) }
@@ -231,7 +235,8 @@ export function useSession() {
     const row: CardRow = { ...prev, updated: now, dirty: 1 }
     // Undo takes back the answer, not a 'learn more' asked for since.
     const extraNew = Math.max(undo.day.extraNew, day?.day === undo.day.day ? day.extraNew : 0)
-    const nd: DayRow = { ...undo.day, extraNew, updated: now, dirty: 1 }
+    const pulled = [...new Set([...(undo.day.pulled ?? []), ...(day?.day === undo.day.day ? (day.pulled ?? []) : [])])]
+    const nd: DayRow = { ...undo.day, extraNew, pulled, updated: now, dirty: 1 }
     rows.current.set(undo.cardId, row)
     // Don't carry a card over from one undo to the next: only the one on screen now is interrupted.
     resume.current = shown.current && shown.current.id !== undo.cardId ? shown.current : null
@@ -259,10 +264,11 @@ export function useSession() {
    */
   function stillDue(id: string, graded: CardRow, d: DayRow, now: Date) {
     const c = CARD_BY_ID.get(id)
-    if (!c || !matchesFilters(c, settings)) return false
+    if (!c || !inToday(c, d)) return false
     const r = rows.current.get(id) ?? freshRow(c, now)
     if (r.state === State.Learning || r.state === State.Relearning) return +r.due - +now <= LEARN_AHEAD_MS
     if (r.state === State.Review) return r.due < dayEnd(now)
+    if (d.pulled?.includes(id)) return true
     return c.note.id !== graded.noteId && !d.seenNotes.includes(c.note.id) && buildQueue(now, rows.current, settings, d).counts.new > 0
   }
 
@@ -282,6 +288,28 @@ export function useSession() {
     },
     [day, queue],
   )
+
+  /** Adds cards to today ('learn now'): past the daily limit and not held to one per place. Only unstarted ones count. */
+  const learnNow = useCallback(
+    async (ids: string[]) => {
+      if (!day) return
+      const have = new Set(day.pulled ?? [])
+      const add = ids.filter((id) => CARD_BY_ID.has(id) && !have.has(id) && (rows.current.get(id)?.state ?? State.New) === State.New)
+      if (!add.length) return
+      const nd: DayRow = { ...day, pulled: [...have, ...add], updated: Date.now(), dirty: 1 }
+      setDay(nd)
+      try {
+        await db.days.put(nd)
+      } catch {
+        setSaveError(true)
+        return
+      }
+      schedulePush()
+    },
+    [day],
+  )
+  /** Every unstarted card in the filters, today. */
+  const learnAll = useCallback(() => learnNow(ALL_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id)), [learnNow, settings])
 
   const refresh = useCallback(() => setTick((t) => t + 1), [])
 
@@ -314,5 +342,5 @@ export function useSession() {
     setTick((t) => t + 1)
   }, [loadDay])
 
-  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill }
 }

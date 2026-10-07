@@ -27,7 +27,7 @@ const Progress = lazy(() => import('./components/Progress'))
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, reload, saveError, drilling, startDrill, exitDrill } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
 
@@ -282,7 +282,7 @@ export default function App() {
         <AnimatePresence>
           {progressOpen && (
             <Suspense key="progress" fallback={null}>
-              <Progress onClose={() => setProgressOpen(false)} onDrill={startDrill} />
+              <Progress onClose={() => setProgressOpen(false)} onDrill={startDrill} onLearn={learnNow} />
             </Suspense>
           )}
         </AnimatePresence>
@@ -310,6 +310,7 @@ export default function App() {
                   learned={learned}
                   grades={day?.grades ?? [0, 0, 0, 0]}
                   onLearnMore={learnMore}
+                  onLearnAll={learnAll}
                   onOpenProgress={() => setProgressOpen(true)}
                 />
               )}

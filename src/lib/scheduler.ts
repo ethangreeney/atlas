@@ -121,7 +121,7 @@ export const waitsForTomorrow = (r: Card, placeSeen: boolean, now: Date) => {
   return +new Date(r.due) >= +start
 }
 
-export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, seenNotes: [], grades: [0, 0, 0, 0], updated: 0 })
+export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, pulled: [], seenNotes: [], grades: [0, 0, 0, 0], updated: 0 })
 
 export const freshRow = (c: DeckCard, now: Date): CardRow => ({ ...createEmptyCard(now), id: c.id, noteId: c.note.id, updated: 0 })
 
@@ -167,6 +167,8 @@ export type Queue = {
   done: number
   /** New cards in the current filters that could still come today (one per place), for 'learn more'. */
   remainingNew: number
+  /** New cards in the current filters not yet added to today, for 'learn all'. */
+  unstarted: number
   /** How far today's new cards already run past their limits (one lowered since, say): 'learn more' makes it up first. */
   newOver: number
   /** For the done screen: the soonest a card in the filters comes back, and how many reviews come tomorrow. */
@@ -175,6 +177,8 @@ export type Queue = {
 }
 
 const isLearning = (s: State) => s === State.Learning || s === State.Relearning
+/** The order a place's cards are added in by hand: the picture cards, then capital, then the reverse. */
+const TYPE_ORDER = ['flag', 'map', 'capital', 'country']
 
 /** Any of the chosen options within a group, and every group. */
 export function matchesFilters(c: DeckCard, s: Settings) {
@@ -192,6 +196,25 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   const cards = ALL_CARDS.filter((c) => matchesFilters(c, settings))
   const row = (c: DeckCard) => rows.get(c.id) ?? freshRow(c, now)
   const rank = (c: DeckCard) => hash(c.id + day.day + SEED)
+  const placeRank = (noteId: string) => (FAME.get(noteId) ?? FAME.size) + (hash(noteId + day.day + SEED) / 2 ** 32) * FAME_SPREAD
+
+  // Cards added by hand come first, whatever the filters and the daily limit. They go out in rounds, one per place and
+  // then a second per place, with the places in the same order each round, so a place's cards come well apart.
+  // Rounds count every card added, answered or not, so a place's next card waits for the rest of its round.
+  const pulledIds = new Set(day.pulled ?? [])
+  const round = new Map<string, number>()
+  const nth = new Map<string, number>()
+  for (const c of ALL_CARDS.filter((c) => pulledIds.has(c.id)).sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type))) {
+    const k = nth.get(c.note.id) ?? 0
+    round.set(c.id, k)
+    nth.set(c.note.id, k + 1)
+  }
+  const pulled = ALL_CARDS.filter((c) => pulledIds.has(c.id) && row(c).state === State.New).sort(
+    (a, b) => round.get(a.id)! - round.get(b.id)! || placeRank(a.note.id) - placeRank(b.note.id),
+  )
+  // They come on top of the day's limit, so the ones already answered don't use it up.
+  let pulledStarted = 0
+  for (const id of pulledIds) if ((rows.get(id)?.state ?? State.New) !== State.New) pulledStarted++
 
   const learning = cards
     .filter((c) => isLearning(row(c).state))
@@ -211,7 +234,7 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
 
   // New cards count against the review limit too, as in Anki, so a heavy review day leaves room for fewer. 'Learn more'
   // raises both limits, so it's honoured even once the reviews have used up the day.
-  const newLeft = Math.min(settings.newPerDay, reviewBudget - reviews.length) + day.extraNew - day.newCount
+  const newLeft = Math.min(settings.newPerDay, reviewBudget - reviews.length) + day.extraNew - Math.max(0, day.newCount - pulledStarted)
   const newBudget = Math.max(0, newLeft)
   const newOver = Math.max(0, -newLeft)
   const seenNew = new Set<string>()
@@ -227,15 +250,16 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   // today gives that its turn; its next new card comes another day.
   const reviewing = new Set(reviews.map((c) => c.note.id))
   const unseen = cards
-    .filter((c) => row(c).state === State.New && !seen.has(c.note.id) && !reviewing.has(c.note.id))
+    .filter((c) => row(c).state === State.New && !pulledIds.has(c.id) && !seen.has(c.note.id) && !reviewing.has(c.note.id))
     .sort((a, b) => tier(a) - tier(b) || fameKey(a) - fameKey(b))
     .filter((c) => (seenNew.has(c.note.id) ? false : (seenNew.add(c.note.id), true)))
-  const fresh = unseen.slice(0, newBudget)
+  const fresh = [...pulled, ...unseen.slice(0, newBudget)]
+  const unstarted = cards.filter((c) => row(c).state === State.New && !pulledIds.has(c.id)).length
 
   const counts = { new: fresh.length, learn: learning.length, due: reviews.length }
   const done = day.newCount + day.reviewCount
   const total = done + counts.new + counts.due
-  const base = { counts, total, done, remainingNew: unseen.length, newOver, nextDue: null, dueTomorrow: 0 }
+  const base = { counts, total, done, remainingNew: unseen.length, unstarted, newOver, nextDue: null, dueTomorrow: 0 }
 
   /** For the done screen. A review due today that didn't make the queue (over the limit, or its place seen) waits for tomorrow. */
   const upcoming = () => {

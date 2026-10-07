@@ -114,11 +114,13 @@ export async function pull(): Promise<boolean> {
     })
     await each(r.days, async (d) => {
       const local = await db.days.get(d.day)
-      // Only `extraNew` matters here (counters are derived from the log); keep the larger of the two.
+      // Only `extraNew` and `pulled` matter here (counters are derived from the log): the larger, and every card from either.
       const extraNew = Math.max(local?.extraNew ?? 0, d.data.extraNew ?? 0)
-      if (!local || local.extraNew !== extraNew) {
-        // The server keeps just `extraNew` now, so a day new to this device starts from an empty row.
-        await db.days.put({ ...emptyDay(d.day), ...(local ?? d.data), day: d.day, extraNew, updated: Math.max(local?.updated ?? 0, d.updated) })
+      const mine = local?.pulled ?? []
+      const pulled = [...new Set([...mine, ...(Array.isArray(d.data.pulled) ? d.data.pulled : [])])]
+      if (!local || local.extraNew !== extraNew || pulled.length !== mine.length) {
+        // The server keeps just these two, so a day new to this device starts from an empty row.
+        await db.days.put({ ...emptyDay(d.day), ...(local ?? d.data), day: d.day, extraNew, pulled, updated: Math.max(local?.updated ?? 0, d.updated) })
         changed = true
       }
     })
@@ -173,8 +175,8 @@ export async function push(leaving = false) {
     const [c, d, l, k] = [take(cards), take(days), take(revlog), take(deleted)]
     const body = JSON.stringify({
       cards: c.map((x) => ({ id: x.id, data: { ...x, dirty: undefined }, updated: x.updated })),
-      // Only `extraNew` is kept for a day; the counters are derived from the log.
-      days: d.map((x) => ({ day: x.day, data: { day: x.day, extraNew: x.extraNew }, updated: x.updated })),
+      // Only `extraNew` and `pulled` are kept for a day; the counters are derived from the log.
+      days: d.map((x) => ({ day: x.day, data: { day: x.day, extraNew: x.extraNew, pulled: x.pulled ?? [] }, updated: x.updated })),
       revlog: l.map((x) => ({ cardId: x.cardId, review: +new Date(x.review), data: { ...x, id: undefined, dirty: undefined } })),
       deleted: k,
       // The fit goes with the first request.

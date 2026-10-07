@@ -68,15 +68,17 @@
 @custom-variant dash (@media (min-width: 1100px) and (min-height: 700px));
 
 /* The progress page laid out at once: the streak and headline numbers, the map beside how well each kind of card holds,
-   then what's next along the bottom. */
+   then what's next along the bottom. The right-hand column stacks on its own, so a taller streak section (with cards
+   slipping, say) takes room from the map rather than squeezing the kinds of card. */
 @media (min-width: 1100px) and (min-height: 700px) {
   .dash-grid {
     display: grid;
     height: 100%;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     grid-template-areas:
       'head head stats'
+      'head head kinds'
       'map map kinds'
       'sets ahead last';
     gap: 12px;

@@ -152,9 +152,10 @@ async function push(env: Env, uid: string, req: Request) {
   const upCard = env.DB.prepare(
     'INSERT INTO cards (user_id, id, data, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id, id) DO UPDATE SET data = excluded.data, updated = excluded.updated, synced = excluded.synced WHERE excluded.updated > cards.updated',
   )
-  // Day rows: keep the larger `extraNew` from either side; the other counters are derived from the log on each device.
+  // Day rows: keep the larger `extraNew` and every card `pulled` from either side; the other counters are derived from
+  // the log on each device.
   const upDay = env.DB.prepare(
-    "INSERT INTO days (user_id, day, data, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id, day) DO UPDATE SET data = json_set(excluded.data, '$.extraNew', max(coalesce(json_extract(excluded.data, '$.extraNew'), 0), coalesce(json_extract(days.data, '$.extraNew'), 0))), updated = max(excluded.updated, days.updated), synced = excluded.synced",
+    "INSERT INTO days (user_id, day, data, updated, synced) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(user_id, day) DO UPDATE SET data = json_set(excluded.data, '$.extraNew', max(coalesce(json_extract(excluded.data, '$.extraNew'), 0), coalesce(json_extract(days.data, '$.extraNew'), 0)), '$.pulled', json((SELECT json_group_array(value) FROM (SELECT value FROM json_each(coalesce(json_extract(excluded.data, '$.pulled'), '[]')) UNION SELECT value FROM json_each(coalesce(json_extract(days.data, '$.pulled'), '[]')))))), updated = max(excluded.updated, days.updated), synced = excluded.synced",
   )
   // An undone review stays undone even if a device that still has it pushes it again.
   const upLog = env.DB.prepare(
@@ -174,11 +175,14 @@ async function push(env: Env, uid: string, req: Request) {
     else rejected.cards.push(i)
   }
   for (const [i, d] of days.entries()) {
-    // Only `extraNew` is kept (and the key, which older clients read from `data`). Whole rows grew past MAX_DATA
-    // once a day's list of places seen got long.
-    const extraNew = (d?.data as { extraNew?: unknown } | null)?.extraNew ?? 0
-    if (d && isDay(d.day, now) && isTime(d.updated) && Number.isSafeInteger(extraNew) && (extraNew as number) >= 0)
-      stmts.push(upDay.bind(uid, d.day, JSON.stringify({ day: d.day, extraNew }), clamp(d.updated), now))
+    // Only `extraNew` and `pulled` are kept (and the key, which older clients read from `data`). Whole rows grew past
+    // MAX_DATA once a day's list of places seen got long.
+    const data = d?.data as { extraNew?: unknown; pulled?: unknown } | null
+    const extraNew = data?.extraNew ?? 0
+    const pulled = data?.pulled ?? []
+    const okPulled = Array.isArray(pulled) && pulled.length <= CARD_IDS.size && pulled.every((id) => typeof id === 'string' && CARD_IDS.has(id))
+    if (d && isDay(d.day, now) && isTime(d.updated) && Number.isSafeInteger(extraNew) && (extraNew as number) >= 0 && okPulled)
+      stmts.push(upDay.bind(uid, d.day, JSON.stringify({ day: d.day, extraNew, pulled: [...new Set(pulled)] }), clamp(d.updated), now))
     else rejected.days.push(i)
   }
   for (const [i, r] of revlog.entries()) {

@@ -8,7 +8,7 @@ import { restoreFocus, trapTab } from '../lib/focus'
 import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
 import { Ahead, CountUp, Fill, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
-import { dayKey, formatInterval, State } from '../lib/scheduler'
+import { dayKey, formatInterval, matchesFilters, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
 import { speak } from '../lib/tts'
@@ -626,10 +626,10 @@ function useDash() {
   return dash
 }
 
-type Props = { onClose: () => void; onDrill: (ids: string[]) => void }
+type Props = { onClose: () => void; onDrill: (ids: string[]) => void; onLearn: (ids: string[]) => void }
 
 /** Search any place, see mastery on a world map, the streak, what's ahead, and the cards that keep slipping. */
-export default function Progress({ onClose, onDrill }: Props) {
+export default function Progress({ onClose, onDrill, onLearn }: Props) {
   const settings = useSettings()
   const [rows, setRows] = useState<Map<string, CardRow> | null>(null)
   const [logs, setLogs] = useState<RevlogRow[] | null>(null)
@@ -815,8 +815,13 @@ export default function Progress({ onClose, onDrill }: Props) {
     setPick(key)
     setAllSets(true)
   }
+  /** Adds a set's unstarted cards to today, mixed in with the rest. */
   const learnSet = (set: DeckSet) => {
-    onDrill(set.left.map((c) => c.id))
+    onLearn(set.left.map((c) => c.id))
+    close()
+  }
+  const learnAll = () => {
+    onLearn(ALL_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id))
     close()
   }
   const lowest = insight?.slipping.slice(0, LOWEST) ?? []
@@ -907,9 +912,21 @@ export default function Progress({ onClose, onDrill }: Props) {
               <Fill value={done} className="bg-good" />
             </div>
             <p className="mt-2 text-[12.5px] tabular-nums text-ink-3">
-              {ahead.remaining > 0
-                ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} around ${finishDate(ahead.days)}`
-                : `Every card${filtered ? ' in these filters' : ''} is under way`}
+              {ahead.remaining > 0 ? (
+                <>
+                  At {settings.newPerDay} new a day you'll finish {filtered ? 'these cards' : 'the deck'} around {finishDate(ahead.days)}
+                  {'\u00a0· '}
+                  <button
+                    data-learn-all
+                    onClick={learnAll}
+                    className="whitespace-nowrap text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:text-ink hover:decoration-ink-3"
+                  >
+                    or learn all {ahead.remaining} today
+                  </button>
+                </>
+              ) : (
+                `Every card${filtered ? ' in these filters' : ''} is under way`
+              )}
             </p>
             {/* The cards most likely forgotten, only when there are some: the one thing here to act on. */}
             {n > 0 && (

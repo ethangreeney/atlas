@@ -31,9 +31,9 @@ const Action = ({ onClick, children }: { onClick: () => void; children: React.Re
   </button>
 )
 
-type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: (n: number) => void; onOpenProgress: () => void }
+type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: (n: number) => void; onLearnAll: () => void; onOpenProgress: () => void }
 
-export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Props) {
+export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenProgress }: Props) {
   // Every answer today, the same ones the grade row and piles count (learning steps and Knew it included).
   const answered = grades.reduce((a, b) => a + b, 0)
   const [now, setNow] = useState(Date.now)
@@ -91,7 +91,13 @@ export function Done({ queue, learned, grades, onLearnMore, onOpenProgress }: Pr
           See your progress
         </button>
       )}
-      {queue.remainingNew > 0 && <Action onClick={() => onLearnMore(MORE)}>Learn {Math.min(MORE, queue.remainingNew)} more</Action>}
+      {/* Ten more, or every card left at once, past the daily limit; with ten or fewer left they're the same thing. */}
+      {queue.unstarted > 0 && (
+        <div className="flex flex-wrap justify-center gap-x-2">
+          {queue.remainingNew > 0 && queue.unstarted > MORE && <Action onClick={() => onLearnMore(MORE)}>Learn {Math.min(MORE, queue.remainingNew)} more</Action>}
+          <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>
+        </div>
+      )}
       <KeepProgress learned={learned} />
     </Screen>
   )

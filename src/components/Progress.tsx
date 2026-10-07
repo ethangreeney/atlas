@@ -7,7 +7,7 @@ import { ALL_CARDS, answerOf, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, t
 import { restoreFocus, trapTab } from '../lib/focus'
 import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
-import { Ahead, CountUp, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
+import { Ahead, CountUp, Fill, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
 import { dayKey, formatInterval, State } from '../lib/scheduler'
 import { useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
@@ -265,7 +265,7 @@ type MapProps = { levels: Map<string, Mastery>; region: number | null; onRegion:
 function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
   const [hover, setHover] = useState<string | null>(null)
   const [hoverRegion, setHoverRegion] = useState<number | null>(null)
-  const [width, setWidth] = useState(0)
+  const [size, setSize] = useState({ width: 0, height: 0 })
   const svgRef = useRef<SVGSVGElement>(null)
   const reduce = useReducedMotion()
   const start = region === null ? FULL : WORLD.regions[region].view
@@ -276,7 +276,7 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
 
   useEffect(() => {
     const svg = svgRef.current!
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
+    const ro = new ResizeObserver(([e]) => setSize({ width: e.contentRect.width, height: e.contentRect.height }))
     ro.observe(svg)
     return () => ro.disconnect()
   }, [])
@@ -311,7 +311,8 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
       }),
     [levels, wrapped],
   )
-  const px = region === null || !width ? 0 : width / WORLD.regions[region].view[2]
+  // Pixels per map unit: the drawing fits inside the box, so whichever side runs out first sets the scale.
+  const px = region === null || !size.width ? 0 : Math.min(size.width / WORLD.regions[region].view[2], size.height / WORLD.regions[region].view[3])
   const dots = useMemo(() => (region === null || !px ? [] : dotsFor(region, px)), [region, px])
 
   const count = (ids: string[]) => {
@@ -319,6 +320,8 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
     return `${own.filter((id) => levels.get(id)?.level === 4).length} of ${own.length} countries mastered`
   }
   const mastered = COUNTRIES.filter((n) => levels.get(n.id)?.level === 4).length
+  // How wide the world is drawn: the box's width, or less when its height runs out first, so the caption lines up with it.
+  const drawn = size.height ? Math.min(size.width, (size.height * WORLD.width) / WORLD.height) : undefined
   const hovered = hover ? NOTE_BY_ID.get(hover) : null
   const m = hover ? levels.get(hover) : null
   const shown = region ?? hoverRegion
@@ -349,12 +352,13 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
   }
 
   return (
-    <section className="mt-5">
+    <section className="mt-5 [grid-area:map] dash:mt-0 dash:flex dash:min-h-0 dash:flex-col">
       <svg
         ref={svgRef}
         viewBox={initial}
-        style={{ aspectRatio: `${WORLD.width} / ${WORLD.height}`, cursor: region === null && hoverRegion !== null ? 'pointer' : undefined }}
-        className="block h-auto w-full touch-manipulation stroke-surface [stroke-width:0.6px] [&_circle]:[vector-effect:non-scaling-stroke] [&_path]:[vector-effect:non-scaling-stroke]"
+        style={{ '--map-aspect': `${WORLD.width} / ${WORLD.height}`, cursor: region === null && hoverRegion !== null ? 'pointer' : undefined } as React.CSSProperties}
+        // Full width on a phone; on a big screen, as big as the space left over allows.
+        className="block h-auto w-full touch-manipulation stroke-surface [aspect-ratio:var(--map-aspect)] [stroke-width:0.6px] dash:min-h-0 dash:flex-1 dash:[aspect-ratio:auto] [&_circle]:[vector-effect:non-scaling-stroke] [&_path]:[vector-effect:non-scaling-stroke]"
         role="img"
         aria-label={
           region === null
@@ -407,7 +411,7 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
           </motion.g>
         )}
       </svg>
-      <div className="mt-2 flex items-center justify-between gap-3 text-[12.5px] text-ink-3">
+      <div className="mx-auto mt-2 flex w-full items-center justify-between gap-3 text-[12.5px] text-ink-3" style={{ maxWidth: drawn }}>
         <span className="flex min-w-0 items-center">
           {region !== null && (
             <button
@@ -573,6 +577,22 @@ function SetDetail({ set, rows, onBack, onPick, onLearn }: { set: DeckSet; rows:
   )
 }
 
+/** On a big screen each smaller part of the page sits in its own tile around the map. */
+const TILE = 'dash:rounded-2xl dash:border dash:border-line dash:p-5'
+
+const Back = ({ onClick }: { onClick: () => void }) => (
+  <button data-back onClick={onClick} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
+    <ChevronLeft size={16} strokeWidth={1.75} /> Back
+  </button>
+)
+
+/** Drills the cards most likely forgotten, the lowest first. */
+const ReviewSlipping = ({ count, lowest, onClick }: { count: number; lowest: number; onClick: () => void }) => (
+  <button onClick={onClick} className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3">
+    Review {count === 1 ? 'it' : count > lowest ? `the lowest ${lowest}` : 'these'} first
+  </button>
+)
+
 type Props = { onClose: () => void; onDrill: (ids: string[]) => void }
 
 /** Search any place, see mastery on a world map, the streak, what's ahead, and the cards that keep slipping. */
@@ -586,8 +606,8 @@ export default function Progress({ onClose, onDrill }: Props) {
   /** The set open, by key, and whether the page of every set is open beneath it. */
   const [openSet, setOpenSet] = useState<string | null>(null)
   const [allSets, setAllSets] = useState(false)
-  /** The cards most likely forgotten stay out of sight until asked for, so drilling them is still recall. */
-  const [showSlipping, setShowSlipping] = useState(false)
+  /** The cards most likely forgotten, on a page of their own: out of sight until asked for, so drilling them is still recall. */
+  const [slipping, setSlipping] = useState(false)
   const [region, setRegion] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -655,6 +675,7 @@ export default function Progress({ onClose, onDrill }: Props) {
       else if (openSet) setOpenSet(null)
       else if (query) setQuery('')
       else if (allSets) setAllSets(false)
+      else if (slipping) setSlipping(false)
       else if (region !== null) setRegion(null)
       else close()
     }
@@ -665,13 +686,13 @@ export default function Progress({ onClose, onDrill }: Props) {
       window.removeEventListener('keydown', onKey, { capture: true })
       window.removeEventListener('pointerdown', onPointer, { capture: true })
     }
-  }, [detail, openSet, allSets, query, region, close])
+  }, [detail, openSet, allSets, slipping, query, region, close])
 
   // By keyboard, the control just used (a region, World, a place, Back) goes with the view it was in; focus moves to its counterpart.
-  const was = useRef({ detail, region, openSet, allSets })
+  const was = useRef({ detail, region, openSet, allSets, slipping })
   useEffect(() => {
     const prev = was.current
-    was.current = { detail, region, openSet, allSets }
+    was.current = { detail, region, openSet, allSets, slipping }
     const box = dialogRef.current
     if (!keyed.current || !box || box.contains(document.activeElement)) return
     const id = prev.detail && CSS.escape(prev.detail.id)
@@ -687,14 +708,18 @@ export default function Progress({ onClose, onDrill }: Props) {
             ? allSets
               ? '[data-back]'
               : '[data-all-sets]'
-            : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
+            : slipping !== prev.slipping
+              ? slipping
+                ? '[data-back]'
+                : '[data-show-slipping]'
+              : region !== prev.region && (region === null ? `[data-region="${prev.region}"]` : '[data-place]')
     if (sel) (box.querySelector<HTMLElement>(sel) ?? box).focus({ preventScroll: true })
-  }, [detail, region, openSet, allSets])
+  }, [detail, region, openSet, allSets, slipping])
 
   const searching = query.trim() !== ''
   // Going back (from a place to its set, or to the page) picks up where you'd scrolled to; anywhere new starts at the top.
-  const view = detail ? `place:${detail.id}` : openSet ? `set:${openSet}` : searching ? 'search' : allSets ? 'sets' : 'page'
-  const depth = (detail ? 1 : 0) + (openSet ? 1 : 0) + (allSets ? 1 : 0)
+  const view = detail ? `place:${detail.id}` : openSet ? `set:${openSet}` : searching ? 'search' : allSets ? 'sets' : slipping ? 'slipping' : 'page'
+  const depth = (detail ? 1 : 0) + (openSet ? 1 : 0) + (allSets ? 1 : 0) + (slipping ? 1 : 0)
   const scrolled = useRef(new Map<string, number>())
   const shown = useRef({ view, depth })
   useEffect(() => {
@@ -749,6 +774,10 @@ export default function Progress({ onClose, onDrill }: Props) {
 
   const open = (note: Note | undefined) => note && setDetail(note)
   const lowest = insight?.slipping.slice(0, LOWEST) ?? []
+  const drillSlipping = () => {
+    onDrill(lowest.map((x) => x.card.id))
+    close()
+  }
 
   let body: React.ReactNode = null
   const shownSet = openSet ? insight?.sets.get(openSet) : undefined
@@ -783,39 +812,82 @@ export default function Progress({ onClose, onDrill }: Props) {
   else if (allSets && insight)
     body = (
       <div>
-        <button data-back onClick={() => setAllSets(false)} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
-          <ChevronLeft size={16} strokeWidth={1.75} /> Back
-        </button>
+        <Back onClick={() => setAllSets(false)} />
         <h2 className="mb-1 mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">Sets</h2>
         <SetsGrid sets={insight.sets} onOpen={setOpenSet} />
       </div>
     )
-  else if (rows && levels && ahead && insight)
+  else if (slipping && insight)
     body = (
-      <>
-        <Heatmap days={insight.days} summary={insight.summary}>
-          <h2 className="mt-1 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px]">
-            {streak ? `${streak}-day streak` : 'Progress'}
-          </h2>
-          <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">
-            {learned.toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards learned
-            {streak === 0 ? ' · study today to start a streak' : ''}
-          </p>
-        </Heatmap>
+      <div>
+        <Back onClick={() => setSlipping(false)} />
+        <h2 className="mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">Most likely to have forgotten</h2>
+        <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">
+          {insight.slipping.length === 1 ? 'One card' : `${insight.slipping.length} cards`} below a 90% chance you'd get {insight.slipping.length === 1 ? 'it' : 'them'} right.
+        </p>
+        <div className="mt-4">
+          <ReviewSlipping count={insight.slipping.length} lowest={lowest.length} onClick={drillSlipping} />
+        </div>
+        <div className="mt-6">
+          <Heading aside="chance you'd get it right">Lowest first</Heading>
+          <Forgotten items={lowest} />
+        </div>
+      </div>
+    )
+  else if (rows && levels && ahead && insight) {
+    const done = learned / ALL_CARDS.length
+    const n = insight.slipping.length
+    body = (
+      <div className="dash-grid">
+        <div className="[grid-area:head] dash:pt-1">
+          <Heatmap days={insight.days} summary={insight.summary}>
+            <h2 className="mt-1 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px] dash:text-[30px]">
+              {streak ? `${streak}-day streak` : 'Progress'}
+            </h2>
+            <p className="mt-1.5 text-[13.5px] tabular-nums text-ink-2">
+              {learned.toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards learned
+              {streak === 0 ? ' · study today to start a streak' : ''}
+            </p>
+            {/* How far through the deck, and when the rest will have come in. */}
+            <div className="mt-2.5 h-1.5 max-w-[360px] overflow-hidden rounded-full bg-muted" role="img" aria-label={`${Math.round(done * 100)}% of the deck learned`}>
+              <Fill value={done} className="bg-good" />
+            </div>
+            <p className="mt-2 text-[12.5px] tabular-nums text-ink-3">
+              {ahead.remaining > 0
+                ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} around ${finishDate(ahead.days)}`
+                : `Every card${filtered ? ' in these filters' : ''} is under way`}
+            </p>
+            {/* The cards most likely forgotten, only when there are some: the one thing here to act on. */}
+            {n > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="flex items-center gap-2 text-[13px] tabular-nums text-ink-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-again" aria-hidden />
+                  {n === 1 ? 'One card' : `${n} cards`} below a 90% chance you'd get {n === 1 ? 'it' : 'them'} right
+                </span>
+                <ReviewSlipping count={n} lowest={lowest.length} onClick={drillSlipping} />
+                <button data-show-slipping onClick={() => setSlipping(true)} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
+                  Show them
+                </button>
+              </div>
+            )}
+          </Heatmap>
+        </div>
 
-        <div className="mt-7">
-          <Numbers
-            items={[
-              { value: <CountUp to={insight.recall.recalled} />, label: "you'd get right now", sub: `of ${insight.recall.learned.toLocaleString()} started` },
-              { value: <CountUp to={insight.started} />, label: 'places started', sub: `of ${NOTES.length}` },
-              { value: duration(insight.time.ms), label: 'spent studying', sub: insight.time.perCard ? `${Math.round(insight.time.perCard / 1000)}s a card` : undefined },
-            ]}
-          />
+        <div className={`mt-7 [grid-area:stats] dash:mt-0 dash:flex dash:items-center ${TILE}`}>
+          <div className="w-full">
+            <Numbers
+              items={[
+                { value: <CountUp to={insight.recall.recalled} />, label: "you'd get right now", sub: `of ${insight.recall.learned.toLocaleString()} started` },
+                { value: <CountUp to={insight.started} />, label: 'places started', sub: `of ${NOTES.length}` },
+                { value: duration(insight.time.ms), label: 'spent studying', sub: insight.time.perCard ? `${Math.round(insight.time.perCard / 1000)}s a card` : undefined },
+              ]}
+            />
+          </div>
         </div>
 
         <MasteryMap levels={levels} region={region} onRegion={setRegion} onPick={(id) => open(NOTE_BY_ID.get(id))} />
 
-        <section className="mt-8">
+        <section className={`mt-8 [grid-area:sets] dash:mt-0 ${TILE}`}>
           <Heading
             aside={
               <button
@@ -832,61 +904,25 @@ export default function Progress({ onClose, onDrill }: Props) {
           {insight.closest.length ? <Closest items={insight.closest} onOpen={setOpenSet} /> : <p className="text-[13.5px] text-ink-3">Every set is under way.</p>}
         </section>
 
-        <section className="mt-8">
-          <Heading aside={showSlipping ? "chance you'd get it right" : undefined}>Most likely to have forgotten</Heading>
-          {insight.slipping.length ? (
-            <>
-              <p className="text-[13.5px] tabular-nums text-ink-2">
-                {insight.slipping.length === 1 ? 'One card' : `${insight.slipping.length} cards`} below a 90% chance you'd get {insight.slipping.length === 1 ? 'it' : 'them'} right, the lowest at {Math.floor(insight.slipping[0].recall * 100)}%.
-              </p>
-              <div className="mt-3 flex items-center gap-4">
-                <button
-                  onClick={() => {
-                    onDrill(lowest.map((x) => x.card.id))
-                    close()
-                  }}
-                  className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
-                >
-                  Review {insight.slipping.length === 1 ? 'it' : insight.slipping.length > lowest.length ? `the lowest ${lowest.length}` : 'these'} first
-                </button>
-                <button onClick={() => setShowSlipping((v) => !v)} aria-expanded={showSlipping} className="text-[13px] text-ink-3 transition-colors hover:text-ink">
-                  {showSlipping ? 'Hide them' : 'Show them'}
-                </button>
-              </div>
-              {showSlipping && (
-                <div className="mt-3">
-                  <Forgotten items={lowest} />
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-[13.5px] text-ink-3">Nothing's slipping. You'd likely get every card you've learned right.</p>
-          )}
-        </section>
-
-        <section className="mt-8">
+        <section className={`mt-8 [grid-area:kinds] dash:mt-0 dash:flex dash:flex-col ${TILE}`}>
           <Heading>By kind of card</Heading>
-          <Types stats={insight.types} />
+          <Types stats={insight.types} className="dash:flex dash:flex-1 dash:flex-col dash:justify-around dash:space-y-0" />
         </section>
 
         {insight.curve.total > 0 && (
-          <section className="mt-8">
+          <section className={`mt-8 [grid-area:last] dash:mt-0 ${TILE}`}>
             <Heading>How long they'll last</Heading>
             <Strength counts={insight.strength} month={insight.curve.month} year={insight.curve.year} />
           </section>
         )}
 
-        <section className="mt-8">
+        <section className={`mt-8 [grid-area:ahead] dash:mt-0 ${TILE}`}>
           <Heading aside="reviews due">Next two weeks</Heading>
           <Ahead load={ahead.load} cap={settings.reviewsPerDay} perCard={insight.time.perCard} />
-          <p className="mt-1 text-balance text-[13px] leading-snug tabular-nums text-ink-3">
-            {ahead.remaining > 0
-              ? `At ${settings.newPerDay} new a day you'll finish ${filtered ? 'these cards' : 'the deck'} around ${finishDate(ahead.days)}.`
-              : `Every card${filtered ? ' in these filters' : ''} is under way.`}
-          </p>
         </section>
-      </>
+      </div>
     )
+  }
 
   return (
     <motion.div
@@ -903,14 +939,14 @@ export default function Progress({ onClose, onDrill }: Props) {
         aria-modal="true"
         aria-label="Progress"
         tabIndex={-1}
-        className="card-shadow flex h-full w-[min(560px,100%)] flex-col overflow-hidden rounded-3xl bg-surface outline-none sm:h-auto sm:max-h-[min(780px,100%)] sm:min-h-[min(520px,100%)]"
+        className="card-shadow flex h-full w-[min(560px,100%)] flex-col overflow-hidden rounded-3xl bg-surface outline-none sm:h-auto sm:max-h-[min(780px,100%)] sm:min-h-[min(520px,100%)] dash:h-[min(880px,calc(100%-3rem))] dash:max-h-none dash:w-[min(1400px,calc(100%-4rem))]"
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
       >
-        <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-4 sm:px-6 sm:pt-6">
-          <label className="relative flex-1">
+        <div className="relative flex w-full shrink-0 items-center gap-2 px-4 pb-2 pt-4 sm:px-6 sm:pt-6 dash:justify-center dash:pt-5">
+          <label className="relative flex-1 dash:max-w-[600px]">
             <Search size={15} strokeWidth={1.75} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
             <input
               ref={inputRef}
@@ -921,6 +957,7 @@ export default function Progress({ onClose, onDrill }: Props) {
                 setDetail(null)
                 setOpenSet(null)
                 setAllSets(false)
+                setSlipping(false)
               }}
               onKeyDown={(e) => e.key === 'Enter' && open(results[0])}
               placeholder="Search a country or capital…"
@@ -934,7 +971,7 @@ export default function Progress({ onClose, onDrill }: Props) {
             onClick={close}
             aria-label="Close (Esc)"
             title="Close (Esc)"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink dash:absolute dash:right-5 dash:top-5"
           >
             <X size={17} strokeWidth={1.75} />
           </button>
@@ -944,7 +981,7 @@ export default function Progress({ onClose, onDrill }: Props) {
           onScroll={(e) => scrolled.current.set(shown.current.view, e.currentTarget.scrollTop)}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 [scrollbar-width:none] sm:px-7 sm:pb-8 [&::-webkit-scrollbar]:hidden"
         >
-          {body}
+          <div className={view === 'page' ? 'dash:h-full' : 'dash:mx-auto dash:max-w-[600px]'}>{body}</div>
         </div>
       </motion.div>
     </motion.div>

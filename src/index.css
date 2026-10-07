@@ -64,6 +64,24 @@
 
 /* Phones in landscape and short windows. */
 @custom-variant short (@media (max-height: 600px));
+/* Screens big enough for the progress page to show everything at once, without scrolling. */
+@custom-variant dash (@media (min-width: 1100px) and (min-height: 760px));
+
+/* The progress page laid out at once: the streak and headline numbers, the map beside how well each kind of card holds,
+   then what's next along the bottom. */
+@media (min-width: 1100px) and (min-height: 760px) {
+  .dash-grid {
+    display: grid;
+    height: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'head head stats'
+      'map map kinds'
+      'sets ahead last';
+    gap: 12px;
+  }
+}
 
 html,
 body,

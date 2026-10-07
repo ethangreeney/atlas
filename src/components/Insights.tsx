@@ -29,7 +29,7 @@ function useWidth<T extends Element>() {
 }
 
 /** A bar that grows in from the left when the page opens. */
-function Fill({ value, className, delay = 0 }: { value: number; className: string; delay?: number }) {
+export function Fill({ value, className, delay = 0 }: { value: number; className: string; delay?: number }) {
   const reduce = useReducedMotion()
   return (
     <motion.div
@@ -58,9 +58,9 @@ export function CountUp({ to }: { to: number }) {
 export const Numbers = ({ items }: { items: { value: React.ReactNode; label: string; sub?: string }[] }) => (
   <div className="grid grid-cols-3 divide-x divide-line">
     {items.map((x) => (
-      <div key={x.label} className="min-w-0 px-2 text-center sm:px-4">
+      <div key={x.label} className="min-w-0 px-2 text-center sm:px-4 dash:px-3">
         <div className="whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums sm:text-[24px]">{x.value}</div>
-        <div className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{x.label}</div>
+        <div className="mt-1.5 text-balance text-[12.5px] leading-snug text-ink-2">{x.label}</div>
         {x.sub && <div className="mt-0.5 text-[11.5px] leading-snug text-ink-3 tabular-nums">{x.sub}</div>}
       </div>
     ))}
@@ -190,14 +190,14 @@ export const TypeIcon = ({ type, size = 14 }: { type: CardType; size?: number })
 }
 
 /** Per card type: how often you remember one when it comes back. */
-export function Types({ stats }: { stats: TypeStat[] }) {
+export function Types({ stats, className = '' }: { stats: TypeStat[]; className?: string }) {
   // Only a clear best and worst get a colour: one type alone at the top (or bottom) once rounded.
   const shown = stats.flatMap((s) => (s.recall === null ? [] : [Math.round(s.recall * 100)]))
   const only = (v: number) => shown.filter((x) => x === v).length === 1
   const best = shown.length > 1 && only(Math.max(...shown)) ? Math.max(...shown) : null
   const worst = shown.length > 1 && only(Math.min(...shown)) ? Math.min(...shown) : null
   return (
-    <ul className="space-y-3.5">
+    <ul className={`space-y-3.5 ${className}`}>
       {stats.map((s, i) => {
         const { label, Icon } = TYPE_META[s.type]
         const r = s.recall === null ? null : Math.round(s.recall * 100)

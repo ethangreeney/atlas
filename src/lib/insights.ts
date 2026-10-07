@@ -1,5 +1,5 @@
 import type { CardRow, RevlogRow } from './db'
-import { ALL_CARDS, CARD_BY_ID, KINDS, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
+import { ALL_CARDS, CARD_BY_ID, KINDS, NOTES, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
 import { dayKey, recall, State } from './scheduler'
 
 const DAY_MS = 86_400_000
@@ -102,6 +102,16 @@ const setName = (region: string, type: CardType) => {
 /** Continents first, then the smaller regions inside them. */
 export const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North_America', 'Oceania', 'South_America']
 export const SUBREGIONS = REGIONS.filter((r) => !CONTINENTS.includes(r))
+/** Each smaller region under the continent most of its places are in: the Caribbean under North America, the Mediterranean under Europe. */
+const PARENT = new Map(
+  SUBREGIONS.map((r) => {
+    const inside = NOTES.filter((n) => n.tags.includes(r))
+    const most = (c: string) => inside.filter((n) => n.tags.includes(c)).length
+    return [r, CONTINENTS.reduce((a, b) => (most(b) > most(a) ? b : a))]
+  }),
+)
+/** The regions in the order the sets page lists them: each continent followed by the smaller regions within it. */
+export const NESTED = CONTINENTS.map((c) => ({ region: c, within: SUBREGIONS.filter((r) => PARENT.get(r) === c) }))
 
 export type DeckSet = { key: string; label: string; region: string; type: CardType; cards: DeckCard[]; done: number; left: DeckCard[] }
 

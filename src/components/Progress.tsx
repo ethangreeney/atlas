@@ -171,7 +171,7 @@ function Closest({ items, onOpen }: { items: DeckSet[]; onOpen: (key: string) =>
               data-set={s.key}
               onClick={() => onOpen(s.key)}
               title={s.label}
-              className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle"
+              className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle dash:min-h-[clamp(2rem,4.4vh,2.5rem)] dash:py-1"
             >
               <span className="flex w-7 shrink-0 justify-center text-ink-3">
                 <TypeIcon type={s.type} size={15} />
@@ -536,49 +536,69 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
   )
 }
 
-/** One set: every place in it and where each card stands, with a button for the ones not started. */
-function SetDetail({ set, rows, onBack, onPick, onLearn }: { set: DeckSet; rows: Map<string, CardRow>; onBack: () => void; onPick: (n: Note) => void; onLearn: () => void }) {
+/**
+ * One set: how far along it is, the places not started yet (with a button to learn them), then the rest and where
+ * each card stands. On a big screen it sits beside every set; on a phone it's a page of its own.
+ */
+function SetPane({ set, rows, onPick, onLearn }: { set: DeckSet; rows: Map<string, CardRow>; onPick: (n: Note) => void; onLearn: () => void }) {
   const now = new Date()
   const n = set.cards.length
+  const left = new Set(set.left.map((c) => c.id))
+  const started = set.cards.filter((c) => !left.has(c.id))
+  const list = (cards: DeckCard[], showStatus: boolean) => (
+    <ul className="-mx-2 grid grid-cols-1 dash:grid-cols-2 dash:gap-x-3">
+      {cards.map((c) => {
+        const st = status(rows.get(c.id), now)
+        return (
+          <Row key={c.id} id={c.note.id} onClick={() => onPick(c.note)}>
+            <Thumb note={c.note} />
+            <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
+              {c.note.country}
+              {(c.type === 'capital' || c.type === 'country') && c.note.capital && <span className="text-ink-3"> · {c.note.capital}</span>}
+            </span>
+            {showStatus && <span className={`shrink-0 text-[12px] tabular-nums ${st.cls}`}>{st.label}</span>}
+          </Row>
+        )
+      })}
+    </ul>
+  )
   return (
     <div>
-      <button data-back onClick={onBack} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
-        <ChevronLeft size={16} strokeWidth={1.75} /> Back
-      </button>
-      <h2 className="mt-2 text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">{set.label}</h2>
-      <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">{set.done === n ? `All ${n} started` : `${set.done} of ${n} started`}</p>
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h2 className="text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">{set.label}</h2>
+          <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">{set.done === n ? `All ${n} started` : `${set.done} of ${n} started`}</p>
+        </div>
+        {set.left.length > 0 && (
+          <button
+            onClick={onLearn}
+            className="shrink-0 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
+          >
+            {set.left.length === 1 ? 'Learn the one left' : `Learn the ${set.left.length} left`}
+          </button>
+        )}
+      </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full bg-good" style={{ width: `${(set.done / n) * 100}%` }} />
       </div>
       {set.left.length > 0 && (
-        <button
-          onClick={onLearn}
-          className="mt-4 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
-        >
-          {set.left.length === 1 ? 'Learn the one left' : `Learn the ${set.left.length} left`}
-        </button>
+        <div className="mt-6">
+          <Heading aside={set.left.length}>Not started</Heading>
+          {list(set.left, false)}
+        </div>
       )}
-      <ul className="-mx-2 mt-4">
-        {set.cards.map((c) => {
-          const st = status(rows.get(c.id), now)
-          return (
-            <Row key={c.id} id={c.note.id} onClick={() => onPick(c.note)}>
-              <Thumb note={c.note} />
-              <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">
-                {c.note.country}
-                {(c.type === 'capital' || c.type === 'country') && c.note.capital && <span className="text-ink-3"> · {c.note.capital}</span>}
-              </span>
-              <span className={`shrink-0 text-[12.5px] tabular-nums ${st.cls}`}>{st.label}</span>
-            </Row>
-          )
-        })}
-      </ul>
+      {started.length > 0 && (
+        <div className="mt-6">
+          <Heading aside={started.length}>Started</Heading>
+          {list(started, true)}
+        </div>
+      )}
     </div>
   )
 }
 
 /** On a big screen each smaller part of the page sits in its own tile around the map. */
-const TILE = 'dash:rounded-2xl dash:border dash:border-line dash:p-5'
+const TILE = 'dash:rounded-2xl dash:border dash:border-line dash:p-[clamp(1rem,2.2vh,1.25rem)]'
 
 const Back = ({ onClick }: { onClick: () => void }) => (
   <button data-back onClick={onClick} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
@@ -593,6 +613,19 @@ const ReviewSlipping = ({ count, lowest, onClick }: { count: number; lowest: num
   </button>
 )
 
+/** True on a screen big enough for the progress page's wide layout: the same test as the `dash` variant in index.css. */
+const DASH = '(min-width: 1100px) and (min-height: 700px)'
+function useDash() {
+  const [dash, setDash] = useState(() => matchMedia(DASH).matches)
+  useEffect(() => {
+    const q = matchMedia(DASH)
+    const on = () => setDash(q.matches)
+    q.addEventListener('change', on)
+    return () => q.removeEventListener('change', on)
+  }, [])
+  return dash
+}
+
 type Props = { onClose: () => void; onDrill: (ids: string[]) => void }
 
 /** Search any place, see mastery on a world map, the streak, what's ahead, and the cards that keep slipping. */
@@ -606,6 +639,9 @@ export default function Progress({ onClose, onDrill }: Props) {
   /** The set open, by key, and whether the page of every set is open beneath it. */
   const [openSet, setOpenSet] = useState<string | null>(null)
   const [allSets, setAllSets] = useState(false)
+  /** On a big screen the sets page shows one set beside them all: the one picked there. */
+  const [pick, setPick] = useState<string | null>(null)
+  const dash = useDash()
   /** The cards most likely forgotten, on a page of their own: out of sight until asked for, so drilling them is still recall. */
   const [slipping, setSlipping] = useState(false)
   const [region, setRegion] = useState<number | null>(null)
@@ -773,6 +809,16 @@ export default function Progress({ onClose, onDrill }: Props) {
   }, [rows, logs])
 
   const open = (note: Note | undefined) => note && setDetail(note)
+  /** A set from the page: beside every set on a big screen, on a page of its own on a phone. */
+  const showSet = (key: string) => {
+    if (!dash) return setOpenSet(key)
+    setPick(key)
+    setAllSets(true)
+  }
+  const learnSet = (set: DeckSet) => {
+    onDrill(set.left.map((c) => c.id))
+    close()
+  }
   const lowest = insight?.slipping.slice(0, LOWEST) ?? []
   const drillSlipping = () => {
     onDrill(lowest.map((x) => x.card.id))
@@ -784,16 +830,12 @@ export default function Progress({ onClose, onDrill }: Props) {
   if (detail && rows) body = <Detail note={detail} rows={rows} onBack={() => setDetail(null)} />
   else if (shownSet && rows)
     body = (
-      <SetDetail
-        set={shownSet}
-        rows={rows}
-        onBack={() => setOpenSet(null)}
-        onPick={open}
-        onLearn={() => {
-          onDrill(shownSet.left.map((c) => c.id))
-          close()
-        }}
-      />
+      <div>
+        <Back onClick={() => setOpenSet(null)} />
+        <div className="mt-2">
+          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} />
+        </div>
+      </div>
     )
   else if (searching)
     body = results.length ? (
@@ -809,7 +851,19 @@ export default function Progress({ onClose, onDrill }: Props) {
     ) : (
       <p className="pt-2 text-[13.5px] text-ink-3">Nothing matches “{query.trim()}”.</p>
     )
-  else if (allSets && insight)
+  else if (allSets && insight && rows && dash) {
+    const picked = (pick && insight.sets.get(pick)) || insight.closest[0] || [...insight.sets.values()][0]
+    body = (
+      <div className="grid h-full grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-8">
+        <div className="min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SetsGrid sets={insight.sets} onOpen={setPick} selected={picked.key} lead={<Back onClick={() => setAllSets(false)} />} />
+        </div>
+        <div className={`min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${TILE}`}>
+          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} />
+        </div>
+      </div>
+    )
+  } else if (allSets && insight)
     body = (
       <div>
         <Back onClick={() => setAllSets(false)} />
@@ -901,7 +955,7 @@ export default function Progress({ onClose, onDrill }: Props) {
           >
             Closest to finishing
           </Heading>
-          {insight.closest.length ? <Closest items={insight.closest} onOpen={setOpenSet} /> : <p className="text-[13.5px] text-ink-3">Every set is under way.</p>}
+          {insight.closest.length ? <Closest items={insight.closest} onOpen={showSet} /> : <p className="text-[13.5px] text-ink-3">Every set is under way.</p>}
         </section>
 
         <section className={`mt-8 [grid-area:kinds] dash:mt-0 dash:flex dash:flex-col ${TILE}`}>
@@ -981,7 +1035,7 @@ export default function Progress({ onClose, onDrill }: Props) {
           onScroll={(e) => scrolled.current.set(shown.current.view, e.currentTarget.scrollTop)}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 [scrollbar-width:none] sm:px-7 sm:pb-8 [&::-webkit-scrollbar]:hidden"
         >
-          <div className={view === 'page' ? 'dash:h-full' : 'dash:mx-auto dash:max-w-[600px]'}>{body}</div>
+          <div className={view === 'page' || view === 'sets' ? 'dash:h-full' : 'dash:mx-auto dash:max-w-[600px]'}>{body}</div>
         </div>
       </motion.div>
     </motion.div>

@@ -2,7 +2,7 @@ import { Check, Flag, Globe, Landmark, MapPin } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import type { CardType } from '../lib/deck'
-import { BEYOND, CONTINENTS, SET_WORD, STRENGTHS, SUBREGIONS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
+import { BEYOND, NESTED, SET_WORD, STRENGTHS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
 import { dayKey } from '../lib/scheduler'
 
 /** Fill opacity of the good colour for each step of more; step 0 is empty. Matches the map. */
@@ -221,43 +221,33 @@ export function Types({ stats, className = '' }: { stats: TypeStat[]; className?
   )
 }
 
-/** The map's shades as solid colours, so a check can sit on top at full strength. */
+/** The map's shades as solid colours. */
 const tint = (step: number) => (step ? mix(SHADE[step]) : undefined)
 const mix = (share: number) => `color-mix(in oklab, var(--color-good) ${Math.round(share * 100)}%, var(--color-surface))`
-/** A set's colour: grey until started, then greener the more of it is under way (across the map's in-between shades), full once every card is. */
-const setColour = (s: DeckSet) => (!s.done ? undefined : mix(s.done === s.cards.length ? 1 : SHADE[1] + (SHADE[3] - SHADE[1]) * (s.done / s.cards.length)))
-
-/** The map's key: grey, then four greens. */
-export const Legend = ({ className = '' }: { className?: string }) => (
-  <span className={`flex shrink-0 items-center gap-1 ${className}`} aria-hidden>
-    <span className="mr-0.5 max-sm:hidden">Less</span>
-    {SHADE.map((_, l) => (
-      <span key={l} className={`h-2.5 w-2.5 rounded-[3px] ${l ? '' : 'bg-muted-2'}`} style={{ backgroundColor: tint(l) }} />
-    ))}
-    <span className="ml-0.5 max-sm:hidden">More</span>
-  </span>
-)
-
 /**
- * Every set as a heat map: regions down the side, kinds of card across, greener the more of the set you've started,
- * with how many cards are left to start in it, or a check once it's all under way. Point at one for its full count;
- * tap it to see its places.
+ * Every set at a glance: regions down the side (each continent with the smaller regions within it), kinds of card
+ * across. Each cell is how many cards are left to start over a thin line of how far along it is, or a check once all
+ * of it is under way. Point at one for its full count; tap it to see its places.
  */
-export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void }) {
+export function SetsGrid({ sets, onOpen, selected, lead }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void; selected?: string; lead?: React.ReactNode }) {
   const [sel, setSel] = useState<string | null>(null)
-  const cols = 'minmax(6.5rem,1fr) repeat(4, minmax(2.25rem, 4rem))'
+  // Narrower number columns on a phone, so the region names fit.
+  const cols = 'grid-cols-[minmax(0,1fr)_repeat(4,minmax(2.25rem,2.625rem))] sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(2.75rem,3.75rem))]'
   const all = [...sets.values()].filter((s) => s.region !== WHOLE)
   const finished = all.filter((s) => s.done === s.cards.length).length
   const hovered = sel ? sets.get(sel) : undefined
-  const row = (region: string) => (
-    <div key={region} className="grid items-center gap-1" style={{ gridTemplateColumns: cols }} role="row">
-      <span className={`truncate pr-1 text-[13px] ${region === WHOLE ? 'text-ink' : 'text-ink-2'}`} role="rowheader">
+  // On a big screen the cells and the gaps between continents shrink with the screen's height, so every set fits.
+  const group = 'mt-2.5 border-t border-line pt-2.5 dash:mt-[clamp(0.25rem,0.6vh,0.625rem)] dash:pt-[clamp(0.25rem,0.6vh,0.625rem)]'
+  const row = (region: string, inner = false) => (
+    <div key={region} className={`grid items-center gap-1 ${cols}`} role="row">
+      <span className={`truncate pr-1 ${inner ? 'pl-3.5 text-[12.5px] text-ink-3' : 'text-[13.5px] text-ink'}`} role="rowheader">
         {regionShort(region)}
       </span>
       {TYPES.map((type) => {
         const s = sets.get(`${region}:${type}`)
         if (!s) return <span key={type} role="cell" />
         const full = s.done === s.cards.length
+        const on = selected === s.key
         return (
           <button
             key={type}
@@ -268,10 +258,17 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
             onFocus={() => setSel(s.key)}
             onBlur={() => setSel((k) => (k === s.key ? null : k))}
             aria-label={`${s.label}: ${s.done} of ${s.cards.length} started`}
-            className={`flex h-7 items-center justify-center rounded-md outline-offset-1 ${s.done ? '' : 'bg-muted-2'} ${sel === s.key ? 'outline outline-[1.5px] outline-ink' : ''}`}
-            style={{ backgroundColor: setColour(s) }}
+            aria-pressed={selected === undefined ? undefined : on}
+            className={`flex h-8 flex-col items-center justify-center gap-[5px] rounded-lg px-2 outline-offset-1 transition-colors dash:h-[clamp(1.25rem,calc(4.2vh_-_8px),2rem)] dash:gap-1 ${on ? 'bg-muted' : 'hover:bg-subtle'} ${sel === s.key ? 'outline outline-[1.5px] outline-ink-3' : ''}`}
           >
-            {full ? <Check size={13} strokeWidth={3} className="text-surface" /> : <span className="text-[12px] font-medium tabular-nums text-ink">{s.left.length}</span>}
+            {full ? (
+              <Check size={13} strokeWidth={2.5} className="text-good" />
+            ) : (
+              <span className={`text-[12.5px] font-medium leading-none tabular-nums ${s.done ? 'text-ink' : 'text-ink-3'}`}>{s.left.length}</span>
+            )}
+            <span className="h-[3px] w-full overflow-hidden rounded-full bg-muted-2">
+              <span className={`block h-full rounded-full bg-good ${full ? 'opacity-40' : ''}`} style={{ width: `${(s.done / s.cards.length) * 100}%` }} />
+            </span>
           </button>
         )
       })}
@@ -279,8 +276,9 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
   )
   return (
     <div>
-      <div className="mb-4 flex min-h-[1lh] items-center justify-between gap-3 text-[12.5px] tabular-nums text-ink-3" aria-live="polite">
-        <span className="min-w-0 truncate">
+      <div className="mb-3 flex min-h-[1lh] items-center justify-between gap-3">
+        {lead}
+        <p className="min-w-0 truncate text-[12.5px] tabular-nums text-ink-3" aria-live="polite">
           {hovered ? (
             <>
               <span className="text-ink-2">
@@ -291,11 +289,10 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
           ) : (
             `${finished} of ${all.length} finished · numbers are cards left to start`
           )}
-        </span>
-        <Legend className="max-sm:hidden" />
+        </p>
       </div>
-      <div role="table" aria-label="Sets" className="space-y-1" onPointerLeave={(e) => e.pointerType === 'mouse' && setSel(null)}>
-        <div className="grid items-end gap-1 pb-1" style={{ gridTemplateColumns: cols }} role="row">
+      <div role="table" aria-label="Sets" onPointerLeave={(e) => e.pointerType === 'mouse' && setSel(null)}>
+        <div className={`grid items-end gap-1 pb-1.5 ${cols}`} role="row">
           <span />
           {TYPES.map((t) => {
             const { short, Icon } = TYPE_META[t]
@@ -308,12 +305,13 @@ export function SetsGrid({ sets, onOpen }: { sets: Map<string, DeckSet>; onOpen:
           })}
         </div>
         {row(WHOLE)}
-        <div className="h-2" />
-        {CONTINENTS.map(row)}
-        <div className="pb-0.5 pt-3 text-[11.5px] text-ink-3">Within them</div>
-        {SUBREGIONS.map(row)}
-        <div className="pb-0.5 pt-3 text-[11.5px] text-ink-3">Also on the map</div>
-        {BEYOND.map(row)}
+        {NESTED.map(({ region, within }) => (
+          <div key={region} className={group}>
+            {row(region)}
+            {within.map((r) => row(r, true))}
+          </div>
+        ))}
+        <div className={group}>{BEYOND.map((r) => row(r))}</div>
       </div>
     </div>
   )
@@ -391,7 +389,7 @@ export function Ahead({ load, cap, perCard }: { load: number[]; cap: number; per
   const count = (n: number) => `${n} review${n === 1 ? '' : 's'}${n && perCard ? `, about ${Math.max(1, Math.round((n * perCard) / 60_000))} min` : ''}`
   return (
     <div>
-      <div className="flex h-24 items-end gap-[3px] pt-4 sm:gap-1" onPointerLeave={() => setHover(null)}>
+      <div className="flex h-24 items-end gap-[3px] pt-4 sm:gap-1 dash:h-[clamp(4.5rem,11vh,6rem)]" onPointerLeave={() => setHover(null)}>
         {days.map((n, i) => (
           <div
             key={i}

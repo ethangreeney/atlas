@@ -94,7 +94,7 @@ export const WHOLE = 'All'
 export const regionShort = (region: string) => (region === WHOLE ? 'Whole deck' : placeName(region).replace(/^the /, ''))
 /** A set's kind of card, after its region: "Caribbean · from capitals". */
 export const SET_WORD: Record<CardType, string> = { capital: 'capitals', country: 'from capitals', flag: 'flags', map: 'on the map' }
-const setName = (region: string, type: CardType) => {
+export const setName = (region: string, type: CardType) => {
   if (region === WHOLE) return { flag: 'All flags', map: 'Every place on the map', capital: 'All capitals', country: 'All countries from their capitals' }[type]
   const r = placeName(region)
   return { flag: `Flags of ${r}`, map: `${r[0].toUpperCase() + r.slice(1)} on the map`, capital: `Capitals of ${r}`, country: `Countries of ${r} from their capitals` }[type]

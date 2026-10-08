@@ -20,10 +20,17 @@ export type DayRow = {
   dirty?: 1
 }
 
+/**
+ * One finished test. It never changes once written, so syncing only ever adds them. `test`: which test (see tests.ts).
+ * `missed`: each card got wrong, with what was typed (blank if skipped).
+ */
+export type TestRow = { id: string; test: string; finished: number; ms: number; total: number; right: number; missed: { id: string; typed: string }[]; dirty?: 1 }
+
 export const db = new Dexie('atlas') as Dexie & {
   cards: EntityTable<CardRow, 'id'>
   revlog: EntityTable<RevlogRow, 'id'>
   days: EntityTable<DayRow, 'day'>
+  tests: EntityTable<TestRow, 'id'>
 }
 
 db.version(1).stores({
@@ -70,3 +77,6 @@ db.version(3)
       ),
     ),
   )
+
+// Tests taken, for scores over time.
+db.version(4).stores({ tests: 'id, test, finished, dirty' })

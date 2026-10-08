@@ -1,4 +1,4 @@
-import { Earth, SlidersHorizontal, Undo2 } from 'lucide-react'
+import { Earth, SlidersHorizontal, Timer, Undo2 } from 'lucide-react'
 import type { Queue } from '../lib/scheduler'
 import { Account } from './Account'
 
@@ -12,6 +12,7 @@ type Props = {
   onToggleFilters: () => void
   onSynced: () => void
   onOpenProgress: () => void
+  onOpenTests: () => void
   /** Size of the drill under way, 0 when studying normally. */
   drilling: number
   onExitDrill: () => void
@@ -73,7 +74,7 @@ const Drilling = ({ n, onExit }: { n: number; onExit: () => void }) => (
   </span>
 )
 
-export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced, onOpenProgress, drilling, onExitDrill }: Props) {
+export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, onUndo, onToggleFilters, onSynced, onOpenProgress, onOpenTests, drilling, onExitDrill }: Props) {
   const c = queue?.counts
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6 short:h-11">
@@ -113,6 +114,9 @@ export function TopBar({ queue, learned, canUndo, filtersOpen, filtersActive, on
         </IconButton>
         <IconButton onClick={onOpenProgress} label="Progress (p)">
           <Earth size={17} strokeWidth={1.75} />
+        </IconButton>
+        <IconButton onClick={onOpenTests} label="Tests (t)">
+          <Timer size={17} strokeWidth={1.75} />
         </IconButton>
         <IconButton onClick={onToggleFilters} label="Filters" active={filtersOpen} controls="filters">
           <SlidersHorizontal size={17} strokeWidth={1.75} />

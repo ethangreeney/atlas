@@ -25,10 +25,11 @@ const PILE_ROTATE = [-10, -3, 3, 10]
 /** The grade a typed answer points to. */
 const SUGGEST = { right: Rating.Good, close: Rating.Hard, wrong: Rating.Again } as const
 const Progress = lazy(() => import('./components/Progress'))
+const Test = lazy(() => import('./components/Test'))
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill, celebrate, endCelebrate } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill, celebrate, endCelebrate, answerTest } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
 
@@ -39,6 +40,8 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [progressOpen, setProgressOpen] = useState(false)
+  /** Tests open: at the list, or at one test's start. */
+  const [test, setTest] = useState<{ key?: string } | null>(null)
   const [pileCounts, setPileCounts] = useState<[number, number, number, number]>([0, 0, 0, 0])
   const [answer, setAnswer] = useState('')
   const [typed, setTyped] = useState<Typed | null>(null)
@@ -179,7 +182,7 @@ export default function App() {
       const t = e.target as HTMLElement
       if (t.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key === 'Escape') return setFiltersOpen(false)
-      if (filtersOpen || progressOpen || celebrate || e.repeat) return
+      if (filtersOpen || progressOpen || test || celebrate || e.repeat) return
       switch (e.code === 'Space' ? ' ' : e.key) {
         case ' ':
         case 'Spacebar':
@@ -234,6 +237,11 @@ export default function App() {
           setFiltersOpen(false)
           setProgressOpen(true)
           break
+        case 't':
+        case 'T':
+          setFiltersOpen(false)
+          setTest({})
+          break
         default:
           return
       }
@@ -246,7 +254,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, celebrate, suggested])
+  }, [flip, doGrade, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, test, celebrate, suggested])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -266,6 +274,10 @@ export default function App() {
           onToggleFilters={() => setFiltersOpen((o) => !o)}
           onSynced={reload}
           onOpenProgress={() => setProgressOpen(true)}
+          onOpenTests={() => {
+            setFiltersOpen(false)
+            setTest({})
+          }}
           drilling={drilling}
           onExitDrill={exitDrill}
         />
@@ -283,7 +295,22 @@ export default function App() {
         <AnimatePresence>
           {progressOpen && (
             <Suspense key="progress" fallback={null}>
-              <Progress onClose={() => setProgressOpen(false)} onDrill={startDrill} onLearn={learnNow} />
+              <Progress
+                onClose={() => setProgressOpen(false)}
+                onDrill={startDrill}
+                onLearn={learnNow}
+                onTest={(key) => {
+                  setProgressOpen(false)
+                  setTest({ key })
+                }}
+              />
+            </Suspense>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {test && (
+            <Suspense key="test" fallback={null}>
+              <Test initial={test.key} onClose={() => setTest(null)} onAnswer={(c, v) => void answerTest(c, v)} />
             </Suspense>
           )}
         </AnimatePresence>
@@ -314,6 +341,7 @@ export default function App() {
                   onLearnMore={learnMore}
                   onLearnAll={learnAll}
                   onOpenProgress={() => setProgressOpen(true)}
+                  onOpenTests={() => setTest({})}
                 />
               )}
             </AnimatePresence>
@@ -337,7 +365,7 @@ export default function App() {
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
             <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress
+            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress <span className="mx-1">·</span> <kbd>t</kbd> tests
             </span>
           </div>
           {/* Padded to the footer's height (and pulled back) so the links' full-height tap targets aren't clipped. */}

@@ -1,6 +1,6 @@
 import { api, authChanged, getAuth, setBeforeSignIn } from './auth'
 import { applyWeights, emptyDay, loadFitted, resetWeights, validWeights, type Fitted } from './scheduler'
-import { db, type CardRow, type DayRow, type RevlogRow } from './db'
+import { db, type CardRow, type DayRow, type RevlogRow, type TestRow } from './db'
 import { CARD_BY_ID } from './deck'
 
 const PULL_KEY = 'atlas.sync.pulled2' // server clock of the last pull (v2: also pulls the review log)
@@ -9,6 +9,10 @@ const OWNER_KEY = 'atlas.owner' // account whose progress is stored on this devi
 const FIT_SENT_KEY = 'atlas.fsrs.sent' // when the fit in use here was made, once the server has it
 const OVERLAP = 60_000 // re-pull this much before the last pull, for pushes that were still committing
 const BATCH = 500 // rows per push request (the server takes up to 1000)
+// Tests are far bigger than other rows (every card missed, with what was typed), so only a few go in each request,
+// keeping it well under the server's 1MB.
+const TEST_BATCH = 25
+const TEST_BYTES = 400_000
 const KEEPALIVE_MAX = 60_000 // browsers cap a request that outlives its page at 64KB
 const num = (k: string) => Number(localStorage.getItem(k) ?? 0)
 const set = (k: string, v: number) => localStorage.setItem(k, String(v))
@@ -36,7 +40,9 @@ const reviveCard = (c: CardRow): CardRow => ({
 
 /** Forget all progress on this device (sign-out, or another account signing in). */
 export async function clearLocal() {
-  await db.transaction('rw', db.cards, db.days, db.revlog, () => Promise.all([db.cards.clear(), db.days.clear(), db.revlog.clear()]))
+  await db.transaction('rw', db.cards, db.days, db.revlog, db.tests, () =>
+    Promise.all([db.cards.clear(), db.days.clear(), db.revlog.clear(), db.tests.clear()]),
+  )
   for (const k of [PULL_KEY, DELETED_KEY, OWNER_KEY, FIT_SENT_KEY, 'atlas.sync.pushed']) localStorage.removeItem(k)
   resetWeights()
 }
@@ -52,7 +58,11 @@ window.addEventListener('storage', (e) => {
 setBeforeSignIn(async (uid) => {
   const owner = localStorage.getItem(OWNER_KEY)
   if (!owner || owner === uid) return true
-  const unsynced = (await db.cards.where('dirty').equals(1).count()) + (await db.revlog.where('dirty').equals(1).count()) + pendingDeletes().length
+  const unsynced =
+    (await db.cards.where('dirty').equals(1).count()) +
+    (await db.revlog.where('dirty').equals(1).count()) +
+    (await db.tests.where('dirty').equals(1).count()) +
+    pendingDeletes().length
   return !unsynced || confirm("Some answers on this device haven't synced to the account signed in here before, and signing in with a different one will remove them. Sign in anyway?")
 })
 
@@ -95,10 +105,11 @@ export async function pull(): Promise<boolean> {
     revlog?: { cardId: string; review: number; data: RevlogRow }[]
     deleted?: LogKey[]
     params?: Fitted | null
+    tests?: { id: string; data: TestRow }[]
   }
   const undone = pendingDeletes()
   let changed = false
-  await db.transaction('rw', db.cards, db.days, db.revlog, async () => {
+  await db.transaction('rw', db.cards, db.days, db.revlog, db.tests, async () => {
     // Another tab switched accounts while this was in flight: these rows aren't this device's to keep any more.
     if (authChanged() || localStorage.getItem(OWNER_KEY) !== uid) throw new Error('Account changed')
     // One bad row (an impossible date, say) is skipped, rather than failing this pull and every one after it.
@@ -137,6 +148,12 @@ export async function pull(): Promise<boolean> {
     await each(r.deleted, async (k) => {
       if (await db.revlog.where('review').equals(new Date(k.review)).filter((x) => x.cardId === k.cardId).delete()) changed = true
     })
+    // Tests taken on another device. A test never changes, so one already here is the same one.
+    await each(r.tests, async (t) => {
+      if (await db.tests.get(t.id)) return
+      await db.tests.add({ ...t.data, id: t.id })
+      changed = true
+    })
   })
   // Weights fitted on another device: use them here too if they learned from more, so both schedule alike. Cards keep
   // their dates; the next answer uses the new weights.
@@ -149,24 +166,29 @@ const unmark = (x: { dirty?: 1 }) => {
   delete x.dirty
 }
 
-type Rejected = Partial<Record<'cards' | 'days' | 'revlog' | 'deleted' | 'params', number[]>>
+type Rejected = Partial<Record<'cards' | 'days' | 'revlog' | 'deleted' | 'params' | 'tests', number[]>>
 
 /**
  * Send everything written locally and not yet pushed, in requests of at most BATCH rows. Throws if something is
  * waiting that can't be sent under this account. `leaving`: the page is being hidden or closed.
  */
 export async function push(leaving = false) {
-  const [cards, days, revlog] = await db.transaction('r', db.cards, db.days, db.revlog, () =>
-    Promise.all([db.cards.where('dirty').equals(1).toArray(), db.days.where('dirty').equals(1).toArray(), db.revlog.where('dirty').equals(1).toArray()]),
+  const [cards, days, revlog, tests] = await db.transaction('r', db.cards, db.days, db.revlog, db.tests, () =>
+    Promise.all([
+      db.cards.where('dirty').equals(1).toArray(),
+      db.days.where('dirty').equals(1).toArray(),
+      db.revlog.where('dirty').equals(1).toArray(),
+      db.tests.where('dirty').equals(1).toArray(),
+    ]),
   )
   const deleted = pendingDeletes()
   let fit = unsentFit()
-  if (!cards.length && !days.length && !revlog.length && !deleted.length && !fit) return
+  if (!cards.length && !days.length && !revlog.length && !tests.length && !deleted.length && !fit) return
   // Another tab signed in or out, or syncNow hasn't claimed local data for this account yet. Failing, rather than
   // quietly skipping, lets a sign-out warn that it's unsent.
   const auth = getAuth()
   if (!auth || authChanged() || localStorage.getItem(OWNER_KEY) !== auth.user.id) throw new Error('Not synced')
-  while (cards.length || days.length || revlog.length || deleted.length || fit) {
+  while (cards.length || days.length || revlog.length || tests.length || deleted.length || fit) {
     let room = BATCH
     const take = <T>(a: T[]) => {
       const s = a.splice(0, room)
@@ -174,6 +196,16 @@ export async function push(leaving = false) {
       return s
     }
     const [c, d, l, k] = [take(cards), take(days), take(revlog), take(deleted)]
+    // As many tests as fit in what's left, up to TEST_BATCH and TEST_BYTES (always one, so a big one still goes).
+    const t: { id: string; data: TestRow }[] = []
+    for (let size = 0; tests.length && t.length < Math.min(room, TEST_BATCH); ) {
+      const x = { id: tests[0].id, data: { ...tests[0], dirty: undefined } }
+      size += new Blob([JSON.stringify(x)]).size
+      if (t.length && size > TEST_BYTES) break
+      t.push(x)
+      tests.shift()
+    }
+    room -= t.length
     const body = JSON.stringify({
       cards: c.map((x) => ({ id: x.id, data: { ...x, dirty: undefined }, updated: x.updated })),
       // Only `extraNew` and `pulled` are kept for a day; the counters are derived from the log.
@@ -182,6 +214,7 @@ export async function push(leaving = false) {
       deleted: k,
       // The fit goes with the first request.
       params: fit ? { data: fit, updated: fit.at } : undefined,
+      tests: t,
     })
     const sentFit = fit
     fit = null
@@ -194,12 +227,12 @@ export async function push(leaving = false) {
     // Rows the server refused (an out-of-range time, say) stay pending to go again, rather than count as sent.
     const no = res.rejected ?? {}
     const kept = <T>(rows: T[], skip: number[] = []) => rows.filter((_, i) => !skip.includes(i))
-    const [sc, sd, sl, sk] = [kept(c, no.cards), kept(d, no.days), kept(l, no.revlog), kept(k, no.deleted)]
+    const [sc, sd, sl, sk, st] = [kept(c, no.cards), kept(d, no.days), kept(l, no.revlog), kept(k, no.deleted), kept(t, no.tests)]
     // Only clear what was sent; a row written again since then stays dirty for the next push.
     const sent = new Map(sc.map((x) => [x.id, x.updated]))
     const sentDays = new Map(sd.map((x) => [x.day, x.updated]))
     const cap = res.cap ?? Infinity
-    await db.transaction('rw', db.cards, db.days, db.revlog, async () => {
+    await db.transaction('rw', db.cards, db.days, db.revlog, db.tests, async () => {
       // The server stores a fast clock's times as `cap`. Hold the same here, so the next pull compares like for like.
       await db.cards
         .where('id')
@@ -211,6 +244,7 @@ export async function push(leaving = false) {
         })
       await db.days.where('day').anyOf([...sentDays.keys()]).and((x) => sentDays.get(x.day) === x.updated).modify(unmark)
       await db.revlog.where('id').anyOf(sl.map((x) => x.id!)).modify(unmark)
+      await db.tests.where('id').anyOf(st.map((x) => x.id)).modify(unmark)
     })
     if (sk.length) setPendingDeletes(pendingDeletes().filter((x) => !sk.some((y) => sameKey(x, y))))
     // Sent, whether or not it beat the one stored; if it didn't, use that one instead.
@@ -249,8 +283,8 @@ export async function flush() {
     return false
   }
   // Rows the server refused are still waiting, so this didn't get everything through either.
-  const waiting = await db.transaction('r', db.cards, db.days, db.revlog, () =>
-    Promise.all([db.cards, db.days, db.revlog].map((t) => t.where('dirty').equals(1).count())),
+  const waiting = await db.transaction('r', db.cards, db.days, db.revlog, db.tests, () =>
+    Promise.all([db.cards, db.days, db.revlog, db.tests].map((t) => t.where('dirty').equals(1).count())),
   )
   return !waiting.some(Boolean) && !pendingDeletes().length
 }

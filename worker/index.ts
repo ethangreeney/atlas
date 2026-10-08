@@ -2,8 +2,9 @@
 // Atlas API: Google sign-in and sync. Cards are last-write-wins, the review log is append-only (undo deletes and
 // leaves a tombstone), and day rows only carry `extraNew`, merged by max. Every row records `synced` (server receipt
 // time) so a pull with `since` catches rows that were written offline and pushed late. The fitted FSRS weights are one
-// row per account, kept from whichever fit saw the most reviews, so every device schedules the same way. /api/push stores daily reminder
-// subscriptions; the separate worker in reminders/ sends them.
+// row per account, kept from whichever fit saw the most reviews, so every device schedules the same way. Finished tests
+// never change, so they're only ever added. /api/push stores daily reminder subscriptions; the separate worker in
+// reminders/ sends them.
 import deck from '../src/data/deck.json'
 
 export interface Env {
@@ -18,6 +19,7 @@ type DayRowIn = { day: string; data: unknown; updated: number }
 type RevlogIn = { cardId: string; review: number; data: unknown }
 type RevlogKey = { cardId: string; review: number }
 type ParamsIn = { data: { w?: unknown; at?: unknown; reviews?: unknown }; updated: number }
+type TestIn = { id: unknown; data: { test?: unknown; finished?: unknown; ms?: unknown; total?: unknown; right?: unknown; missed?: unknown } | null }
 
 /** Every card id in the deck (mirrors src/lib/deck.ts). */
 const CARD_IDS = new Set(
@@ -30,6 +32,8 @@ const CARD_IDS = new Set(
 const MAX_BODY = 1_000_000
 const MAX_ROWS = 1000 // per push, all kinds together; the client sends 500
 const MAX_DATA = 2000 // serialized length of one row's `data`
+const MAX_TEST_DATA = 60_000 // the same for a test, which lists every card missed (a few hundred at most)
+const MAX_TEST_MS = 86_400_000 // a test longer than a day is a broken clock
 const MAX_AHEAD = 5 * 60_000 // client clocks may run this far ahead of ours
 const MIN_TIME = Date.UTC(2000, 0, 1) // anything earlier is a broken clock or a bad value
 
@@ -93,12 +97,13 @@ async function googleSignIn(env: Env, req: Request) {
 async function pull(env: Env, uid: string, since: number) {
   const now = Date.now()
   const q = (sql: string) => env.DB.prepare(sql).bind(uid, since)
-  const [cards, days, revlog, deleted, params] = await Promise.all([
+  const [cards, days, revlog, deleted, params, tests] = await Promise.all([
     q('SELECT id, data, updated FROM cards WHERE user_id = ?1 AND synced > ?2').all<{ id: string; data: string; updated: number }>(),
     q('SELECT day, data, updated FROM days WHERE user_id = ?1 AND synced > ?2').all<{ day: string; data: string; updated: number }>(),
     q('SELECT card_id, review, data FROM revlog WHERE user_id = ?1 AND synced > ?2').all<{ card_id: string; review: number; data: string }>(),
     q('SELECT card_id, review FROM revlog_deleted WHERE user_id = ?1 AND synced > ?2').all<{ card_id: string; review: number }>(),
     q('SELECT data FROM params WHERE user_id = ?1 AND synced > ?2').first<{ data: string }>(),
+    q('SELECT id, data FROM tests WHERE user_id = ?1 AND synced > ?2').all<{ id: string; data: string }>(),
   ])
   return json({
     now,
@@ -107,6 +112,7 @@ async function pull(env: Env, uid: string, since: number) {
     revlog: revlog.results.map((r) => ({ cardId: r.card_id, review: r.review, data: JSON.parse(r.data) })),
     deleted: deleted.results.map((r) => ({ cardId: r.card_id, review: r.review })),
     params: params ? JSON.parse(params.data) : null,
+    tests: tests.results.map((r) => ({ id: r.id, data: JSON.parse(r.data) })),
   })
 }
 
@@ -124,12 +130,30 @@ const isDay = (v: unknown, now: number) => {
   const t = Date.parse(`${v}T00:00:00Z`) // rolls 02-30 over to March, caught below
   return t >= MIN_TIME && t <= now + 2 * 86_400_000 && new Date(t).toISOString().startsWith(v)
 }
+/** A safe integer from `lo` to `hi`. */
+const inRange = (v: unknown, lo: number, hi: number): v is number => Number.isSafeInteger(v) && (v as number) >= lo && (v as number) <= hi
+/**
+ * A finished test rebuilt from just the fields it should have, each checked, or null if any is off. Its score is kept
+ * in columns too, to compare with everyone's, so it has to add up: every card missed is listed, and only those.
+ */
+const testOf = (t: TestIn, now: number) => {
+  const { id, data } = t ?? {}
+  if (typeof id !== 'string' || id.length > 64 || !/^[A-Za-z0-9-]+$/.test(id) || !data || typeof data !== 'object') return null
+  const { test, finished, ms, total, right, missed } = data
+  if (typeof test !== 'string' || test.length > 64 || !/^[A-Za-z_+]+:(flag|map|capital|country)$/.test(test)) return null
+  if (!inRange(finished, MIN_TIME, now + MAX_AHEAD) || !inRange(ms, 0, MAX_TEST_MS) || !inRange(total, 1, 1000) || !inRange(right, 0, total)) return null
+  const isMiss = (m: { id?: unknown; typed?: unknown } | null) => !!m && typeof m.id === 'string' && CARD_IDS.has(m.id) && typeof m.typed === 'string' && m.typed.length <= 80
+  if (!Array.isArray(missed) || missed.length !== total - right || !missed.every(isMiss)) return null
+  const row = { id, test, finished, ms, total, right, missed: missed.map((m) => ({ id: m.id as string, typed: m.typed as string })) }
+  const s = JSON.stringify(row)
+  return s.length <= MAX_TEST_DATA ? { ...row, data: s } : null
+}
 
 async function push(env: Env, uid: string, req: Request) {
   if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) return json({ error: 'Too large' }, 413)
   const text = await req.text()
   if (text.length > MAX_BODY) return json({ error: 'Too large' }, 413)
-  let body: { cards?: unknown; days?: unknown; revlog?: unknown; deleted?: unknown; params?: unknown }
+  let body: { cards?: unknown; days?: unknown; revlog?: unknown; deleted?: unknown; params?: unknown; tests?: unknown }
   try {
     body = JSON.parse(text) ?? {}
   } catch {
@@ -140,7 +164,8 @@ async function push(env: Env, uid: string, req: Request) {
   const revlog = list<RevlogIn>(body.revlog)
   const deleted = list<RevlogKey>(body.deleted)
   const params = body.params as ParamsIn | undefined
-  if (cards.length + days.length + revlog.length + deleted.length + (params ? 1 : 0) > MAX_ROWS) return json({ error: 'Too many rows' }, 413)
+  const tests = list<TestIn>(body.tests)
+  if (cards.length + days.length + revlog.length + deleted.length + tests.length + (params ? 1 : 0) > MAX_ROWS) return json({ error: 'Too many rows' }, 413)
 
   const now = Date.now()
   // A clock that runs ahead would otherwise win every last-write-wins merge until real time catches up.
@@ -167,8 +192,12 @@ async function push(env: Env, uid: string, req: Request) {
   )
   const delLog = env.DB.prepare('DELETE FROM revlog WHERE user_id = ?1 AND card_id = ?2 AND review = ?3')
   const tomb = env.DB.prepare('INSERT OR REPLACE INTO revlog_deleted (user_id, card_id, review, synced) VALUES (?1, ?2, ?3, ?4)')
+  // A test never changes, so one already stored (sent again after a lost reply, say) is left as it is.
+  const addTest = env.DB.prepare(
+    'INSERT OR IGNORE INTO tests (user_id, id, test, finished, ms, total, right, data, synced) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)',
+  )
   // Positions of the rows not stored, per kind, so the client keeps those to send again instead of marking them done.
-  const rejected = { cards: [] as number[], days: [] as number[], revlog: [] as number[], deleted: [] as number[], params: [] as number[] }
+  const rejected = { cards: [] as number[], days: [] as number[], revlog: [] as number[], deleted: [] as number[], params: [] as number[], tests: [] as number[] }
   for (const [i, c] of cards.entries()) {
     const data = c && CARD_IDS.has(c.id) && isTime(c.updated) ? dataOf(c.data) : null
     if (data) stmts.push(upCard.bind(uid, c.id, data, clamp(c.updated), now))
@@ -203,6 +232,11 @@ async function push(env: Env, uid: string, req: Request) {
       Array.isArray(w) && w.length === 21 && w.every((x) => Number.isFinite(x) && Math.abs(x) < 1000) && isTime(at) && Number.isSafeInteger(reviews) && (reviews as number) >= 0
     if (ok) stmts.push(upParams.bind(uid, JSON.stringify({ w, at, reviews }), reviews, clamp(at as number), now))
     else rejected.params.push(0)
+  }
+  for (const [i, t] of tests.entries()) {
+    const r = testOf(t, now)
+    if (r) stmts.push(addTest.bind(uid, r.id, r.test, r.finished, r.ms, r.total, r.right, r.data, now))
+    else rejected.tests.push(i)
   }
   // D1 batches are limited in size; chunk them.
   for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100))

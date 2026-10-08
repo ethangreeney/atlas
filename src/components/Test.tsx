@@ -1,0 +1,732 @@
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { motion } from 'motion/react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CardType } from '../lib/deck'
+import { check, type Verdict } from '../lib/answer'
+import { db, type TestRow } from '../lib/db'
+import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
+import { restoreFocus, trapTab } from '../lib/focus'
+import { BEYOND, NESTED, regionShort, sets, WHOLE } from '../lib/insights'
+import { copyResult, shareResult } from '../lib/share'
+import { attempts, beats, bestOf, OFFICIAL, saveTest, testDef, TEST_TYPES, type TestDef } from '../lib/tests'
+import { Heading, TYPE_META, TypeIcon } from './Insights'
+
+type Answer = { card: DeckCard; verdict: Verdict; typed: string }
+type Run = { def: TestDef; order: DeckCard[]; started: number }
+type View =
+  | { at: 'home' }
+  | { at: 'intro'; key: string }
+  | { at: 'run'; run: Run }
+  | { at: 'done'; def: TestDef; row: TestRow; prior: TestRow[]; answers: Answer[] }
+
+/** Before there's a test of your own to go by, about this long a card. */
+const PER_CARD = 5000
+/** Images of the next few cards load ahead, so each one shows the moment it's reached. */
+const AHEAD = 3
+const TOKEN = 'atlas-test'
+
+const pad = (n: number) => String(n).padStart(2, '0')
+/** 9:42, or 1:02:05 past an hour. */
+export const clock = (ms: number) => {
+  const s = Math.floor(ms / 1000)
+  const h = Math.floor(s / 3600)
+  return h ? `${h}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : `${Math.floor(s / 60)}:${pad(s % 60)}`
+}
+/** Rounded, except that any miss keeps it under 100% (204/205 is 99%), as on the shared image. */
+const percent = (r: { right: number; total: number }) => (r.right === r.total ? 100 : Math.min(99, Math.round((r.right / r.total) * 100)))
+const DATE = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' })
+
+const shuffle = <T,>(a: T[]) => {
+  const out = [...a]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+/** What a card asks about, in words: "France" for its capital, "Paris" for its country, the place for a flag or map. */
+const askedAbout = (c: DeckCard) => (c.type === 'country' ? c.note.capital : c.note.country)
+
+type Props = {
+  /** Open straight at this test's start, rather than the list of tests. */
+  initial?: string
+  onClose: () => void
+  /** Each answer, as it's given: it counts as a review. */
+  onAnswer: (card: DeckCard, verdict: Verdict) => void
+}
+
+/** Typed, timed tests: the four over every country in the world, and any region for practice. Each answer is a review too. */
+export default function Test({ initial, onClose, onAnswer }: Props) {
+  const [view, setView] = useState<View>(initial ? { at: 'intro', key: initial } : { at: 'home' })
+  const [all, setAll] = useState<TestRow[] | null>(null)
+  const [quitting, setQuitting] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const opener = useRef<Element | null>(null)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // Every test taken, read again whenever the list or a test's start is shown, so a result just saved is in it.
+  useEffect(() => {
+    if (view.at !== 'home' && view.at !== 'intro') return
+    let live = true
+    db.tests
+      .toArray()
+      .then((rows) => live && setAll(rows))
+      .catch(() => live && setAll([]))
+    return () => {
+      live = false
+    }
+  }, [view.at])
+
+  const close = () => {
+    if (history.state?.atlasTest === TOKEN) return history.back()
+    restoreFocus(opener.current, dialogRef.current)
+    onCloseRef.current()
+  }
+  const closeRef = useRef(close)
+  closeRef.current = close
+
+  // One step back: a test under way asks first; its result or start goes back to the list (or out, if opened at it).
+  const back = () => {
+    if (view.at === 'run') return setQuitting((q) => !q)
+    if (view.at === 'home' || (view.at === 'intro' && initial === view.key)) return close()
+    setView({ at: 'home' })
+  }
+  const backRef = useRef(back)
+  backRef.current = back
+
+  // The phone's back gesture steps back too, rather than leaving the app, and never drops a test under way.
+  useEffect(() => {
+    opener.current ??= document.activeElement
+    if (history.state?.atlasTest !== TOKEN) history.pushState({ ...history.state, atlasTest: TOKEN }, '')
+    const onPop = () => {
+      restoreFocus(opener.current, dialogRef.current)
+      onCloseRef.current()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') return trapTab(e, dialogRef.current)
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      backRef.current()
+    }
+    window.addEventListener('keydown', onKey, { capture: true })
+    return () => window.removeEventListener('keydown', onKey, { capture: true })
+  }, [])
+
+  const byTest = useMemo(() => {
+    const m = new Map<string, TestRow[]>()
+    for (const r of [...(all ?? [])].sort((a, b) => a.finished - b.finished)) m.set(r.test, [...(m.get(r.test) ?? []), r])
+    return m
+  }, [all])
+  /** Your own pace so far, for how long a test will take. */
+  const perCard = useMemo(() => {
+    const done = all ?? []
+    const cards = done.reduce((n, r) => n + r.total, 0)
+    return cards >= 20 ? done.reduce((n, r) => n + r.ms, 0) / cards : PER_CARD
+  }, [all])
+
+  const start = (def: TestDef) => {
+    setQuitting(false)
+    setView({ at: 'run', run: { def, order: shuffle(def.cards), started: Date.now() } })
+  }
+  const finish = async (run: Run, answers: Answer[]) => {
+    // A test left open past a day isn't kept as taking that long (and the server wouldn't take it).
+    const ms = Math.min(Date.now() - run.started, 86_400_000)
+    const prior = await attempts(run.def.key).catch(() => [] as TestRow[])
+    const missed = answers.filter((a) => a.verdict === 'wrong').map((a) => ({ id: a.card.id, typed: a.typed.slice(0, 80) }))
+    const row: TestRow = { id: crypto.randomUUID(), test: run.def.key, finished: Date.now(), ms, total: answers.length, right: answers.length - missed.length, missed }
+    // Shown whether or not it could be kept.
+    await saveTest(row).catch(() => {})
+    setView({ at: 'done', def: run.def, row, prior, answers })
+  }
+
+  let body: React.ReactNode
+  if (view.at === 'home') body = <Home byTest={byTest} perCard={perCard} onPick={(key) => setView({ at: 'intro', key })} />
+  else if (view.at === 'intro') {
+    const def = testDef(view.key)
+    body = def ? <Intro def={def} rows={byTest.get(def.key) ?? []} perCard={perCard} onStart={() => start(def)} onBack={back} /> : null
+  } else if (view.at === 'run')
+    body = (
+      <Runner
+        key={view.run.started}
+        run={view.run}
+        quitting={quitting}
+        onAsk={() => setQuitting(true)}
+        onQuit={(q) => (q ? setView({ at: 'intro', key: view.run.def.key }) : setQuitting(false))}
+        onAnswer={onAnswer}
+        onFinish={finish}
+      />
+    )
+  else body = <Result {...view} onAgain={() => start(view.def)} onDone={() => (initial === view.def.key ? close() : setView({ at: 'home' }))} />
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-page/90 pad-safe"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      onPointerDown={(e) => e.target === e.currentTarget && view.at !== 'run' && close()}
+    >
+      <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tests"
+        tabIndex={-1}
+        className="card-shadow relative flex h-full w-[min(600px,100%)] flex-col overflow-hidden rounded-3xl bg-surface outline-none sm:h-[min(820px,100%)]"
+        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+      >
+        {view.at !== 'run' && (
+          <button
+            onClick={close}
+            aria-label="Close (Esc)"
+            title="Close (Esc)"
+            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink sm:right-5 sm:top-5"
+          >
+            <X size={17} strokeWidth={1.75} />
+          </button>
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-5 [scrollbar-width:none] sm:px-8 sm:pb-8 sm:pt-7 [&::-webkit-scrollbar]:hidden">{body}</div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+const Back = ({ onClick, label = 'Back' }: { onClick: () => void; label?: string }) => (
+  <button data-back onClick={onClick} className="-ml-1.5 flex h-8 items-center gap-0.5 rounded-full pl-0.5 pr-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink">
+    <ChevronLeft size={16} strokeWidth={1.75} /> {label}
+  </button>
+)
+
+const Title = ({ children }: { children: React.ReactNode }) => (
+  <h2 className="text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px]">{children}</h2>
+)
+
+/** A test's best so far, as a score and a time: "198/205 · 8:40". */
+const Best = ({ rows }: { rows: TestRow[] }) => {
+  const b = bestOf(rows)
+  if (!b) return <span className="text-ink-3">Not taken yet</span>
+  return (
+    <span className="tabular-nums">
+      <span className="font-medium text-ink">
+        {b.right}/{b.total}
+      </span>
+      <span className="text-ink-3"> · {clock(b.ms)}</span>
+    </span>
+  )
+}
+
+/** One test in a list: its kind, name and size, and your best at it. */
+const TestRowButton = ({ type, name, sub, rows, onClick }: { type: CardType; name: string; sub: string; rows: TestRow[]; onClick: () => void }) => (
+  <li>
+    <button onClick={onClick} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-subtle">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-ink-2">
+        <TypeIcon type={type} size={15} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-balance text-[14px] leading-snug text-ink">{name}</span>
+        <span className="text-[12px] tabular-nums text-ink-3">{sub}</span>
+      </span>
+      <span className="shrink-0 text-right text-[13px]">
+        <Best rows={rows} />
+      </span>
+      <ChevronRight size={15} strokeWidth={1.75} className="shrink-0 text-ink-3" />
+    </button>
+  </li>
+)
+
+/** The four tests over every country, then a region of any kind of card to practise. */
+function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; perCard: number; onPick: (key: string) => void }) {
+  const [type, setType] = useState<CardType>('flag')
+  const practice = useMemo(() => sets(new Map()), [])
+  const set = (region: string) => practice.get(`${region}:${type}`)
+  const row = (region: string, inner = false) => {
+    const s = set(region)
+    if (!s) return null
+    const rows = byTest.get(s.key) ?? []
+    return (
+      <li key={s.key}>
+        <button onClick={() => onPick(s.key)} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle">
+          <span className={`min-w-0 flex-1 truncate ${inner ? 'pl-3.5 text-[13px] text-ink-2' : 'text-[13.5px] text-ink'}`}>{regionShort(s.region)}</span>
+          <span className="shrink-0 text-[12px] tabular-nums text-ink-3">{s.cards.length}</span>
+          <span className="w-[92px] shrink-0 text-right text-[12.5px]">{rows.length ? <Best rows={rows} /> : null}</span>
+        </button>
+      </li>
+    )
+  }
+  return (
+    <div>
+      <Title>Tests</Title>
+      <p className="mt-1.5 max-w-[46ch] text-[13.5px] leading-snug text-ink-2">Type each answer. Every test is timed and scored, keeps your best, and counts as a review.</p>
+
+      <div className="mt-6">
+        <Heading aside="205 countries each">The world</Heading>
+        <ul className="-mx-2">
+          {OFFICIAL.map((d) => (
+            <TestRowButton key={d.key} type={d.type} name={d.name} sub={`About ${Math.max(1, Math.round((d.cards.length * perCard) / 60_000))} min`} rows={byTest.get(d.key) ?? []} onClick={() => onPick(d.key)} />
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-7">
+        <Heading aside={TYPE_META[type].label}>Practise a region</Heading>
+        <div role="radiogroup" aria-label="Kind of card" className="mb-2 grid grid-cols-4 gap-1 rounded-full bg-muted p-1">
+          {TEST_TYPES.map((t) => (
+            <button
+              key={t}
+              role="radio"
+              aria-checked={type === t}
+              onClick={() => setType(t)}
+              className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-[12.5px] transition-colors ${type === t ? 'bg-surface font-medium text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)]' : 'text-ink-2 hover:text-ink'}`}
+            >
+              <TypeIcon type={t} size={13} />
+              <span className="max-[420px]:sr-only">{TYPE_META[t].short}</span>
+            </button>
+          ))}
+        </div>
+        <ul className="-mx-2">
+          {row(WHOLE)}
+          {NESTED.map(({ region, within }) => [row(region), ...within.map((r) => row(r, true))])}
+          {BEYOND.map((r) => row(r))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+/** A test before it starts: what it covers, your history at it, and the rules. */
+function Intro({ def, rows, perCard, onStart, onBack }: { def: TestDef; rows: TestRow[]; perCard: number; onStart: () => void; onBack: () => void }) {
+  const n = def.cards.length
+  return (
+    <div className="flex min-h-full flex-col">
+      <Back onClick={onBack} />
+      <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink-3">
+        <TypeIcon type={def.type} size={13} />
+        {def.official ? 'Every country in the world' : 'Practice'}
+      </div>
+      <div className="mt-1">
+        <Title>{def.name}</Title>
+      </div>
+      <p className="mt-1.5 text-[13.5px] tabular-nums text-ink-2">
+        {n} cards · about {Math.max(1, Math.round((n * perCard) / 60_000))} min
+      </p>
+      {rows.length > 0 && (
+        <div className="mt-6">
+          <History rows={rows} />
+        </div>
+      )}
+      <p className="mt-6 max-w-[48ch] text-[13px] leading-relaxed text-ink-3">
+        Type each answer and press Enter. Small spelling slips still count. Enter on an empty box skips. The clock starts when you do, and every answer counts as a review.
+      </p>
+      <div className="mt-auto pt-8">
+        <button
+          autoFocus
+          onClick={onStart}
+          className="h-11 w-full rounded-full bg-ink text-[14px] font-medium text-on-ink transition-opacity hover:opacity-90 pointer-coarse:h-12"
+        >
+          {rows.length ? 'Start again' : 'Start'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const Label = ({ children }: { children: React.ReactNode }) => <div className="text-[12.5px] font-medium text-ink-3">{children}</div>
+const Big = ({ children }: { children: React.ReactNode }) => (
+  <div className="text-balance text-[clamp(26px,4.6vw,38px)] font-semibold leading-[1.1] tracking-[-0.02em] text-ink">{children}</div>
+)
+
+/** The question side of a card, without hints: the same for everyone. */
+function Prompt({ card }: { card: DeckCard }) {
+  const n = card.note
+  switch (card.type) {
+    case 'flag':
+      return (
+        <img
+          src={mediaUrl(n.flag!)}
+          alt="Flag"
+          draggable={false}
+          className={`max-h-[min(190px,24dvh)] max-w-[min(300px,70vw)] ${n.flag!.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+        />
+      )
+    case 'map':
+      return <img src={mediaUrl(n.map!)} alt="Map" draggable={false} className="img-shadow img-dim max-h-[min(300px,30dvh)] w-auto max-w-[min(420px,76vw)] rounded-xl sm:max-h-[min(300px,34dvh)]" />
+    case 'capital':
+      return (
+        <>
+          <Label>Capital of</Label>
+          <Big>{n.country}</Big>
+        </>
+      )
+    case 'country':
+      return (
+        <>
+          <Label>Capital</Label>
+          <Big>{n.capital}</Big>
+        </>
+      )
+  }
+}
+
+/** The answer just given, under the box: a tick and the answer, or what it was instead. */
+const Last = ({ a }: { a: Answer }) => {
+  const answer = answerOf(a.card)
+  if (a.verdict === 'right') return <span className="text-good">✓ {answer}</span>
+  if (a.verdict === 'close') return <span className="text-hard">✓ Spelled {answer}</span>
+  return (
+    <span className="text-ink-2">
+      {a.typed ? <s className="text-again">{a.typed}</s> : <span className="text-again">Skipped</span>}
+      <span className="text-ink-3"> · it was </span>
+      {answer}
+    </span>
+  )
+}
+
+/** A test under way: one card at a time, typed, with the clock running. Answers count the moment they're given. */
+function Runner({
+  run,
+  quitting,
+  onAsk,
+  onQuit,
+  onAnswer,
+  onFinish,
+}: {
+  run: Run
+  quitting: boolean
+  /** Ask whether to quit. */
+  onAsk: () => void
+  /** The answer: quit, or keep going. */
+  onQuit: (quit: boolean) => void
+  onAnswer: (card: DeckCard, verdict: Verdict) => void
+  onFinish: (run: Run, answers: Answer[]) => void
+}) {
+  const [answers, setAnswers] = useState<Answer[]>([])
+  const [text, setText] = useState('')
+  const [now, setNow] = useState(Date.now())
+  const input = useRef<HTMLInputElement>(null)
+  const done = useRef(false)
+  const i = answers.length
+  const card = run.order[i]
+  const total = run.order.length
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(t)
+  }, [])
+  // The next few pictures load while this one's being answered.
+  useEffect(() => {
+    for (const c of run.order.slice(i + 1, i + 1 + AHEAD)) {
+      const file = c.type === 'flag' ? c.note.flag : c.type === 'map' ? c.note.map : null
+      if (file) new Image().src = mediaUrl(file)
+    }
+  }, [i, run.order])
+  useEffect(() => {
+    if (!quitting) input.current?.focus({ preventScroll: true })
+  }, [quitting, i])
+
+  const submit = () => {
+    if (!card || done.current || quitting) return
+    const typed = text.trim()
+    const verdict: Verdict = typed ? check(typed, card) : 'wrong'
+    const next = [...answers, { card, verdict, typed }]
+    onAnswer(card, verdict)
+    setAnswers(next)
+    setText('')
+    if (next.length === total) {
+      done.current = true
+      onFinish(run, next)
+    }
+  }
+
+  const kind = card ? kindOf(card.note) : 'sovereign'
+  const placeholder = card?.type === 'capital' ? 'Capital…' : kind === 'sea' || kind === 'continent' ? 'Name…' : 'Country…'
+  const last = answers[answers.length - 1]
+  return (
+    <div className="flex min-h-full flex-col">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onAsk}
+          aria-label="Quit (Esc)"
+          title="Quit (Esc)"
+          className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink"
+        >
+          <X size={17} strokeWidth={1.75} />
+        </button>
+        <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{run.def.name}</span>
+        <span className="shrink-0 text-[13px] tabular-nums text-ink-3">
+          {Math.min(i + 1, total)} of {total}
+        </span>
+        <span className="w-14 shrink-0 text-right text-[15px] font-medium tabular-nums text-ink" aria-label="Time">
+          {clock(now - run.started)}
+        </span>
+      </div>
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${(i / total) * 100}%` }} />
+      </div>
+
+      {quitting ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
+          <div className="text-[18px] font-semibold tracking-[-0.02em] text-ink">Quit this test?</div>
+          <p className="max-w-[36ch] text-balance text-[13.5px] text-ink-2">The {i === 1 ? 'answer' : `${i} answers`} so far still count as reviews, but no score is kept.</p>
+          <div className="mt-4 flex gap-2">
+            <button autoFocus onClick={() => onQuit(false)} className="rounded-full bg-ink px-5 py-2.5 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90">
+              Keep going
+            </button>
+            <button onClick={() => onQuit(true)} className="rounded-full border border-line px-5 py-2.5 text-[13.5px] font-medium text-ink transition-colors hover:bg-subtle">
+              Quit
+            </button>
+          </div>
+        </div>
+      ) : (
+        card && (
+          // On a phone the card and box sit high, clear of the keyboard; with room to spare they're centred.
+          <div className="flex flex-1 flex-col items-center gap-5 pb-6 pt-8 sm:justify-center sm:pt-6 short:gap-3 short:py-3">
+            <div
+              className="flex min-h-[min(220px,26dvh)] w-full flex-col items-center justify-center gap-3 text-center sm:min-h-[min(240px,30dvh)]"
+              onClick={() => input.current?.focus({ preventScroll: true })}
+              data-test-card={card.id}
+            >
+              <Prompt card={card} />
+            </div>
+            <form
+              className="flex w-[min(320px,100%)] flex-col items-center"
+              onSubmit={(e) => {
+                e.preventDefault()
+                submit()
+              }}
+            >
+              <input
+                ref={input}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={placeholder}
+                aria-label="Your answer"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="words"
+                spellCheck={false}
+                enterKeyHint="next"
+                className="w-full select-text border-b border-line bg-transparent pb-1.5 text-center text-[19px] font-medium text-ink outline-none transition-colors placeholder:font-normal placeholder:text-ink-3 focus:border-ink-3"
+              />
+              <div className="mt-3 flex min-h-[1lh] w-full items-baseline justify-between gap-3 text-[13px]">
+                <span className="min-w-0 truncate" aria-live="polite">
+                  {last && <Last a={last} />}
+                </span>
+                <button type="button" onClick={submit} className="shrink-0 text-ink-3 transition-colors hover:text-ink">
+                  {text.trim() ? 'Enter' : 'Skip'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )
+      )}
+    </div>
+  )
+}
+
+/** Your scores at one test over time, best marked, with each attempt's date, score and time on pointing at it. */
+function History({ rows, current }: { rows: TestRow[]; current?: string }) {
+  const [sel, setSel] = useState<number | null>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const [w, setW] = useState(0)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setW(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const best = bestOf(rows)
+  const shown = sel === null ? null : rows[sel]
+  const H = 88
+  const PAD = 8
+  /** Room on the right for the scale's two labels, clear of the last (often best) dot. */
+  const GUTTER = 40
+  const plot = w - GUTTER
+  const lo = Math.max(0, Math.min(80, Math.floor((Math.min(...rows.map(percent)) - 5) / 10) * 10))
+  const x = (i: number) => (rows.length === 1 ? plot / 2 : PAD + (i * (plot - 2 * PAD)) / (rows.length - 1))
+  const y = (p: number) => PAD + ((100 - p) / (100 - lo)) * (H - 2 * PAD)
+  return (
+    <div>
+      <Heading aside={`${rows.length} ${rows.length === 1 ? 'attempt' : 'attempts'}`}>Your scores</Heading>
+      <p className="mb-2 min-h-[1lh] text-[13px] tabular-nums text-ink-2" aria-live="polite">
+        {shown ? (
+          <>
+            {DATE.format(new Date(shown.finished))} · <span className="font-medium text-ink">{shown.right}/{shown.total}</span> · {clock(shown.ms)}
+          </>
+        ) : (
+          best && (
+            <>
+              Best <span className="font-medium text-ink">{best.right}/{best.total}</span> in {clock(best.ms)}, {DATE.format(new Date(best.finished))}
+            </>
+          )
+        )}
+      </p>
+      <div ref={box} className="relative" onPointerLeave={() => setSel(null)}>
+        {w > 0 && (
+          <svg width={w} height={H} className="block overflow-visible" role="img" aria-label={`Scores: ${rows.map((r) => `${percent(r)}%`).join(', ')}`}>
+            {[100, lo].map((p) => (
+              <g key={p}>
+                <line x1={0} x2={plot} y1={y(p)} y2={y(p)} stroke="var(--color-line)" />
+                <text x={w} y={y(p)} textAnchor="end" dominantBaseline="middle" className="fill-ink-3 text-[10.5px] tabular-nums">
+                  {p}%
+                </text>
+              </g>
+            ))}
+            {rows.length > 1 && (
+              <polyline points={rows.map((r, i) => `${x(i)},${y(percent(r))}`).join(' ')} fill="none" stroke="var(--color-ink-3)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            )}
+            {rows.map((r, i) => {
+              const isBest = r === best
+              const isNow = r.id === current
+              return (
+                <circle
+                  key={r.id}
+                  cx={x(i)}
+                  cy={y(percent(r))}
+                  r={isNow || sel === i ? 5.5 : 4}
+                  fill={isBest ? 'var(--color-good)' : 'var(--color-surface)'}
+                  stroke={isBest ? 'var(--color-surface)' : 'var(--color-ink-2)'}
+                  strokeWidth={isBest ? 2 : 1.5}
+                />
+              )
+            })}
+            {rows.map((r, i) => (
+              <rect
+                key={r.id}
+                x={rows.length === 1 ? 0 : x(i) - (plot - 2 * PAD) / (rows.length - 1) / 2}
+                y={0}
+                width={rows.length === 1 ? plot : (plot - 2 * PAD) / (rows.length - 1)}
+                height={H}
+                fill="transparent"
+                onPointerEnter={() => setSel(i)}
+                onPointerDown={() => setSel(i)}
+              />
+            ))}
+          </svg>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** A thumbnail of what a missed card asked: its flag or map, or the name it gave. */
+const MissThumb = ({ card }: { card: DeckCard }) => {
+  const file = card.type === 'flag' ? card.note.flag : card.type === 'map' ? card.note.map : null
+  if (!file) return null
+  return (
+    <span className="flex h-7 w-10 shrink-0 items-center justify-center">
+      <img
+        src={mediaUrl(file)}
+        alt=""
+        draggable={false}
+        loading="lazy"
+        className={`max-h-7 max-w-10 ${card.type === 'map' ? 'img-dim rounded-[3px]' : file.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`}
+      />
+    </span>
+  )
+}
+
+/** The score and time, how it compares with before, a way to share it, and the ones missed. */
+function Result({ def, row, prior, answers, onAgain, onDone }: { def: TestDef; row: TestRow; prior: TestRow[]; answers: Answer[]; onAgain: () => void; onDone: () => void }) {
+  const before = bestOf(prior)
+  const first = prior.length === 0
+  const best = !first && beats(row, before)
+  const missed = answers.filter((a) => a.verdict === 'wrong')
+  const [shared, setShared] = useState<string | null>(null)
+  const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write
+  const input = () => ({ test: def, right: row.right, total: row.total, ms: row.ms, missed: new Set(row.missed.map((m) => m.id)), best, first, date: new Date(row.finished) })
+  const share = async () => {
+    const r = await shareResult(input()).catch(() => 'cancelled' as const)
+    if (r === 'downloaded') setShared('Image saved')
+  }
+  const copy = async () => setShared((await copyResult(input()).catch(() => false)) ? 'Image copied' : "Couldn't copy the image")
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-[12.5px] text-ink-3">
+        <TypeIcon type={def.type} size={13} />
+        {def.name}
+      </div>
+      <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
+        <div className="text-[clamp(48px,11vw,64px)] font-semibold leading-none tracking-[-0.04em] text-ink tabular-nums">
+          {row.right}
+          <span className="text-ink-3">/{row.total}</span>
+        </div>
+        {(best || first) && (
+          <span className={`mb-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium ${best ? 'bg-good/12 text-good' : 'bg-muted text-ink-2'}`}>{best ? 'New best' : 'First attempt'}</span>
+        )}
+      </div>
+      <p className="mt-2.5 text-[14px] tabular-nums text-ink-2">
+        {percent(row)}% · {clock(row.ms)} · {(row.ms / row.total / 1000).toFixed(1)}s a card
+      </p>
+      {!first && !best && before && (
+        <p className="mt-1 text-[13px] tabular-nums text-ink-3">
+          Your best is {before.right}/{before.total} in {clock(before.ms)}
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <button onClick={share} className="rounded-full bg-ink px-5 py-2.5 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90 pointer-coarse:py-3">
+          Share
+        </button>
+        {canCopy && (
+          <button onClick={copy} className="rounded-full border border-line px-4 py-2.5 text-[13.5px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:hidden">
+            Copy image
+          </button>
+        )}
+        <button onClick={onAgain} className="rounded-full border border-line px-4 py-2.5 text-[13.5px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3">
+          Try again
+        </button>
+        <button onClick={onDone} className="px-3 py-2.5 text-[13.5px] text-ink-3 transition-colors hover:text-ink">
+          Done
+        </button>
+        {shared && <span className="text-[12.5px] text-ink-3">{shared}</span>}
+      </div>
+
+      {prior.length > 0 && (
+        <div className="mt-8">
+          <History rows={[...prior, row]} current={row.id} />
+        </div>
+      )}
+
+      <div className="mt-8">
+        <Heading aside={missed.length || undefined}>{missed.length ? 'Missed' : 'Nothing missed'}</Heading>
+        {missed.length > 0 && (
+          <ul className="divide-y divide-line">
+            {missed.map((a) => (
+              <li key={a.card.id} className="flex min-h-11 items-center gap-3 py-2 text-[13.5px]">
+                <MissThumb card={a.card} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-ink">
+                    {a.card.type === 'capital' || a.card.type === 'country' ? (
+                      <>
+                        <span className="text-ink-3">{askedAbout(a.card)} · </span>
+                        {answerOf(a.card)}
+                      </>
+                    ) : (
+                      answerOf(a.card)
+                    )}
+                  </span>
+                  <span className="truncate text-[12px] text-ink-3">{a.typed ? <s>{a.typed}</s> : 'Skipped'}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}

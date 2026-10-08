@@ -31,9 +31,17 @@ const Action = ({ onClick, children }: { onClick: () => void; children: React.Re
   </button>
 )
 
-type Props = { queue: Queue; learned: number; grades: number[]; onLearnMore: (n: number) => void; onLearnAll: () => void; onOpenProgress: () => void }
+type Props = {
+  queue: Queue
+  learned: number
+  grades: number[]
+  onLearnMore: (n: number) => void
+  onLearnAll: () => void
+  onOpenProgress: () => void
+  onOpenTests: () => void
+}
 
-export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenProgress }: Props) {
+export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenProgress, onOpenTests }: Props) {
   // Every answer today, the same ones the grade row and piles count (learning steps and Knew it included).
   const answered = grades.reduce((a, b) => a + b, 0)
   const [now, setNow] = useState(Date.now)
@@ -98,6 +106,8 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
           {queue.unstarted <= LEARN_ALL_MAX && <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>}
         </div>
       )}
+      {/* Nothing left to learn: what's left is seeing how much has stuck. */}
+      {queue.unstarted === 0 && learned > 0 && <Action onClick={onOpenTests}>Take a test</Action>}
       <KeepProgress learned={learned} />
     </Screen>
   )

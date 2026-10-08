@@ -541,7 +541,21 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
  * each card stands. Once the whole deck is under way it's the same by mastery: the cards still to master, then the rest.
  * On a big screen it sits beside every set; on a phone it's a page of its own.
  */
-function SetPane({ set, rows, onPick, onLearn, goal }: { set: DeckSet; rows: Map<string, CardRow>; onPick: (n: Note) => void; onLearn: () => void; goal: Goal }) {
+function SetPane({
+  set,
+  rows,
+  onPick,
+  onLearn,
+  onTest,
+  goal,
+}: {
+  set: DeckSet
+  rows: Map<string, CardRow>
+  onPick: (n: Note) => void
+  onLearn: () => void
+  onTest: () => void
+  goal: Goal
+}) {
   const master = goal === 'master'
   const word = master ? 'mastered' : 'started'
   const now = new Date()
@@ -572,14 +586,19 @@ function SetPane({ set, rows, onPick, onLearn, goal }: { set: DeckSet; rows: Map
           <h2 className="text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">{set.label}</h2>
           <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">{set.done === n ? `All ${n} ${word}` : `${set.done} of ${n} ${word}`}</p>
         </div>
-        {!master && set.left.length > 0 && (
-          <button
-            onClick={onLearn}
-            className="shrink-0 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
-          >
-            {set.left.length === 1 ? 'Learn the one left' : `Learn the ${set.left.length} left`}
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {!master && set.left.length > 0 && (
+            <button
+              onClick={onLearn}
+              className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
+            >
+              {set.left.length === 1 ? 'Learn the one left' : `Learn the ${set.left.length} left`}
+            </button>
+          )}
+          <button onClick={onTest} className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3">
+            Test this set
           </button>
-        )}
+        </div>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full bg-good" style={{ width: `${(set.done / n) * 100}%` }} />
@@ -629,10 +648,10 @@ function useDash() {
   return dash
 }
 
-type Props = { onClose: () => void; onDrill: (ids: string[]) => void; onLearn: (ids: string[]) => void }
+type Props = { onClose: () => void; onDrill: (ids: string[]) => void; onLearn: (ids: string[]) => void; onTest: (key: string) => void }
 
 /** Search any place, see mastery on a world map, the streak, what's ahead, and the cards that keep slipping. */
-export default function Progress({ onClose, onDrill, onLearn }: Props) {
+export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
   const settings = useSettings()
   const [rows, setRows] = useState<Map<string, CardRow> | null>(null)
   const [logs, setLogs] = useState<RevlogRow[] | null>(null)
@@ -846,7 +865,7 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
       <div>
         <Back onClick={() => setOpenSet(null)} />
         <div className="mt-2">
-          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} goal={insight!.goal} />
+          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} onTest={() => onTest(shownSet.key)} goal={insight!.goal} />
         </div>
       </div>
     )
@@ -872,7 +891,7 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
           <SetsGrid sets={insight.sets} onOpen={setPick} selected={picked.key} lead={<Back onClick={() => setAllSets(false)} />} goal={insight.goal} />
         </div>
         <div className={`min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${TILE}`}>
-          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} goal={insight.goal} />
+          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} onTest={() => onTest(picked.key)} goal={insight.goal} />
         </div>
       </div>
     )

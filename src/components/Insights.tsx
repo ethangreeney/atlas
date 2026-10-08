@@ -176,7 +176,7 @@ export function Heatmap({ days, summary, children }: { days: Map<string, DayStat
   )
 }
 
-const TYPE_META: Record<CardType, { label: string; short: string; Icon: typeof Flag }> = {
+export const TYPE_META: Record<CardType, { label: string; short: string; Icon: typeof Flag }> = {
   flag: { label: 'Flags', short: 'Flags', Icon: Flag },
   map: { label: 'Maps', short: 'Maps', Icon: MapPin },
   capital: { label: 'Capitals', short: 'Capitals', Icon: Landmark },

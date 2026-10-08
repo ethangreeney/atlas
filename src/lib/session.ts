@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
+import type { Verdict } from './answer'
 import { ALL_CARDS, CARD_BY_ID, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
 import { useSettings } from './settings'
@@ -174,8 +175,11 @@ export function useSession() {
   }, [queue])
 
   const grade = useCallback(
-    /** `known`: a new card the learner already knew. Scheduled well out and free of the day's new-card limit. */
-    async (card: DeckCard, g: Grade, known = false) => {
+    /**
+     * `known`: a new card the learner already knew. Scheduled well out and free of the day's new-card limit.
+     * `quiet`: answered in a test, so it isn't the answer to undo, and a new build waits for the test to end.
+     */
+    async (card: DeckCard, g: Grade, known = false, quiet = false) => {
       if (!day) return
       const now = new Date()
       let d = day
@@ -219,11 +223,12 @@ export function useSession() {
       resume.current = null
       // Whatever comes next (this card again, even) is a fresh showing, unless it's the card the undo interrupted.
       shown.current = back && back.id !== card.id && stillDue(back.id, row, nd, now) ? back : null
-      setDrill((dr) => {
-        if (!dr) return dr
-        const left = dr.left.filter((id) => id !== card.id)
-        return left.length ? { ...dr, left } : null
-      })
+      if (!quiet)
+        setDrill((dr) => {
+          if (!dr) return dr
+          const left = dr.left.filter((id) => id !== card.id)
+          return left.length ? { ...dr, left } : null
+        })
       setDay(nd)
       let logId: number
       try {
@@ -236,7 +241,8 @@ export function useSession() {
         setSaveError(true)
         return
       }
-      setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review, drill })
+      // A test's answers aren't undone one by one; the last thing to undo stays whatever it was before.
+      if (!quiet) setUndo({ row: before, day: d, logId, cardId: card.id, review: log.review, drill })
       // The last card of the deck answered right for the first time.
       const left = unpassed.current
       if (g >= Rating.Hard && left?.delete(card.id) && left.size === 0 && !celebrated()) {
@@ -248,7 +254,7 @@ export function useSession() {
         setCelebrate(true)
       }
       schedulePush()
-      reloadIfUpdated()
+      if (!quiet) reloadIfUpdated()
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [day, loadDay, drill, settings],
@@ -343,6 +349,19 @@ export function useSession() {
   /** Every unstarted card in the filters, today. */
   const learnAll = useCallback(() => learnNow(ALL_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id)), [learnNow, settings])
 
+  /**
+   * A test's answer, counted as a review: right is Good, a spelling slip Hard, wrong Again. A card not started yet
+   * that's answered right counts as known; one got wrong is left to learn in the usual way.
+   */
+  const answerTest = useCallback(
+    (card: DeckCard, verdict: Verdict) => {
+      const started = (rows.current.get(card.id)?.state ?? State.New) !== State.New
+      if (!started) return verdict === 'wrong' ? Promise.resolve() : grade(card, Rating.Easy, true, true)
+      return grade(card, verdict === 'right' ? Rating.Good : verdict === 'close' ? Rating.Hard : Rating.Again, false, true)
+    },
+    [grade],
+  )
+
   const refresh = useCallback(() => setTick((t) => t + 1), [])
   const endCelebrate = useCallback(() => setCelebrate(false), [])
 
@@ -376,5 +395,5 @@ export function useSession() {
     setTick((t) => t + 1)
   }, [loadDay, loadUnpassed])
 
-  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill, celebrate, endCelebrate }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill, celebrate, endCelebrate, answerTest }
 }

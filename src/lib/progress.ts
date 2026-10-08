@@ -1,6 +1,6 @@
 import { createEmptyCard, fsrs, type Card } from 'ts-fsrs'
 import type { CardRow } from './db'
-import { ALL_CARDS, NOTES, type DeckCard, type Note } from './deck'
+import { ALL_CARDS, NOTES, STUDY_CARDS, type DeckCard, type Note } from './deck'
 import { dayEnd, matchesFilters, next, Rating, scheduler, State, waitsForTomorrow } from './scheduler'
 import type { Settings } from './settings'
 
@@ -42,7 +42,7 @@ export function forecast(rows: Map<string, CardRow>, settings: Settings, seenTod
   // Same parameters as the real scheduler (weights refitted since the page loaded too), without the random fuzz, so
   // the estimate is steady.
   const steady = fsrs({ ...scheduler.parameters, enable_fuzz: false })
-  const cards = ALL_CARDS.filter((c) => matchesFilters(c, settings))
+  const cards = STUDY_CARDS.filter((c) => matchesFilters(c, settings))
   const perNote = new Map<string, number>()
   for (const c of cards) {
     if ((rows.get(c.id)?.state ?? State.New) !== State.New) continue

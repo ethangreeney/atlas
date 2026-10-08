@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef } from 'react'
-import { CARD_TYPES, KINDS, REGIONS, regionLabel, type CardType, type Kind } from '../lib/deck'
+import { ALL_CARDS, CARD_TYPES, DECKS, KINDS, OUTLINE_CARDS, REGIONS, regionLabel, type CoreType, type DeckId, type Kind } from '../lib/deck'
 import { countMatching } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
 
@@ -35,7 +35,9 @@ const Switch = ({ on, onClick, children }: { on: boolean; onClick: () => void; c
 
 const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
-/** Card types, kinds of place and regions: any chip within a group, and every group. */
+const SIZE: Record<DeckId, number> = { ug: ALL_CARDS.length, outlines: OUTLINE_CARDS.length }
+
+/** Which sets, then card types, kinds of place and regions: any chip within a group, and every group. */
 export function Filters({ onClose }: { onClose: () => void }) {
   const s = useSettings()
   const ref = useRef<HTMLDivElement>(null)
@@ -77,17 +79,31 @@ export function Filters({ onClose }: { onClose: () => void }) {
       transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
     >
       <div className="flex items-baseline justify-between">
-        <Heading>Cards</Heading>
+        <Heading>Sets</Heading>
         <span aria-live="polite" className={`text-[12px] tabular-nums ${count ? 'text-ink-3' : 'text-again'}`}>
           {count ? `${count.toLocaleString()} card${count === 1 ? '' : 's'}` : 'No cards match'}
         </span>
       </div>
+      <div className="mb-3">
+        {DECKS.map((d) => (
+          <Switch key={d.id} on={s.decks.includes(d.id)} onClick={() => setSettings({ decks: toggle<DeckId>(s.decks, d.id) })}>
+            <span className="flex flex-col py-1">
+              <span className="text-[13px] font-medium text-ink">{d.label}</span>
+              <span className="text-[12px] text-ink-3">
+                {SIZE[d.id].toLocaleString()} cards{d.about && ` · ${d.about}`}
+              </span>
+            </span>
+          </Switch>
+        ))}
+      </div>
+      {/* Card types are Ultimate Geography's; the outlines have just the one. */}
+      <Heading>Cards</Heading>
       <Group>
         <Chip on={s.types.length === 0} onClick={() => setSettings({ types: [] })}>
           All
         </Chip>
         {CARD_TYPES.map((t) => (
-          <Chip key={t.id} on={s.types.includes(t.id)} onClick={() => setSettings({ types: toggle<CardType>(s.types, t.id) })}>
+          <Chip key={t.id} on={s.types.includes(t.id)} onClick={() => setSettings({ types: toggle<CoreType>(s.types, t.id) })}>
             {t.label}
           </Chip>
         ))}

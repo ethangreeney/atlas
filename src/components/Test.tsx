@@ -1,7 +1,7 @@
 import { Check, ChevronLeft, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CardType } from '../lib/deck'
+import type { CoreType } from '../lib/deck'
 import { check, settled, type Verdict } from '../lib/answer'
 import { db, type TestRow } from '../lib/db'
 import { answerOf, kindOf, mediaUrl, regionLabel, type DeckCard } from '../lib/deck'
@@ -286,13 +286,13 @@ function viewOf(def: TestDef, aspect: number): Box {
   return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]
 }
 
-const DESCRIBE: Record<CardType, string> = {
+const DESCRIBE: Record<CoreType, string> = {
   flag: 'Name the country from its flag',
   map: 'Name the place shown on the map',
   capital: 'Name the capital of each country',
   country: 'Name the country from its capital',
 }
-const KIND: Record<CardType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries' }
+const KIND: Record<CoreType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries' }
 
 /**
  * A picture of what a test asks, from the test's own places: well-known flags; the region's map with one place

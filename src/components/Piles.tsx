@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { db } from '../lib/db'
 import { answerOf, CARD_BY_ID, mediaUrl, type DeckCard } from '../lib/deck'
 import { dayEnd, dayKey, GRADES } from '../lib/scheduler'
+import { Outline } from './Outline'
 
 type Counts = [number, number, number, number]
 type Props = { counts: Counts; refs: React.RefObject<(HTMLDivElement | null)[]>; onDrill: (ids: string[]) => void }
@@ -386,6 +387,7 @@ function Front({ card }: { card: DeckCard }) {
   if (card.type === 'flag' && n.flag)
     return <img src={mediaUrl(n.flag)} alt="" draggable={false} decoding="async" className={`max-h-[46px] max-w-[74px] ${n.flag.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`} />
   if (card.type === 'map' && n.map) return <img src={mediaUrl(n.map)} alt="" draggable={false} decoding="async" className="img-dim max-h-[63px] max-w-[88px] rounded-md" />
+  if (card.type === 'outline') return <Outline id={n.id} className="h-[52px] w-[80px]" />
   return (
     <>
       <span className="text-[10px] text-ink-3">{card.type === 'capital' ? 'Capital of' : 'Capital'}</span>

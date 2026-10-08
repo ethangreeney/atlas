@@ -1,6 +1,8 @@
 import { motion } from 'motion/react'
+import { OUTLINE_CARDS } from '../lib/deck'
 import { useEffect, useState } from 'react'
 import { dayEnd, formatInterval, GRADES, LEARN_ALL_MAX, type Queue } from '../lib/scheduler'
+import { setSettings, useSettings } from '../lib/settings'
 import { loadStreak } from '../lib/streak'
 import { KeepProgress } from './KeepProgress'
 
@@ -44,6 +46,7 @@ type Props = {
 export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenProgress, onOpenTests }: Props) {
   // Every answer today, the same ones the grade row and piles count (learning steps and Knew it included).
   const answered = grades.reduce((a, b) => a + b, 0)
+  const settings = useSettings()
   const [now, setNow] = useState(Date.now)
   const [streak, setStreak] = useState(0)
   useEffect(() => {
@@ -106,8 +109,16 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
           {queue.unstarted <= LEARN_ALL_MAX && <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>}
         </div>
       )}
-      {/* Nothing left to learn: what's left is seeing how much has stuck. */}
-      {queue.unstarted === 0 && learned > 0 && <Action onClick={onOpenTests}>Take a test</Action>}
+      {/* Nothing left to learn: what's left is seeing how much has stuck, or the extra set. */}
+      {queue.unstarted === 0 && learned > 0 && (
+        <div className="flex flex-wrap justify-center gap-x-2">
+          <Action onClick={onOpenTests}>Take a test</Action>
+          {!settings.decks.includes('outlines') && <Action onClick={() => setSettings({ decks: [...settings.decks, 'outlines'] })}>Add the outline set</Action>}
+        </div>
+      )}
+      {queue.unstarted === 0 && learned > 0 && !settings.decks.includes('outlines') && (
+        <p className="max-w-[40ch] text-balance text-[12.5px] text-ink-3">An extra set beyond Ultimate Geography: {OUTLINE_CARDS.length} places from their shape alone.</p>
+      )}
       <KeepProgress learned={learned} />
     </Screen>
   )

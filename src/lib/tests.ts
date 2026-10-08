@@ -1,5 +1,5 @@
 import { db, type TestRow } from './db'
-import { ALL_CARDS, type CardType, type DeckCard } from './deck'
+import { ALL_CARDS, type CoreType, type DeckCard } from './deck'
 import { setName, WHOLE } from './insights'
 import { schedulePush } from './sync'
 
@@ -9,14 +9,14 @@ const SOVEREIGN = 'Sovereign_State'
 export type TestDef = {
   key: string
   name: string
-  type: CardType
+  type: CoreType
   cards: DeckCard[]
   /** One of the four tests over every country in the world: the same for everyone, so scores compare. */
   official: boolean
 }
 
-export const TEST_TYPES: CardType[] = ['flag', 'map', 'capital', 'country']
-const OFFICIAL_NAME: Record<CardType, string> = {
+export const TEST_TYPES: CoreType[] = ['flag', 'map', 'capital', 'country']
+const OFFICIAL_NAME: Record<CoreType, string> = {
   flag: 'Flags of the world',
   map: 'Countries on the map',
   capital: 'Capitals of the world',
@@ -25,7 +25,7 @@ const OFFICIAL_NAME: Record<CardType, string> = {
 
 /** A test by key: `world:flag` for an official one, or a set's key (`Africa:flag`, `All:map`) for practice. */
 export function testDef(key: string): TestDef | null {
-  const [region, type] = key.split(':') as [string, CardType]
+  const [region, type] = key.split(':') as [string, CoreType]
   if (!TEST_TYPES.includes(type)) return null
   if (region === 'world')
     return { key, name: OFFICIAL_NAME[type], type, official: true, cards: ALL_CARDS.filter((c) => c.type === type && c.note.tags.includes(SOVEREIGN)) }

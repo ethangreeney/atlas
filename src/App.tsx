@@ -14,6 +14,7 @@ import { check } from './lib/answer'
 import { answerOf, DECK_VERSION } from './lib/deck'
 import { countMatching, previewIntervals, Rating, State } from './lib/scheduler'
 import { useSession } from './lib/session'
+import { loadOutlines } from './lib/outlines'
 import { setSettings, useSettings } from './lib/settings'
 import { preload, speak, stopSpeaking } from './lib/tts'
 import { useAuth } from './lib/auth'
@@ -35,6 +36,11 @@ export default function App() {
   const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill, celebrate, endCelebrate, answerTest } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
+  // The outline set's shapes come in their own file: fetched as soon as the set is on, so its first card isn't blank.
+  const outlinesOn = settings.decks.includes('outlines')
+  useEffect(() => {
+    if (outlinesOn) void loadOutlines()
+  }, [outlinesOn])
 
   const [flipped, setFlipped] = useState(false)
   const [showMap, setShowMap] = useState(false)

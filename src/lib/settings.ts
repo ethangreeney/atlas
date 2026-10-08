@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from 'react'
-import { KINDS, type CardType, type Kind } from './deck'
+import { KINDS, type CoreType, type DeckId, type Kind } from './deck'
 
 export type Settings = {
+  decks: DeckId[]
   regions: string[] // empty = all
   kinds: Kind[] // empty = all
-  types: CardType[] // empty = all
+  types: CoreType[] // empty = all; Ultimate Geography's cards only
   newPerDay: number
   reviewsPerDay: number
   autoplay: boolean
@@ -12,7 +13,7 @@ export type Settings = {
 }
 
 const KEY = 'atlas.settings'
-const DEFAULTS: Settings = { regions: [], kinds: [], types: [], newPerDay: 20, reviewsPerDay: 200, autoplay: false, typeAnswers: false }
+const DEFAULTS: Settings = { decks: ['ug'], regions: [], kinds: [], types: [], newPerDay: 20, reviewsPerDay: 200, autoplay: false, typeAnswers: false }
 
 let current: Settings = (() => {
   try {

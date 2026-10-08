@@ -1,7 +1,7 @@
 import { Check, Flag, Globe, Landmark, MapPin } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-import type { CardType } from '../lib/deck'
+import type { CoreType } from '../lib/deck'
 import { BEYOND, NESTED, SET_WORD, STRENGTHS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type Goal, type TypeStat } from '../lib/insights'
 import { dayKey } from '../lib/scheduler'
 
@@ -176,7 +176,7 @@ export function Heatmap({ days, summary, children }: { days: Map<string, DayStat
   )
 }
 
-export const TYPE_META: Record<CardType, { label: string; short: string; Icon: typeof Flag }> = {
+export const TYPE_META: Record<CoreType, { label: string; short: string; Icon: typeof Flag }> = {
   flag: { label: 'Flags', short: 'Flags', Icon: Flag },
   map: { label: 'Maps', short: 'Maps', Icon: MapPin },
   capital: { label: 'Capitals', short: 'Capitals', Icon: Landmark },
@@ -184,7 +184,7 @@ export const TYPE_META: Record<CardType, { label: string; short: string; Icon: t
 }
 
 /** A kind of card's icon. */
-export const TypeIcon = ({ type, size = 14 }: { type: CardType; size?: number }) => {
+export const TypeIcon = ({ type, size = 14 }: { type: CoreType; size?: number }) => {
   const { Icon } = TYPE_META[type]
   return <Icon size={size} strokeWidth={1.75} />
 }

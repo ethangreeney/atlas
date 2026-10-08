@@ -1,5 +1,5 @@
 import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type FSRS, type Grade, type ReviewLog } from 'ts-fsrs'
-import { ALL_CARDS, kindOf, type DeckCard } from './deck'
+import { deckOf, kindOf, STUDY_CARDS, type DeckCard } from './deck'
 import { flagPartners } from './lookalike'
 import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
@@ -180,22 +180,23 @@ const isLearning = (s: State) => s === State.Learning || s === State.Relearning
 /** 'Learn all' is offered from this many cards left down: about an hour's study, rather than the whole deck at the start. */
 export const LEARN_ALL_MAX = 200
 /** The order a place's cards are added in by hand: the picture cards, then capital, then the reverse. */
-const TYPE_ORDER = ['flag', 'map', 'capital', 'country']
+const TYPE_ORDER = ['flag', 'map', 'capital', 'country', 'outline']
 
 /** Any of the chosen options within a group, and every group. */
 export function matchesFilters(c: DeckCard, s: Settings) {
-  if (s.types.length && !s.types.includes(c.type)) return false
+  if (!s.decks.includes(deckOf(c))) return false
+  if (c.type !== 'outline' && s.types.length && !s.types.includes(c.type)) return false
   if (s.kinds.length && !s.kinds.includes(kindOf(c.note))) return false
   if (s.regions.length && !c.note.tags.some((t) => s.regions.includes(t))) return false
   return true
 }
 
-export const countMatching = (s: Settings) => ALL_CARDS.filter((c) => matchesFilters(c, s)).length
+export const countMatching = (s: Settings) => STUDY_CARDS.filter((c) => matchesFilters(c, s)).length
 
 export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Settings, day: DayRow): Queue {
   const end = dayEnd(now)
   const seen = new Set(day.seenNotes)
-  const cards = ALL_CARDS.filter((c) => matchesFilters(c, settings))
+  const cards = STUDY_CARDS.filter((c) => matchesFilters(c, settings))
   const row = (c: DeckCard) => rows.get(c.id) ?? freshRow(c, now)
   const rank = (c: DeckCard) => hash(c.id + day.day + SEED)
   const placeRank = (noteId: string) => (FAME.get(noteId) ?? FAME.size) + (hash(noteId + day.day + SEED) / 2 ** 32) * FAME_SPREAD
@@ -206,12 +207,12 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   const pulledIds = new Set(day.pulled ?? [])
   const round = new Map<string, number>()
   const nth = new Map<string, number>()
-  for (const c of ALL_CARDS.filter((c) => pulledIds.has(c.id)).sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type))) {
+  for (const c of STUDY_CARDS.filter((c) => pulledIds.has(c.id)).sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type))) {
     const k = nth.get(c.note.id) ?? 0
     round.set(c.id, k)
     nth.set(c.note.id, k + 1)
   }
-  const pulled = ALL_CARDS.filter((c) => pulledIds.has(c.id) && row(c).state === State.New).sort(
+  const pulled = STUDY_CARDS.filter((c) => pulledIds.has(c.id) && row(c).state === State.New).sort(
     (a, b) => round.get(a.id)! - round.get(b.id)! || placeRank(a.note.id) - placeRank(b.note.id),
   )
   // They come on top of the day's limit, so the ones already answered don't use it up.

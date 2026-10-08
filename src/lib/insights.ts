@@ -1,11 +1,12 @@
 import type { CardRow, RevlogRow } from './db'
-import { ALL_CARDS, CARD_BY_ID, KINDS, NOTES, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
+import { ALL_CARDS, CARD_BY_ID, CORE_IDS, KINDS, NOTES, REGIONS, regionLabel, type CoreType, type DeckCard } from './deck'
 import { isMature } from './progress'
 import { dayKey, recall, State } from './scheduler'
 
 const DAY_MS = 86_400_000
-const learned = (r: CardRow | undefined): r is CardRow => !!r && r.state !== State.New && CARD_BY_ID.has(r.id)
-export const TYPES: CardType[] = ['flag', 'map', 'capital', 'country']
+/** Answered at least once, in Ultimate Geography: the extra set keeps to its own line. */
+const learned = (r: CardRow | undefined): r is CardRow => !!r && r.state !== State.New && CORE_IDS.has(r.id)
+export const TYPES: CoreType[] = ['flag', 'map', 'capital', 'country']
 
 /** How many answered cards FSRS expects you'd get right if asked this minute: each card's recall probability, added up. */
 export function recallNow(rows: Map<string, CardRow>, now = new Date()) {
@@ -58,7 +59,7 @@ export function days(logs: RevlogRow[]) {
   return out
 }
 
-export type TypeStat = { type: CardType; learned: number; mastered: number; total: number; reviews: number; recall: number | null }
+export type TypeStat = { type: CoreType; learned: number; mastered: number; total: number; reviews: number; recall: number | null }
 /** Below this many reviews a type's recall rate is noise. */
 const MIN_REVIEWS = 10
 
@@ -94,8 +95,8 @@ export const WHOLE = 'All'
 /** A set's region on its own, as a row label: "Caribbean", "Whole deck". */
 export const regionShort = (region: string) => (region === WHOLE ? 'Whole deck' : placeName(region).replace(/^the /, ''))
 /** A set's kind of card, after its region: "Caribbean · from capitals". */
-export const SET_WORD: Record<CardType, string> = { capital: 'capitals', country: 'from capitals', flag: 'flags', map: 'on the map' }
-export const setName = (region: string, type: CardType) => {
+export const SET_WORD: Record<CoreType, string> = { capital: 'capitals', country: 'from capitals', flag: 'flags', map: 'on the map' }
+export const setName = (region: string, type: CoreType) => {
   if (region === WHOLE) return { flag: 'All flags', map: 'Every place on the map', capital: 'All capitals', country: 'All countries from their capitals' }[type]
   const r = placeName(region)
   return { flag: `Flags of ${r}`, map: `${r[0].toUpperCase() + r.slice(1)} on the map`, capital: `Capitals of ${r}`, country: `Countries of ${r} from their capitals` }[type]
@@ -115,7 +116,7 @@ const PARENT = new Map(
 /** The regions in the order the sets page lists them: each continent followed by the smaller regions within it. */
 export const NESTED = CONTINENTS.map((c) => ({ region: c, within: SUBREGIONS.filter((r) => PARENT.get(r) === c) }))
 
-export type DeckSet = { key: string; label: string; region: string; type: CardType; cards: DeckCard[]; done: number; left: DeckCard[] }
+export type DeckSet = { key: string; label: string; region: string; type: CoreType; cards: DeckCard[]; done: number; left: DeckCard[] }
 /** What a set's progress counts: its cards started, then, once the whole deck is under way, its cards mastered. */
 export type Goal = 'start' | 'master'
 

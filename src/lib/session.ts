@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
 import type { Verdict } from './answer'
-import { ALL_CARDS, CARD_BY_ID, type DeckCard } from './deck'
+import { ALL_CARDS, CARD_BY_ID, STUDY_CARDS, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, schedulePush } from './sync'
@@ -347,7 +347,7 @@ export function useSession() {
     [day],
   )
   /** Every unstarted card in the filters, today. */
-  const learnAll = useCallback(() => learnNow(ALL_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id)), [learnNow, settings])
+  const learnAll = useCallback(() => learnNow(STUDY_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id)), [learnNow, settings])
 
   /**
    * A test's answer, counted as a review: right is Good, a spelling slip Hard, wrong Again. A card not started yet

@@ -7,6 +7,7 @@ import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
 import type { CardRow } from '../lib/db'
 import { lookAlikes } from '../lib/lookalike'
 import { useHoldToZoom } from '../lib/zoom'
+import { Outline } from './Outline'
 import { Zoomable } from './Zoom'
 
 export type ExitTarget = { x: number; y: number; rotate: number }
@@ -145,6 +146,15 @@ const Map = ({ file, size, alt }: { file: string; size: keyof typeof MAP_SIZE; a
       className={`transition-[width,max-width,max-height] ${GLIDE} ${MAP_SIZE[size]} rounded-xl img-shadow img-dim short:w-auto`}
     />
   </Zoomable>
+)
+
+/** The outline set's question: a place's shape, as big as a flag, settling to the same size as one over the answer. */
+const Shape = ({ card, small }: { card: DeckCard; small: boolean }) => (
+  <Outline
+    id={card.note.id}
+    label={small ? `Outline of ${card.note.country}` : 'Outline'}
+    className={`transition-[height,width] ${GLIDE} ${small ? 'h-[min(96px,14dvh)] w-[160px] short:h-12' : 'h-[min(200px,28dvh)] w-[min(300px,70vw)] short:h-[min(190px,100cqh_-_56px)]'}`}
+  />
 )
 
 /** Flags easily mistaken for this one, small, each with how it differs. */
@@ -308,6 +318,13 @@ function Question({ card, up, onSay }: { card: DeckCard; up: boolean; onSay: (t:
           <Map file={n.map!} size={up ? 'md' : 'lg'} alt={up ? `Map of ${n.country}` : 'Map'} />
         </>
       )
+    case 'outline':
+      return (
+        <>
+          {label('Outline')}
+          <Shape card={card} small={up} />
+        </>
+      )
   }
 }
 
@@ -351,6 +368,23 @@ function Answer({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; on
         <>
           {big(n.country)}
           <Info>{n.countryInfo}</Info>
+        </>
+      )
+    case 'outline':
+      return (
+        <>
+          {big(n.country)}
+          {/* Its flag, small, to tie the shape to something already known. */}
+          {n.flag && (
+            <img
+              src={mediaUrl(n.flagBack ?? n.flag)}
+              alt={`Flag of ${n.country}`}
+              draggable={false}
+              className={`max-h-10 max-w-16 short:max-h-7 ${n.flag.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`}
+            />
+          )}
+          <Info>{n.countryInfo}</Info>
+          {map}
         </>
       )
   }

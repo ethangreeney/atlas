@@ -5,7 +5,7 @@ import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
 import { ALL_CARDS, answerOf, CARD_BY_ID, CARD_TYPES, kindOf, mediaUrl, NOTES, type CardType, type DeckCard, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
-import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Slipping } from '../lib/insights'
+import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Goal, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
 import { Ahead, CountUp, Fill, Heading, Heatmap, Numbers, SetsGrid, Strength, TypeIcon, Types } from './Insights'
 import { dayKey, formatInterval, LEARN_ALL_MAX, matchesFilters, State } from '../lib/scheduler'
@@ -538,9 +538,12 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
 
 /**
  * One set: how far along it is, the places not started yet (with a button to learn them), then the rest and where
- * each card stands. On a big screen it sits beside every set; on a phone it's a page of its own.
+ * each card stands. Once the whole deck is under way it's the same by mastery: the cards still to master, then the rest.
+ * On a big screen it sits beside every set; on a phone it's a page of its own.
  */
-function SetPane({ set, rows, onPick, onLearn }: { set: DeckSet; rows: Map<string, CardRow>; onPick: (n: Note) => void; onLearn: () => void }) {
+function SetPane({ set, rows, onPick, onLearn, goal }: { set: DeckSet; rows: Map<string, CardRow>; onPick: (n: Note) => void; onLearn: () => void; goal: Goal }) {
+  const master = goal === 'master'
+  const word = master ? 'mastered' : 'started'
   const now = new Date()
   const n = set.cards.length
   const left = new Set(set.left.map((c) => c.id))
@@ -567,9 +570,9 @@ function SetPane({ set, rows, onPick, onLearn }: { set: DeckSet; rows: Map<strin
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <h2 className="text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">{set.label}</h2>
-          <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">{set.done === n ? `All ${n} started` : `${set.done} of ${n} started`}</p>
+          <p className="mt-1 text-[13.5px] tabular-nums text-ink-2">{set.done === n ? `All ${n} ${word}` : `${set.done} of ${n} ${word}`}</p>
         </div>
-        {set.left.length > 0 && (
+        {!master && set.left.length > 0 && (
           <button
             onClick={onLearn}
             className="shrink-0 rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3"
@@ -583,14 +586,14 @@ function SetPane({ set, rows, onPick, onLearn }: { set: DeckSet; rows: Map<strin
       </div>
       {set.left.length > 0 && (
         <div className="mt-6">
-          <Heading aside={set.left.length}>Not started</Heading>
-          {list(set.left, false)}
+          <Heading aside={set.left.length}>{master ? 'Not mastered yet' : 'Not started'}</Heading>
+          {list(set.left, master)}
         </div>
       )}
       {started.length > 0 && (
         <div className="mt-6">
-          <Heading aside={started.length}>Started</Heading>
-          {list(started, true)}
+          <Heading aside={started.length}>{master ? 'Mastered' : 'Started'}</Heading>
+          {list(started, !master)}
         </div>
       )}
     </div>
@@ -789,13 +792,18 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
     if (!rows || !logs) return null
     const perDay = days(logs)
     const counts = [...perDay.values()].map((d) => d.answers)
-    const all = sets(rows)
+    // Once every card is under way, the goal is mastering them: the headline, the sets and the closest ones all count that.
+    const goal: Goal = ALL_CARDS.every((c) => { const r = rows.get(c.id); return !!r && r.state !== State.New }) ? 'master' : 'start'
+    const all = sets(rows, goal)
     const curve = forgetting(rows)
     return {
       days: perDay,
       summary: logs.length
         ? `${logs.length.toLocaleString()} answers over ${counts.length} day${counts.length === 1 ? '' : 's'} · ${Math.max(...counts)} on your best day`
         : 'Your days of study will fill in here',
+      goal,
+      mastered: ALL_CARDS.filter((c) => isMature(rows.get(c.id))).length,
+      answers: logs.length,
       recall: recallNow(rows),
       started: placesStarted(rows),
       time: studyTime(logs),
@@ -838,7 +846,7 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
       <div>
         <Back onClick={() => setOpenSet(null)} />
         <div className="mt-2">
-          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} />
+          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} goal={insight!.goal} />
         </div>
       </div>
     )
@@ -861,10 +869,10 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
     body = (
       <div className="grid h-full grid-cols-[minmax(0,440px)_minmax(0,1fr)] gap-8">
         <div className="min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <SetsGrid sets={insight.sets} onOpen={setPick} selected={picked.key} lead={<Back onClick={() => setAllSets(false)} />} />
+          <SetsGrid sets={insight.sets} onOpen={setPick} selected={picked.key} lead={<Back onClick={() => setAllSets(false)} />} goal={insight.goal} />
         </div>
         <div className={`min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${TILE}`}>
-          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} />
+          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} goal={insight.goal} />
         </div>
       </div>
     )
@@ -873,7 +881,7 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
       <div>
         <Back onClick={() => setAllSets(false)} />
         <h2 className="mb-1 mt-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink">Sets</h2>
-        <SetsGrid sets={insight.sets} onOpen={setOpenSet} />
+        <SetsGrid sets={insight.sets} onOpen={setOpenSet} goal={insight.goal} />
       </div>
     )
   else if (slipping && insight)
@@ -894,8 +902,10 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
       </div>
     )
   else if (rows && levels && ahead && insight) {
-    const done = learned / ALL_CARDS.length
+    const master = insight.goal === 'master'
+    const done = (master ? insight.mastered : learned) / ALL_CARDS.length
     const n = insight.slipping.length
+    const chance = Math.round(insight.recall.chance * 100)
     body = (
       <div className="dash-grid">
         <div className="[grid-area:head] dash:pt-1">
@@ -904,15 +914,17 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
               {streak ? `${streak}-day streak` : 'Progress'}
             </h2>
             <p className="mt-1.5 text-[13.5px] tabular-nums text-ink-2">
-              {learned.toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards learned
+              {(master ? insight.mastered : learned).toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards {master ? 'mastered' : 'learned'}
               {streak === 0 ? ' · study today to start a streak' : ''}
             </p>
-            {/* How far through the deck, and when the rest will have come in. */}
-            <div className="mt-2.5 h-1.5 max-w-[360px] overflow-hidden rounded-full bg-muted" role="img" aria-label={`${Math.round(done * 100)}% of the deck learned`}>
+            {/* How far through the deck, and when the rest will have come in; once it's all in, how much of it is mastered. */}
+            <div className="mt-2.5 h-1.5 max-w-[360px] overflow-hidden rounded-full bg-muted" role="img" aria-label={`${Math.round(done * 100)}% of the deck ${master ? 'mastered' : 'learned'}`}>
               <Fill value={done} className="bg-good" />
             </div>
             <p className="mt-2 text-[12.5px] tabular-nums text-ink-3">
-              {ahead.remaining > 0 ? (
+              {master ? (
+                "A card's mastered once you'd still know it three weeks on"
+              ) : ahead.remaining > 0 ? (
                 <>
                   At {settings.newPerDay} new a day you'll finish {filtered ? 'these cards' : 'the deck'} around {finishDate(ahead.days)}
                   {ahead.remaining <= LEARN_ALL_MAX && (
@@ -952,8 +964,14 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
           <div className="w-full">
             <Numbers
               items={[
-                { value: <CountUp to={insight.recall.recalled} />, label: "you'd get right now", sub: `of ${insight.recall.learned.toLocaleString()} started` },
-                { value: <CountUp to={insight.started} />, label: 'places started', sub: `of ${NOTES.length}` },
+                {
+                  value: insight.recall.learned ? <><CountUp to={chance} />%</> : '–',
+                  label: "chance you'd get a card right now",
+                  sub: insight.recall.learned ? (n ? `${n} below 90%` : 'none below 90%') : undefined,
+                },
+                master
+                  ? { value: <CountUp to={insight.answers} />, label: 'answers', sub: `${(insight.answers / learned).toFixed(1).replace(/\.0$/, '')} a card` }
+                  : { value: <CountUp to={insight.started} />, label: 'places started', sub: `of ${NOTES.length}` },
                 { value: duration(insight.time.ms), label: 'spent studying', sub: insight.time.perCard ? `${Math.round(insight.time.perCard / 1000)}s a card` : undefined },
               ]}
             />
@@ -974,9 +992,13 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
               </button>
             }
           >
-            Closest to finishing
+            {master ? 'Closest to mastered' : 'Closest to finishing'}
           </Heading>
-          {insight.closest.length ? <Closest items={insight.closest} onOpen={showSet} /> : <p className="text-[13.5px] text-ink-3">Every set is under way.</p>}
+          {insight.closest.length ? (
+            <Closest items={insight.closest} onOpen={showSet} />
+          ) : (
+            <p className="text-[13.5px] text-ink-3">{master ? 'Every set is mastered.' : 'Every set is under way.'}</p>
+          )}
         </section>
 
         <section className={`mt-8 [grid-area:kinds] dash:mt-0 dash:flex dash:flex-col ${TILE}`}>

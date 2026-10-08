@@ -1,5 +1,6 @@
 import type { CardRow, RevlogRow } from './db'
 import { ALL_CARDS, CARD_BY_ID, KINDS, NOTES, REGIONS, regionLabel, type CardType, type DeckCard } from './deck'
+import { isMature } from './progress'
 import { dayKey, recall, State } from './scheduler'
 
 const DAY_MS = 86_400_000
@@ -15,7 +16,7 @@ export function recallNow(rows: Map<string, CardRow>, now = new Date()) {
     count++
     recalled += recall(r, now)
   }
-  return { learned: count, recalled: Math.round(recalled) }
+  return { learned: count, recalled: Math.round(recalled), chance: count ? recalled / count : 0 }
 }
 
 /** Places with at least one card answered. */
@@ -114,6 +115,8 @@ const PARENT = new Map(
 export const NESTED = CONTINENTS.map((c) => ({ region: c, within: SUBREGIONS.filter((r) => PARENT.get(r) === c) }))
 
 export type DeckSet = { key: string; label: string; region: string; type: CardType; cards: DeckCard[]; done: number; left: DeckCard[] }
+/** What a set's progress counts: its cards started, then, once the whole deck is under way, its cards mastered. */
+export type Goal = 'start' | 'master'
 
 /** Smaller than this, a region's cards of one kind aren't a set. */
 const MIN_SET = 5
@@ -122,20 +125,20 @@ const MIN_SET = 5
  * Every set, one region and one kind of card each: all of South America's flags, all the Caribbean's capitals. The
  * whole deck's flags, maps and so on come first, and the seas and continents, which only have maps, last.
  */
-export function sets(rows: Map<string, CardRow>): Map<string, DeckSet> {
+export function sets(rows: Map<string, CardRow>, goal: Goal = 'start'): Map<string, DeckSet> {
   const out = new Map<string, DeckSet>()
   for (const region of [WHOLE, ...REGIONS, ...BEYOND])
     for (const type of TYPES) {
       const cards = ALL_CARDS.filter((c) => c.type === type && (region === WHOLE || c.note.tags.includes(region))).sort((a, b) => a.note.country.localeCompare(b.note.country))
       if (cards.length < MIN_SET) continue
-      const left = cards.filter((c) => !learned(rows.get(c.id)))
+      const left = cards.filter((c) => (goal === 'master' ? !isMature(rows.get(c.id)) : !learned(rows.get(c.id))))
       out.set(`${region}:${type}`, { key: `${region}:${type}`, label: setName(region, type), region, type, cards, done: cards.length - left.length, left })
     }
   return out
 }
 
 /**
- * The sets nearest finished: fewest cards left to start, then furthest along. One whose last cards would finish a set
+ * The sets nearest finished: fewest cards left to start (or master), then furthest along. One whose last cards would finish a set
  * already picked is left out, so Europe's flags and the EU's don't both wait on the same flag.
  */
 export function closest(all: Map<string, DeckSet>, n = 3) {

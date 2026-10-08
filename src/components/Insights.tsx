@@ -2,7 +2,7 @@ import { Check, Flag, Globe, Landmark, MapPin } from 'lucide-react'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import type { CardType } from '../lib/deck'
-import { BEYOND, NESTED, SET_WORD, STRENGTHS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type TypeStat } from '../lib/insights'
+import { BEYOND, NESTED, SET_WORD, STRENGTHS, TYPES, WHOLE, regionShort, type DayStat, type DeckSet, type Goal, type TypeStat } from '../lib/insights'
 import { dayKey } from '../lib/scheduler'
 
 /** Fill opacity of the good colour for each step of more; step 0 is empty. Matches the map. */
@@ -227,10 +227,11 @@ const mix = (share: number) => `color-mix(in oklab, var(--color-good) ${Math.rou
 /**
  * Every set at a glance: regions down the side (each continent with the smaller regions within it), kinds of card
  * across. Each cell is how many cards are left to start over a thin line of how far along it is, or a check once all
- * of it is under way. Point at one for its full count; tap it to see its places.
+ * of it is under way (or, once the whole deck is, mastered). Point at one for its full count; tap it to see its places.
  */
-export function SetsGrid({ sets, onOpen, selected, lead }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void; selected?: string; lead?: React.ReactNode }) {
+export function SetsGrid({ sets, onOpen, selected, lead, goal = 'start' }: { sets: Map<string, DeckSet>; onOpen: (key: string) => void; selected?: string; lead?: React.ReactNode; goal?: Goal }) {
   const [sel, setSel] = useState<string | null>(null)
+  const done = goal === 'master' ? 'mastered' : 'started'
   // Narrower number columns on a phone, so the region names fit.
   const cols = 'grid-cols-[minmax(0,1fr)_repeat(4,minmax(2.25rem,2.625rem))] sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(2.75rem,3.75rem))]'
   const all = [...sets.values()].filter((s) => s.region !== WHOLE)
@@ -257,7 +258,7 @@ export function SetsGrid({ sets, onOpen, selected, lead }: { sets: Map<string, D
             onPointerEnter={(e) => e.pointerType === 'mouse' && setSel(s.key)}
             onFocus={() => setSel(s.key)}
             onBlur={() => setSel((k) => (k === s.key ? null : k))}
-            aria-label={`${s.label}: ${s.done} of ${s.cards.length} started`}
+            aria-label={`${s.label}: ${s.done} of ${s.cards.length} ${done}`}
             aria-pressed={selected === undefined ? undefined : on}
             className={`flex h-8 flex-col items-center justify-center gap-[5px] rounded-lg px-2 outline-offset-1 transition-colors dash:h-[clamp(1.25rem,calc(4.2vh_-_8px),2rem)] dash:gap-1 ${on ? 'bg-muted' : 'hover:bg-subtle'} ${sel === s.key ? 'outline outline-[1.5px] outline-ink-3' : ''}`}
           >
@@ -284,10 +285,10 @@ export function SetsGrid({ sets, onOpen, selected, lead }: { sets: Map<string, D
               <span className="text-ink-2">
                 {regionShort(hovered.region)} · {SET_WORD[hovered.type]}
               </span>{' '}
-              · {hovered.done === hovered.cards.length ? `all ${hovered.cards.length} started` : `${hovered.done} of ${hovered.cards.length} started`}
+              · {hovered.done === hovered.cards.length ? `all ${hovered.cards.length} ${done}` : `${hovered.done} of ${hovered.cards.length} ${done}`}
             </>
           ) : (
-            `${finished} of ${all.length} finished · numbers are cards left to start`
+            `${finished} of ${all.length} ${goal === 'master' ? 'mastered · numbers are cards left to master' : 'finished · numbers are cards left to start'}`
           )}
         </p>
       </div>

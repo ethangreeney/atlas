@@ -56,7 +56,7 @@ export function CountUp({ to }: { to: number }) {
 
 /** Three headline numbers side by side, each centred in its third. */
 export const Numbers = ({ items }: { items: { value: React.ReactNode; label: string; sub?: string }[] }) => (
-  <div className="grid grid-cols-3 divide-x divide-line">
+  <div className="grid grid-cols-[1.25fr_1fr_1fr] divide-x divide-line">
     {items.map((x) => (
       <div key={x.label} className="min-w-0 px-2 text-center sm:px-4 dash:px-3">
         <div className="whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums sm:text-[24px]">{x.value}</div>
@@ -190,7 +190,7 @@ export const TypeIcon = ({ type, size = 14 }: { type: CardType; size?: number })
 }
 
 /** Per card type: how often you remember one when it comes back. */
-export function Types({ stats, className = '' }: { stats: TypeStat[]; className?: string }) {
+export function Types({ stats, goal = 'start', className = '' }: { stats: TypeStat[]; goal?: Goal; className?: string }) {
   // Only a clear best and worst get a colour: one type alone at the top (or bottom) once rounded.
   const shown = stats.flatMap((s) => (s.recall === null ? [] : [Math.round(s.recall * 100)]))
   const only = (v: number) => shown.filter((x) => x === v).length === 1
@@ -202,7 +202,8 @@ export function Types({ stats, className = '' }: { stats: TypeStat[]; className?
         const { label, Icon } = TYPE_META[s.type]
         const r = s.recall === null ? null : Math.round(s.recall * 100)
         return (
-          <li key={s.type}>
+          // In a dashboard tile each kind gets an equal band, ruled off from the next.
+          <li key={s.type} className="dash:flex dash:flex-1 dash:flex-col dash:justify-center dash:py-1.5">
             <div className="flex items-baseline gap-2 text-[13.5px]">
               <Icon size={14} strokeWidth={1.75} className="shrink-0 translate-y-[2px] text-ink-3" />
               <span className="min-w-0 flex-1 truncate text-ink">{label}</span>
@@ -213,6 +214,10 @@ export function Types({ stats, className = '' }: { stats: TypeStat[]; className?
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
               {r !== null && <Fill value={r / 100} className={r === best ? 'bg-good' : r === worst ? 'bg-again' : 'bg-ink-3'} delay={i * 0.06} />}
+            </div>
+            {/* In a dashboard tile, only when there's height for it. */}
+            <div className="mt-1 text-[12px] tabular-nums text-ink-3 dash:hidden dash:[@container(min-height:16.5rem)]:block">
+              {goal === 'master' ? `${s.mastered.toLocaleString()} of ${s.total.toLocaleString()} mastered` : `${s.learned.toLocaleString()} of ${s.total.toLocaleString()} learned`}
             </div>
           </li>
         )
@@ -322,11 +327,11 @@ export function SetsGrid({ sets, onOpen, selected, lead, goal = 'start' }: { set
  * The cards you've answered by how long each would hold if you stopped studying today, as one bar: paler for the
  * ones that would slip within days, darker for the ones that would last. Point at a part for its count.
  */
-export function Strength({ counts, month, year }: { counts: number[]; month: number; year: number }) {
+export function Strength({ counts, month, year, className = '' }: { counts: number[]; month: number; year: number; className?: string }) {
   const reduce = useReducedMotion()
   const [sel, setSel] = useState<number | null>(null)
   return (
-    <div>
+    <div className={className}>
       <motion.div
         className="flex h-2.5 origin-left gap-[2px]"
         initial={reduce ? false : { scaleX: 0 }}
@@ -349,16 +354,17 @@ export function Strength({ counts, month, year }: { counts: number[]; month: num
             ),
         )}
       </motion.div>
-      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-3">
+      {/* A row of keys; in a dashboard tile, two columns with the counts lined up. */}
+      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-3 dash:mt-3 dash:grid dash:grid-cols-2 dash:gap-x-8 dash:gap-y-1.5">
         {STRENGTHS.map((s, i) => (
           <span key={s.label} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: tint(i + 1) }} />
             {s.label}
-            <span className="tabular-nums text-ink-2">{counts[i].toLocaleString()}</span>
+            <span className="tabular-nums text-ink-2 dash:ml-auto">{counts[i].toLocaleString()}</span>
           </span>
         ))}
       </div>
-      <p className="mt-2 min-h-[2lh] text-balance text-[13px] leading-snug tabular-nums text-ink-2 sm:min-h-[1lh]" aria-live="polite">
+      <p className="mt-2 min-h-[2lh] text-balance text-[13px] leading-snug tabular-nums text-ink-2 sm:min-h-[1lh] dash:mt-auto dash:pt-3" aria-live="polite">
         {sel !== null ? (
           <>
             <span className="font-medium text-ink">{counts[sel].toLocaleString()}</span> {STRENGTHS[sel].says}.

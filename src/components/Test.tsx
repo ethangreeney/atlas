@@ -1,8 +1,8 @@
-import { ChevronLeft, X } from 'lucide-react'
+import { Check, ChevronLeft, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CardType } from '../lib/deck'
-import { check, type Verdict } from '../lib/answer'
+import { check, settled, type Verdict } from '../lib/answer'
 import { db, type TestRow } from '../lib/db'
 import { answerOf, kindOf, mediaUrl, regionLabel, type DeckCard } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
@@ -26,6 +26,10 @@ const PER_CARD = 5000
 const MIN_PER_CARD = 2000
 /** Images of the next few cards load ahead, so each one shows the moment it's reached. */
 const AHEAD = 3
+/** A right answer that could still grow into another name (Niger, Nigeria) moves on once typing stops this long. */
+const PAUSE_MS = 700
+/** Keys this soon after a card moves on by itself are the end of its answer typed on, not the start of the next. */
+const SPILL_MS = 250
 const TOKEN = 'atlas-test'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -473,7 +477,7 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
         </div>
       )}
       <p className="mt-6 max-w-[48ch] text-[13px] leading-relaxed text-ink-3">
-        Type each answer and press Enter: small spelling slips still count, and Enter on its own skips. The clock starts with the first card, and every answer counts as a review.
+        A right answer moves on as soon as it's typed. Enter gives anything else, and small spelling slips still count; Enter on its own skips. The clock starts with the first card, and every answer counts as a review.
       </p>
       <div className="mt-auto pt-8">
         <button
@@ -489,7 +493,7 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
 }
 
 
-const Label = ({ children }: { children: React.ReactNode }) => <div className="text-[12.5px] font-medium text-ink-3">{children}</div>
+const Label = ({ children }: { children: React.ReactNode }) => <div className="text-[14px] text-ink-3">{children}</div>
 const Big = ({ children }: { children: React.ReactNode }) => (
   <div className="text-balance text-[clamp(26px,4.6vw,38px)] font-semibold leading-[1.1] tracking-[-0.02em] text-ink">{children}</div>
 )
@@ -526,16 +530,17 @@ function Prompt({ card }: { card: DeckCard }) {
   }
 }
 
-/** The answer just given, under the box: a tick and the answer, or what it was instead. */
+/** The card just answered, under the box: what it was, and what you wrote when that wasn't quite it. */
 const Last = ({ a }: { a: Answer }) => {
-  const answer = answerOf(a.card)
-  if (a.verdict === 'right') return <span className="text-good">✓ {answer}</span>
-  if (a.verdict === 'close') return <span className="text-hard">✓ Spelled {answer}</span>
+  const asked = a.card.type === 'capital' || a.card.type === 'country' ? askedAbout(a.card) : null
+  const Icon = a.verdict === 'wrong' ? X : Check
   return (
-    <span className="text-ink-2">
-      {a.typed ? <s className="text-again">{a.typed}</s> : <span className="text-again">Skipped</span>}
-      <span className="text-ink-3"> · it was </span>
-      {answer}
+    // Wraps rather than cuts off, so a long name on a phone still ends with what you wrote.
+    <span className="max-w-full text-balance text-center text-[13px] leading-snug text-ink-3">
+      <Icon size={14} strokeWidth={2.5} className={`mr-2 inline -translate-y-px ${a.verdict === 'right' ? 'text-good' : a.verdict === 'close' ? 'text-hard' : 'text-again'}`} aria-label={a.verdict === 'wrong' ? 'Wrong' : a.verdict === 'close' ? 'Misspelt' : 'Right'} />
+      {asked && <>{asked} · </>}
+      <span className="text-ink">{answerOf(a.card)}</span>
+      {a.verdict !== 'right' && <> · {a.typed ? <>you wrote {a.verdict === 'wrong' ? <s>{a.typed}</s> : a.typed}</> : 'skipped'}</>}
     </span>
   )
 }
@@ -563,6 +568,7 @@ function Runner({
   const [now, setNow] = useState(Date.now())
   const input = useRef<HTMLInputElement>(null)
   const done = useRef(false)
+  const moved = useRef(0)
   const i = answers.length
   const card = run.order[i]
   const total = run.order.length
@@ -596,8 +602,21 @@ function Runner({
     }
   }
 
+  // A right answer moves on by itself, so only a wrong or misspelt one needs Enter.
+  useEffect(() => {
+    const when = card && !quitting ? settled(text, card) : null
+    if (when === 'now') {
+      moved.current = Date.now()
+      submit()
+    }
+    if (when !== 'soon') return
+    const t = setTimeout(submit, PAUSE_MS)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, i, quitting])
+
   const kind = card ? kindOf(card.note) : 'sovereign'
-  const placeholder = card?.type === 'capital' ? 'Capital…' : kind === 'sea' || kind === 'continent' ? 'Name…' : 'Country…'
+  const placeholder = card?.type === 'capital' ? 'Type the capital' : kind === 'sea' || kind === 'continent' ? 'Type the name' : 'Type the country'
   const last = answers[answers.length - 1]
   return (
     <div className="flex min-h-full flex-col">
@@ -647,32 +666,37 @@ function Runner({
               <Prompt card={card} />
             </div>
             <form
-              className="flex w-[min(320px,100%)] flex-col items-center"
+              className="flex w-[min(360px,100%)] flex-col items-center gap-3.5"
               onSubmit={(e) => {
                 e.preventDefault()
                 submit()
               }}
             >
-              <input
-                ref={input}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={placeholder}
-                aria-label="Your answer"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="words"
-                spellCheck={false}
-                enterKeyHint="next"
-                className="w-full select-text border-b border-line bg-transparent pb-1.5 text-center text-[19px] font-medium text-ink outline-none transition-colors placeholder:font-normal placeholder:text-ink-3 focus:border-ink-3"
-              />
-              <div className="mt-3 flex min-h-[1lh] w-full items-baseline justify-between gap-3 text-[13px]">
-                <span className="min-w-0 truncate" aria-live="polite">
-                  {last && <Last a={last} />}
-                </span>
-                <button type="button" onClick={submit} className="relative shrink-0 text-ink-3 transition-colors after:absolute after:-inset-x-3 after:-inset-y-3 hover:text-ink">
-                  {text.trim() ? 'Enter' : 'Skip'}
+              <div className="relative w-full">
+                <input
+                  ref={input}
+                  value={text}
+                  onChange={(e) => Date.now() - moved.current > SPILL_MS && setText(e.target.value)}
+                  placeholder={placeholder}
+                  aria-label="Your answer"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="words"
+                  spellCheck={false}
+                  enterKeyHint="next"
+                  className="h-12 w-full select-text rounded-xl border border-line bg-subtle px-[4.5rem] text-center text-[18px] font-medium text-ink outline-none transition-colors placeholder:font-normal placeholder:text-ink-3 focus:border-ink-3 pointer-coarse:h-13"
+                />
+                <button
+                  type="button"
+                  onClick={submit}
+                  className="absolute inset-y-1.5 right-1.5 flex items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] text-ink-3 transition-colors hover:bg-muted hover:text-ink"
+                >
+                  {text.trim() ? 'Submit' : 'Skip'}
+                  <kbd className="pointer-coarse:hidden">↵</kbd>
                 </button>
+              </div>
+              <div className="flex min-h-5 w-full justify-center" aria-live="polite">
+                {last && <Last key={i} a={last} />}
               </div>
             </form>
           </div>

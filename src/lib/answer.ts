@@ -113,6 +113,7 @@ const ALSO_CAPITAL: Record<string, string[]> = {
   'Sri Lanka': ['Colombo'],
   'Equatorial Guinea': ['Malabo'],
   Eswatini: ['Lobamba'],
+  Palestine: ['Ramallah'],
 }
 
 /**
@@ -244,4 +245,17 @@ export function check(typed: string, card: DeckCard): Verdict {
   const rivals = card.type === 'capital' ? CAPITAL_RIVALS : COUNTRY_RIVALS
   if (rivals.some((r) => !ok.includes(r) && slip(t, r) <= d)) return 'wrong'
   return 'close'
+}
+
+/** Every name a test could be typed towards: any card's answer and the places that aren't one. */
+const ALL_NAMES = [...KNOWN]
+
+/**
+ * Whether a typed answer is finished and right, so a test can move on without Enter. `now` when nothing longer
+ * starts with it; `soon` when something does (Niger, on the way to Nigeria), so it waits for typing to stop.
+ */
+export function settled(typed: string, card: DeckCard): 'now' | 'soon' | null {
+  const t = normalize(typed)
+  if (!t || !accepted(card).includes(t)) return null
+  return ALL_NAMES.some((n) => n.length > t.length && n.startsWith(t)) ? 'soon' : 'now'
 }

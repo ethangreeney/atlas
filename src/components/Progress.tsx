@@ -42,6 +42,8 @@ const DOT_BELOW = 9
 const DOT_R = 4
 const HIT_R = 11
 const DOT_GAP = 14
+/** Zoomed in, a click with no place this many px from it zooms back out to the world. */
+const CLEAR_PX = 16
 const COUNTRIES = NOTES.filter((n) => kindOf(n) === 'sovereign')
 const COUNTRY_IDS = new Set(COUNTRIES.map((n) => n.id))
 /** Fill opacity of the good colour for each mastery step; step 0 is plain land. */
@@ -335,6 +337,14 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
     setHoverRegion(null)
   }
 
+  /** Nothing to tap within a fingertip of this point: open sea, say, rather than a near miss of a coast or an island. */
+  const clear = (x: number, y: number) =>
+    [CLEAR_PX / 2, CLEAR_PX].every((r) =>
+      Array.from({ length: 8 }, (_, k) => document.elementFromPoint(x + r * Math.cos((k * Math.PI) / 4), y + r * Math.sin((k * Math.PI) / 4))).every(
+        (el) => !el || !svgRef.current?.contains(el) || !el.hasAttribute('data-id'),
+      ),
+    )
+
   /** The region under the pointer: the place it's on, or failing that the nearest one close by. */
   const regionAt = (e: React.PointerEvent | React.MouseEvent) => {
     const id = idOf(e)
@@ -382,9 +392,10 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
             return
           }
           const id = idOf(e)
-          if (!id) return
-          setHover(null)
-          onPick(id)
+          if (id) {
+            setHover(null)
+            onPick(id)
+          } else if (e.detail > 0 && clear(e.clientX, e.clientY)) onRegion(null)
         }}
       >
         <path d={WORLD.rest} className="fill-muted-2" />
@@ -922,7 +933,6 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
     )
   else if (rows && levels && ahead && insight) {
     const master = insight.goal === 'master'
-    const done = (master ? insight.mastered : learned) / ALL_CARDS.length
     const n = insight.slipping.length
     const chance = Math.round(insight.recall.chance * 100)
     body = (
@@ -933,12 +943,27 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
               {streak ? `${streak}-day streak` : 'Progress'}
             </h2>
             <p className="mt-1.5 text-[13.5px] tabular-nums text-ink-2">
-              {(master ? insight.mastered : learned).toLocaleString()} of {ALL_CARDS.length.toLocaleString()} cards {master ? 'mastered' : 'learned'}
+              {master ? `All ${ALL_CARDS.length.toLocaleString()} cards learned` : `${learned.toLocaleString()} of ${ALL_CARDS.length.toLocaleString()} cards learned`}
+              {(master || insight.mastered > 0) && (
+                <>
+                  {' · '}
+                  <span className="whitespace-nowrap text-ink">{insight.mastered.toLocaleString()} mastered</span>
+                </>
+              )}
               {streak === 0 ? ' · study today to start a streak' : ''}
             </p>
-            {/* How far through the deck, and when the rest will have come in; once it's all in, how much of it is mastered. */}
-            <div className="mt-2.5 h-1.5 max-w-[360px] overflow-hidden rounded-full bg-muted" role="img" aria-label={`${Math.round(done * 100)}% of the deck ${master ? 'mastered' : 'learned'}`}>
-              <Fill value={done} className="bg-good" />
+            {/* Learned, faint, with mastered in full over it: the first finishes in weeks, the second takes months. */}
+            <div
+              className="relative mt-2.5 h-1.5 max-w-[360px] overflow-hidden rounded-full bg-muted"
+              role="img"
+              aria-label={`${Math.round((learned / ALL_CARDS.length) * 100)}% of the deck learned, ${Math.round((insight.mastered / ALL_CARDS.length) * 100)}% mastered`}
+            >
+              <div className="absolute inset-0">
+                <Fill value={learned / ALL_CARDS.length} className="bg-good/30" />
+              </div>
+              <div className="absolute inset-0">
+                <Fill value={insight.mastered / ALL_CARDS.length} className="bg-good" delay={0.15} />
+              </div>
             </div>
             <p className="mt-2 text-[12.5px] tabular-nums text-ink-3">
               {master ? (
@@ -1022,13 +1047,13 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
 
         <section className={`mt-8 [grid-area:kinds] dash:mt-0 dash:flex dash:flex-col ${TILE}`}>
           <Heading>By kind of card</Heading>
-          <Types stats={insight.types} className="dash:flex dash:flex-1 dash:flex-col dash:justify-around dash:space-y-0" />
+          <Types stats={insight.types} goal={insight.goal} className="dash:-mb-1.5 dash:flex dash:flex-1 dash:flex-col dash:space-y-0 dash:divide-y dash:divide-line dash:[container-type:size]" />
         </section>
 
         {insight.curve.total > 0 && (
-          <section className={`mt-8 [grid-area:last] dash:mt-0 ${TILE}`}>
+          <section className={`mt-8 [grid-area:last] dash:mt-0 dash:flex dash:flex-col ${TILE}`}>
             <Heading>How long they'll last</Heading>
-            <Strength counts={insight.strength} month={insight.curve.month} year={insight.curve.year} />
+            <Strength counts={insight.strength} month={insight.curve.month} year={insight.curve.year} className="dash:flex dash:flex-1 dash:flex-col" />
           </section>
         )}
 

@@ -58,7 +58,7 @@ export function days(logs: RevlogRow[]) {
   return out
 }
 
-export type TypeStat = { type: CardType; learned: number; total: number; reviews: number; recall: number | null }
+export type TypeStat = { type: CardType; learned: number; mastered: number; total: number; reviews: number; recall: number | null }
 /** Below this many reviews a type's recall rate is noise. */
 const MIN_REVIEWS = 10
 
@@ -75,6 +75,7 @@ export function byType(rows: Map<string, CardRow>, logs: RevlogRow[], now = new 
     return {
       type,
       learned: cards.filter((c) => learned(rows.get(c.id))).length,
+      mastered: cards.filter((c) => isMature(rows.get(c.id))).length,
       total: cards.length,
       reviews: reviews.length,
       recall: reviews.length >= MIN_REVIEWS ? right / reviews.length : null,

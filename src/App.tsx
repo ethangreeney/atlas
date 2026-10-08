@@ -24,6 +24,9 @@ import { zoom } from './lib/zoom'
 const PILE_ROTATE = [-10, -3, 3, 10]
 /** The grade a typed answer points to. */
 const SUGGEST = { right: Rating.Good, close: Rating.Hard, wrong: Rating.Again } as const
+/** A typed answer that's right goes to Good by itself after this long (longer while its name is read out). */
+const AUTO_MS = 1400
+const AUTO_SPOKEN_MS = 2400
 const Progress = lazy(() => import('./components/Progress'))
 const Test = lazy(() => import('./components/Test'))
 
@@ -45,6 +48,8 @@ export default function App() {
   const [pileCounts, setPileCounts] = useState<[number, number, number, number]>([0, 0, 0, 0])
   const [answer, setAnswer] = useState('')
   const [typed, setTyped] = useState<Typed | null>(null)
+  /** Right answer typed: Good goes by itself after this many ms, unless anything else happens first. */
+  const [auto, setAuto] = useState<number | null>(null)
 
   const stageRef = useRef<HTMLDivElement>(null)
   const pileRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -58,6 +63,7 @@ export default function App() {
     setShown({ id: card?.id, seq })
     setAnswer('')
     setTyped(null)
+    setAuto(null)
     if (shown.seq === seq) {
       setFlipped(false)
       setShowMap(false)
@@ -119,7 +125,9 @@ export default function App() {
   const flip = useCallback(() => {
     if (!card || flipped || busy) return
     const text = settings.typeAnswers ? answer.trim() : ''
-    if (text) setTyped({ kind: check(text, card), text })
+    const kind = text ? check(text, card) : null
+    if (kind) setTyped({ kind, text })
+    if (kind === 'right') setAuto(settings.autoplay ? AUTO_SPOKEN_MS : AUTO_MS)
     setFlipped(true)
     if (settings.autoplay) speak(answerOf(card))
   }, [card, flipped, busy, settings.autoplay, settings.typeAnswers, answer])
@@ -162,6 +170,21 @@ export default function App() {
   // Easy on a card seen for the first time can only mean it was already known.
   const doGrade = useCallback((g: Grade) => flipped && send(g, isNew && g === Rating.Easy), [flipped, isNew, send])
   const know = useCallback(() => isNew && send(Rating.Easy, true), [isNew, send])
+
+  // A right typed answer moves on as Good by itself. Any tap or key first (another grade, a look at the map) stops that;
+  // Space and Enter still grade Good straight away.
+  useEffect(() => {
+    if (!auto || !flipped) return
+    const t = setTimeout(() => doGrade(Rating.Good), auto)
+    const stop = () => setAuto(null)
+    window.addEventListener('pointerdown', stop, true)
+    window.addEventListener('keydown', stop, true)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('pointerdown', stop, true)
+      window.removeEventListener('keydown', stop, true)
+    }
+  }, [auto, flipped, doGrade])
 
   const doUndo = useCallback(() => {
     if (!canUndo || busy) return
@@ -348,7 +371,7 @@ export default function App() {
           </div>
           <div className="w-[min(560px,100%)]">
             {card ? (
-              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} />
+              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} auto={auto} />
             ) : (
               <div className="h-16 short:hidden" />
             )}
@@ -364,7 +387,7 @@ export default function App() {
             <Welcome />
             <span className="mx-1 hidden lg:inline">·</span>
             <span className="hidden items-center gap-2 lg:flex">
-            <kbd>space</kbd> flip <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
+            <kbd>space</kbd> show <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
             <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress <span className="mx-1">·</span> <kbd>t</kbd> tests
             </span>
           </div>

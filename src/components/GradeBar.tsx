@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useRef } from 'react'
 import type { Grade } from 'ts-fsrs'
 import { GRADES, Rating } from '../lib/scheduler'
 
@@ -12,7 +13,12 @@ type Props = {
   suggested?: Grade | null
   /** First sight of the card: Easy means "knew it" and sends it a month or two out. */
   isNew?: boolean
+  /** A typed answer that was right: Good goes by itself after this many ms, unless something else is chosen first. */
+  auto?: number | null
 }
+
+/** Taps this soon after the grades appear are the end of a double tap on Show answer, not a grade. */
+const SETTLE_MS = 350
 
 const button =
   'rounded-2xl bg-surface text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)] transition-[box-shadow,transform,background-color] duration-100 hover:bg-subtle hover:shadow-[0_0_0_1px_var(--color-edge-strong),0_1px_2px_var(--color-drop)] active:scale-[0.98] disabled:pointer-events-none'
@@ -25,7 +31,11 @@ const SUGGESTED = [
   'text-easy! shadow-[0_0_0_1.5px_var(--color-easy)]!',
 ]
 
-export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew }: Props) {
+export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew, auto }: Props) {
+  const shownAt = useRef(0)
+  useEffect(() => {
+    if (flipped) shownAt.current = Date.now()
+  }, [flipped])
   return (
     <div className="relative h-16 w-full short:h-12">
       <AnimatePresence mode="wait" initial={false}>
@@ -44,11 +54,21 @@ export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, sugges
                 <button
                   key={g.key}
                   disabled={disabled}
-                  onClick={() => onGrade(g.grade)}
-                  className={`${button} flex flex-col items-center justify-center gap-0.5 ${suggested === g.grade ? SUGGESTED[i] : ''}`}
+                  onClick={() => Date.now() - shownAt.current > SETTLE_MS && onGrade(g.grade)}
+                  className={`${button} relative flex flex-col items-center justify-center gap-0.5 overflow-hidden ${suggested === g.grade ? SUGGESTED[i] : ''}`}
                 >
                   <span className="text-[14px] font-medium">{knew ? 'Knew it' : g.label}</span>
                   <span className="text-[12px] tabular-nums text-ink-3">{knew ? '1–2mo' : intervals[i]}</span>
+                  {/* Filling up to the moment Good goes by itself. */}
+                  {auto && g.grade === Rating.Good && (
+                    <motion.span
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-[3px] origin-left bg-good"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: auto / 1000, ease: 'linear' }}
+                    />
+                  )}
                 </button>
               )
             })}

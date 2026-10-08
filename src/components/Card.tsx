@@ -1,5 +1,5 @@
 import { Check, ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
-import { motion, useDragControls, type Variants } from 'motion/react'
+import { motion, useDragControls, useMotionValue, useTransform, type Variants } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
 import type { Verdict } from '../lib/answer'
@@ -14,8 +14,10 @@ export type ExitTarget = { x: number; y: number; rotate: number }
 const EASE = [0.2, 0.8, 0.2, 1] as const
 // Debug/filming: ?slow=4 stretches the reveal and fly-away animations 4x.
 const SLOW = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('slow')) || 1 : 1
-/** How far a flipped card has to be swiped (plus a bit for a flick) to grade it. */
+/** How far a shown card has to be swiped (plus a bit for a flick) to grade it. */
 const SWIPE = 90
+/** Taps this soon after the answer comes in are a double tap on Show answer, not a wish to hide it again. */
+export const SETTLE_MS = 350
 
 const variants: Variants = {
   enter: { opacity: 0, scale: 0.97, y: 12, x: 0, rotate: 0, zIndex: 10 },
@@ -394,7 +396,8 @@ const Action = ({ label, onClick, href, children }: { label: string; onClick?: (
 const face = 'card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-surface text-center'
 /** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen, and then fades at the
  * edge with more to see. On a wide short screen it keeps clear of the corner tag and buttons. */
-const body = 'flex max-h-full w-full flex-col items-center overflow-y-auto scroll-fade px-8 py-6 short:py-3 sm:short:px-24'
+const body = (up: boolean) =>
+  `flex max-h-full w-full flex-col items-center overflow-y-auto scroll-fade px-8 pt-6 transition-[padding] ${GLIDE} short:pt-3 sm:short:px-24 ${up ? 'pb-10' : 'pb-6 short:pb-3'}`
 
 export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed }: Props) {
   const tag = stateTag(row)
@@ -406,6 +409,16 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
   const answerUp = flipped && turns % 2 === 0
   // A swipe that doesn't go far enough to grade springs back; its pointer-up mustn't also count as a tap.
   const dragged = useRef(false)
+  const shownAt = useRef(0)
+  useEffect(() => {
+    if (answerUp) shownAt.current = Date.now()
+  }, [answerUp])
+  // While swiped, the card leans the way it's going and names the pile it'll land on.
+  const swipe = useMotionValue(0)
+  const lean = useTransform(swipe, [-200, 0, 200], [-6, 0, 6])
+  const toGood = useTransform(swipe, [12, SWIPE], [0, 1])
+  const toAgain = useTransform(swipe, [-12, -SWIPE], [0, 1])
+  const [swiping, setSwiping] = useState(false)
   // Once the answer's shown, the answer box lets go of the keyboard so Enter and the number keys grade.
   useEffect(() => {
     if (flipped && document.activeElement instanceof HTMLInputElement && self.current?.contains(document.activeElement)) document.activeElement.blur()
@@ -429,21 +442,36 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
       onPointerDown={(e) => flipped && e.pointerType !== 'mouse' && drag.start(e)}
       onDragStart={() => {
         dragged.current = true
+        setSwiping(true)
       }}
+      onDrag={(_, { offset }) => swipe.set(offset.x)}
       onDragEnd={(_, { offset, velocity }) => {
+        swipe.set(0)
+        setSwiping(false)
         const dx = offset.x + velocity.x * 0.15
         if (dx > SWIPE) onGrade(Rating.Good)
         else if (dx < -SWIPE) onGrade(Rating.Again)
       }}
     >
-      <div
+      <motion.div
         className={`${face} cursor-pointer select-none`}
+        style={{ rotate: lean }}
         onClick={() => {
           if (dragged.current) return void (dragged.current = false)
-          if (flipped) setTurns((t) => t + 1)
-          else onFlip()
+          if (!flipped) return onFlip()
+          if (Date.now() - shownAt.current > SETTLE_MS) setTurns((t) => t + 1)
         }}
       >
+        {swiping && (
+          <>
+            <motion.span aria-hidden style={{ opacity: toGood }} className="pointer-events-none absolute left-5 top-3.5 z-10 rounded-full bg-good px-2.5 py-1 text-[12px] font-semibold text-white">
+              Good
+            </motion.span>
+            <motion.span aria-hidden style={{ opacity: toAgain }} className="pointer-events-none absolute right-5 top-3.5 z-10 rounded-full bg-again px-2.5 py-1 text-[12px] font-semibold text-white">
+              Again
+            </motion.span>
+          </>
+        )}
         <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
         {typed && (
           <span className={`transition-opacity duration-300 ${answerUp ? 'opacity-100' : 'opacity-0'}`}>
@@ -451,7 +479,7 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
           </span>
         )}
         {/* A scroller sets its own touch-action, so it needs pan-y too or a swipe starting on the answer is lost. */}
-        <div className={`${body} touch-pan-y`}>
+        <div className={`${body(answerUp)} touch-pan-y`}>
           <Question card={card} up={answerUp} onSay={onSpeak} />
           {input && (
             <Fold open={!flipped}>
@@ -464,7 +492,7 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
             <Answer card={card} showMap={showMap} onSay={onSpeak} />
           </Fold>
         </div>
-        <div className={`absolute bottom-3 right-3 flex items-center gap-3 transition-opacity duration-300 ${answerUp ? 'opacity-100' : 'pointer-events-none opacity-0'}`} inert={!answerUp}>
+        <div className={`absolute bottom-2.5 right-2.5 flex items-center gap-2 transition-opacity duration-300 ${answerUp ? 'opacity-100' : 'pointer-events-none opacity-0'}`} inert={!answerUp}>
           {card.type !== 'map' && card.note.map && (
             <Action label={showMap ? 'Hide map (M)' : 'Show map (M)'} onClick={onToggleMap}>
               <MapIcon size={16} strokeWidth={1.75} className={showMap ? 'text-ink' : ''} />
@@ -474,7 +502,7 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
             <ExternalLink size={16} strokeWidth={1.75} />
           </Action>
         </div>
-      </div>
+      </motion.div>
       <div aria-live="polite" className="sr-only">
         {flipped ? `Answer: ${answerOf(card)}` : ''}
       </div>

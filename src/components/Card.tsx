@@ -239,15 +239,16 @@ const AnswerInput = ({ card, input }: { card: DeckCard; input: Input }) => {
 }
 
 /** Folds to nothing, or opens to its content's height, so everything around it glides instead of jumping. */
+/**
+ * Its room opens or closes over the whole reveal, but what's in it is only seen with room for all of it: coming in,
+ * it waits until the room is nearly open; going, it's gone before the room has closed much. Never sliced at the edge.
+ */
 const Fold = ({ open, rise, children }: { open: boolean; rise?: boolean; children: React.ReactNode }) => (
-  <div
-    className={`grid w-full transition-[grid-template-rows,opacity] ${GLIDE} ${open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-    inert={!open}
-  >
-    {/* Padded inside the fold, so a closed one leaves no gap, and shadows aren't clipped at its edges. */}
-    <div className="-mx-3 flex min-h-0 flex-col items-center gap-3 overflow-hidden px-3 short:gap-2">
+  <div className={`grid w-full transition-[grid-template-rows] ${GLIDE} ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`} inert={!open}>
+    {/* Padded inside the fold, so a closed one leaves no gap, and shadows (and the last of a rise) aren't clipped at its edges. */}
+    <div className={`-mx-3 flex min-h-0 flex-col items-center gap-3 overflow-hidden px-3 short:gap-2 ${rise ? '-mb-6 pb-6' : ''}`}>
       <div
-        className={`flex w-full flex-col items-center gap-3 short:gap-2 ${rise ? `origin-top pt-4 transition-transform ${GLIDE} short:pt-2 ${open ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[0.96]'}` : ''}`}
+        className={`flex w-full flex-col items-center gap-3 transition-[opacity,transform] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none short:gap-2 ${open ? 'opacity-100 [transition-delay:calc(var(--reveal)*0.4)] [transition-duration:calc(var(--reveal)*0.6)]' : 'opacity-0 [transition-duration:calc(var(--reveal)*0.25)]'} ${rise ? `origin-top pt-4 short:pt-2 ${open ? 'translate-y-0 scale-100' : 'translate-y-1.5 scale-[0.97]'}` : ''}`}
       >
         {children}
       </div>

@@ -7,8 +7,8 @@ import { loadStreak } from '../lib/streak'
 import { KeepProgress } from './KeepProgress'
 
 const GRADE_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
-/** How many new cards 'Learn more' adds to the day: a few, or a good batch. */
-const MORE = [10, 50]
+/** How many new cards 'Learn more' adds to the day. */
+const MORE = 10
 
 const Screen = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -23,6 +23,15 @@ const Screen = ({ children }: { children: React.ReactNode }) => (
 )
 const Title = ({ children }: { children: React.ReactNode }) => (
   <div className="text-balance text-[clamp(26px,4vw,34px)] font-semibold tracking-[-0.02em] text-ink short:text-[26px]">{children}</div>
+)
+/** A quiet second choice beside the button, in the same style as 'See your progress'. */
+const Link = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
+  <button
+    onClick={onClick}
+    className="relative text-[13px] text-ink-3 underline decoration-line underline-offset-4 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-ink hover:decoration-ink-3"
+  >
+    {children}
+  </button>
 )
 const Action = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
   <button
@@ -63,6 +72,8 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
     return () => clearInterval(t)
   }, [])
 
+  const more = queue.remainingNew > 0 && queue.unstarted > MORE
+  const all = queue.unstarted <= LEARN_ALL_MAX
   const waitMs = queue.nextLearningAt ? +queue.nextLearningAt - now : 0
   const next = queue.nextLearningAt
     ? waitMs > 0 && `next card in ${formatInterval(waitMs)}`
@@ -102,30 +113,21 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
           See your progress
         </button>
       )}
-      {/* Ten or fifty more, and once the end is in sight every card left at once; a batch no smaller than what's left is the same thing. */}
+      {/* One button: ten more, with every card left as a quiet second choice once the end is in sight (or the only one, when
+          ten would be all of them anyway). */}
       {queue.unstarted > 0 && (
-        <div className="flex flex-wrap justify-center gap-x-2">
-          {MORE.map(
-            (n) =>
-              queue.remainingNew > 0 &&
-              queue.unstarted > n && (
-                <Action key={n} onClick={() => onLearnMore(n)}>
-                  Learn {Math.min(n, queue.remainingNew)} more
-                </Action>
-              ),
-          )}
-          {queue.unstarted <= LEARN_ALL_MAX && <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>}
+        <div className="flex items-baseline justify-center gap-4">
+          {more ? <Action onClick={() => onLearnMore(MORE)}>Learn {Math.min(MORE, queue.remainingNew)} more</Action> : all && <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>}
+          {more && all && <Link onClick={onLearnAll}>or all {queue.unstarted}</Link>}
         </div>
       )}
       {/* Nothing left to learn: what's left is seeing how much has stuck, or the extra set. */}
-      {queue.unstarted === 0 && learned > 0 && (
-        <div className="flex flex-wrap justify-center gap-x-2">
-          <Action onClick={onOpenTests}>Take a test</Action>
-          {!settings.decks.includes('outlines') && <Action onClick={() => setSettings({ decks: [...settings.decks, 'outlines'] })}>Add the outline set</Action>}
-        </div>
-      )}
+      {queue.unstarted === 0 && learned > 0 && <Action onClick={onOpenTests}>Take a test</Action>}
       {queue.unstarted === 0 && learned > 0 && !settings.decks.includes('outlines') && (
-        <p className="max-w-[40ch] text-balance text-[12.5px] text-ink-3">An extra set beyond Ultimate Geography: {OUTLINE_CARDS.length} places from their shape alone.</p>
+        <p className="mt-1 max-w-[40ch] text-balance text-[12.5px] text-ink-3">
+          Or <Link onClick={() => setSettings({ decks: [...settings.decks, 'outlines'] })}>add the outline set</Link>: {OUTLINE_CARDS.length} more places, from their
+          shape alone.
+        </p>
       )}
       <KeepProgress learned={learned} />
     </Screen>

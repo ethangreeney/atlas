@@ -923,7 +923,7 @@ export default function Progress({ onClose, onDrill, onLearn }: Props) {
             </div>
             <p className="mt-2 text-[12.5px] tabular-nums text-ink-3">
               {master ? (
-                "A card's mastered once you'd still know it three weeks on"
+                "A card's mastered once you'd still know it three months on"
               ) : ahead.remaining > 0 ? (
                 <>
                   At {settings.newPerDay} new a day you'll finish {filtered ? 'these cards' : 'the deck'} around {finishDate(ahead.days)}

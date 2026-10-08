@@ -6,6 +6,7 @@
 // never change, so they're only ever added. /api/push stores daily reminder subscriptions; the separate worker in
 // reminders/ sends them.
 import deck from '../src/data/deck.json'
+import outlined from '../src/data/outline-ids.json'
 
 export interface Env {
   DB: D1Database
@@ -21,12 +22,14 @@ type RevlogKey = { cardId: string; review: number }
 type ParamsIn = { data: { w?: unknown; at?: unknown; reviews?: unknown }; updated: number }
 type TestIn = { id: unknown; data: { test?: unknown; finished?: unknown; ms?: unknown; total?: unknown; right?: unknown; missed?: unknown } | null }
 
-/** Every card id in the deck (mirrors src/lib/deck.ts). */
+/** Every card id in the deck, the outline set included (mirrors src/lib/deck.ts). */
+const OUTLINED = new Set<string>(outlined)
 const CARD_IDS = new Set(
   deck.notes.flatMap((n) => [
     ...(n.capital ? [`${n.id}:capital`, `${n.id}:country`] : []),
     ...(n.flag ? [`${n.id}:flag`] : []),
     ...(n.map ? [`${n.id}:map`] : []),
+    ...(OUTLINED.has(n.id) ? [`${n.id}:outline`] : []),
   ]),
 )
 const MAX_BODY = 1_000_000

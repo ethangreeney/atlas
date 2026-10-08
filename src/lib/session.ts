@@ -5,7 +5,7 @@ import type { Verdict } from './answer'
 import { ALL_CARDS, CARD_BY_ID, STUDY_CARDS, type DeckCard } from './deck'
 import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
 import { useSettings } from './settings'
-import { recordUndo, schedulePush } from './sync'
+import { recordUndo, restartOutlines, schedulePush } from './sync'
 import { reloadIfUpdated } from './update'
 
 /** A new card marked "Knew it" comes back in 30 to 60 days. */
@@ -96,6 +96,8 @@ export function useSession() {
     if (!navigator.userAgent.includes('Firefox')) void navigator.storage?.persisted?.().then((p) => p || navigator.storage.persist()).catch(() => {})
     ;(async () => {
       try {
+        // Before the first read, so the queue never shows the outline set as it was (see restartOutlines).
+        await restartOutlines().catch(() => {})
         const all = await db.cards.toArray()
         if (cancelled) return
         rows.current = new Map(all.map((r) => [r.id, r]))

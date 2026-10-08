@@ -1,5 +1,6 @@
+import { State } from 'ts-fsrs'
 import { api, authChanged, getAuth, setBeforeSignIn } from './auth'
-import { applyWeights, emptyDay, loadFitted, resetWeights, validWeights, type Fitted } from './scheduler'
+import { applyWeights, emptyDay, freshRow, loadFitted, resetWeights, validWeights, type Fitted } from './scheduler'
 import { db, type CardRow, type DayRow, type RevlogRow, type TestRow } from './db'
 import { CARD_BY_ID } from './deck'
 
@@ -7,6 +8,7 @@ const PULL_KEY = 'atlas.sync.pulled2' // server clock of the last pull (v2: also
 const DELETED_KEY = 'atlas.sync.deleted' // undone reviews not yet deleted on the server
 const OWNER_KEY = 'atlas.owner' // account whose progress is stored on this device; none = guest
 const FIT_SENT_KEY = 'atlas.fsrs.sent' // when the fit in use here was made, once the server has it
+const OUTLINES_RESTARTED_KEY = 'atlas.outlines.restarted' // this device has put the outline set back to the start
 const OVERLAP = 60_000 // re-pull this much before the last pull, for pushes that were still committing
 const BATCH = 500 // rows per push request (the server takes up to 1000)
 // Tests are far bigger than other rows (every card missed, with what was typed), so only a few go in each request,
@@ -45,6 +47,41 @@ export async function clearLocal() {
   )
   for (const k of [PULL_KEY, DELETED_KEY, OWNER_KEY, FIT_SENT_KEY, 'atlas.sync.pushed']) localStorage.removeItem(k)
   resetWeights()
+}
+
+const isOutline = (id: string) => CARD_BY_ID.get(id)?.type === 'outline'
+let restarting: Promise<boolean> | null = null
+/**
+ * The outline set's first answers never reached the server, which didn't know its cards yet, so they stayed on the one
+ * device that gave them. Once per device, before anything syncs, put the set back to the start: every card unseen again,
+ * its answers off the log (and off the server, should a copy have got there), and none left on a day's list. From here
+ * the cards come in a few a day with the rest and sync like them. Returns true if anything here changed.
+ */
+export function restartOutlines(): Promise<boolean> {
+  if (localStorage.getItem(OUTLINES_RESTARTED_KEY)) return Promise.resolve(false)
+  restarting ??= (async () => {
+    const now = new Date()
+    let undone: LogKey[] = []
+    let changed = false
+    await db.transaction('rw', db.cards, db.revlog, db.days, async () => {
+      // Stamped just after the answer it takes back: that wins over any copy of the answer, but not over a card learned
+      // afresh on another device since, should this one open the update late.
+      const started = await db.cards.filter((c) => isOutline(c.id) && c.state !== State.New).toArray()
+      await db.cards.bulkPut(started.map((c) => ({ ...freshRow(CARD_BY_ID.get(c.id)!, now), updated: c.updated + 1, dirty: 1 as const })))
+      const logs = await db.revlog.filter((l) => isOutline(l.cardId)).toArray()
+      await db.revlog.bulkDelete(logs.map((l) => l.id!))
+      undone = logs.map((l) => ({ cardId: l.cardId, review: +new Date(l.review) }))
+      const days = await db.days.filter((d) => !!d.pulled?.some(isOutline)).toArray()
+      await db.days.bulkPut(days.map((d) => ({ ...d, pulled: d.pulled!.filter((id) => !isOutline(id)), updated: +now, dirty: 1 as const })))
+      changed = started.length + logs.length + days.length > 0
+    })
+    if (undone.length) setPendingDeletes([...pendingDeletes(), ...undone])
+    localStorage.setItem(OUTLINES_RESTARTED_KEY, String(+now))
+    return changed
+  })().finally(() => {
+    restarting = null
+  })
+  return restarting
 }
 
 // Another tab cleared this device's progress or handed it to another account, so this tab's copy in memory is gone

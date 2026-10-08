@@ -1,15 +1,17 @@
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CardType } from '../lib/deck'
 import { check, type Verdict } from '../lib/answer'
 import { db, type TestRow } from '../lib/db'
-import { answerOf, kindOf, mediaUrl, type DeckCard } from '../lib/deck'
+import { answerOf, kindOf, mediaUrl, regionLabel, type DeckCard } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
-import { BEYOND, NESTED, regionShort, sets, WHOLE } from '../lib/insights'
+import fame from '../data/fame.json'
+import world from '../data/world.json'
+import { NESTED, regionShort, WHOLE } from '../lib/insights'
 import { copyResult, shareResult } from '../lib/share'
 import { attempts, beats, bestOf, OFFICIAL, saveTest, testDef, TEST_TYPES, type TestDef } from '../lib/tests'
-import { Heading, TYPE_META, TypeIcon } from './Insights'
+import { Heading } from './Insights'
 
 type Answer = { card: DeckCard; verdict: Verdict; typed: string }
 type Run = { def: TestDef; order: DeckCard[]; started: number }
@@ -190,7 +192,7 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
         aria-modal="true"
         aria-label="Tests"
         tabIndex={-1}
-        className="card-shadow relative flex h-full w-[min(600px,100%)] flex-col overflow-hidden rounded-3xl bg-surface outline-none sm:h-[min(820px,100%)]"
+        className="card-shadow relative flex h-full w-[min(720px,100%)] flex-col overflow-hidden rounded-3xl bg-surface outline-none sm:h-[min(820px,100%)]"
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -231,101 +233,222 @@ const Title = ({ children }: { children: React.ReactNode }) => (
   <h2 className="text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] text-ink sm:text-[24px]">{children}</h2>
 )
 
-/** A test's best so far, as a score and a time: "198/205 · 8:40". */
-const Best = ({ rows }: { rows: TestRow[] }) => {
-  const b = bestOf(rows)
-  if (!b) return <span className="text-ink-3">Not taken yet</span>
+const WORLD = world as unknown as {
+  width: number
+  height: number
+  shapes: Record<string, string>
+  rest: string
+  /** Region index, label point x/y and size (side of a square of the same area), in map units. */
+  places: Record<string, [number, number, number, number]>
+  /** Oceania's places east of 180°, redrawn past the right edge: path and label point. */
+  wrap: Record<string, [string, number, number]>
+  regions: { name: string; view: Box }[]
+}
+/** Part of the map: x, y, width and height, in map units. */
+type Box = [number, number, number, number]
+/** All the land there is, the deck's places and the rest, as one path. */
+const LAND = WORLD.rest + Object.values(WORLD.shapes).join('') + Object.values(WORLD.wrap).map((w) => w[0]).join('')
+const FAME = new Map((fame as { id: string }[]).map((p, i) => [p.id, i]))
+/** Best known first, so a preview shows flags and places anyone would recognise. */
+const famous = (cards: DeckCard[]) => [...cards].sort((a, b) => (FAME.get(a.note.id) ?? FAME.size) - (FAME.get(b.note.id) ?? FAME.size))
+/** Where a place sits, east of 180° on the right-hand side where it's redrawn: x, y and size. */
+const spot = (id: string): [number, number, number] => {
+  const [, x, y, size] = WORLD.places[id] ?? [0, 0, 0, 0]
+  const w = WORLD.wrap[id]
+  return w ? [w[1], w[2], size] : [x, y, size]
+}
+const shapeOf = (id: string) => WORLD.wrap[id]?.[0] ?? WORLD.shapes[id] ?? ''
+const PREVIEW = 16 / 10
+
+/** The part of the world a test covers: the whole map, a continent's own framing, or the box round its places. */
+function viewOf(def: TestDef, aspect: number): Box {
+  const region = def.key.split(':')[0]
+  if (region === 'world' || region === WHOLE) return [0, 0, WORLD.width, WORLD.height]
+  const own = WORLD.regions.find((r) => r.name === regionLabel(region))
+  let [x0, y0, x1, y1] = own ? [own.view[0], own.view[1], own.view[0] + own.view[2], own.view[1] + own.view[3]] : [Infinity, Infinity, -Infinity, -Infinity]
+  if (!own)
+    for (const c of def.cards) {
+      if (!WORLD.places[c.note.id]) continue
+      const [x, y, s] = spot(c.note.id)
+      ;[x0, y0, x1, y1] = [Math.min(x0, x - s / 2), Math.min(y0, y - s / 2), Math.max(x1, x + s / 2), Math.max(y1, y + s / 2)]
+    }
+  // Seas aren't on the land map at all: show the whole of it.
+  if (x0 === Infinity) return [0, 0, WORLD.width, WORLD.height]
+  // Some room round the edge, never so close in that a small region is all sea, then widened or deepened to fit.
+  const pad = Math.max(x1 - x0, y1 - y0) * 0.12
+  let [w, h] = [Math.max(x1 - x0 + 2 * pad, 90), Math.max(y1 - y0 + 2 * pad, 90 / aspect)]
+  if (w / h < aspect) w = h * aspect
+  else h = w / aspect
+  return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]
+}
+
+const DESCRIBE: Record<CardType, string> = {
+  flag: 'Name the country from its flag',
+  map: 'Name the place shown on the map',
+  capital: 'Name the capital of each country',
+  country: 'Name the country from its capital',
+}
+const KIND: Record<CardType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries' }
+
+/**
+ * A picture of what a test asks, from the test's own places: well-known flags; the region's map with one place
+ * picked out; its capitals as dots on the land; or the capitals' names. No icons standing in for any of it.
+ */
+function Preview({ def, className = '' }: { def: TestDef; className?: string }) {
+  const view = useMemo(() => viewOf(def, PREVIEW), [def])
+  const ids = useMemo(() => def.cards.map((c) => c.note.id), [def])
+  const box = `relative overflow-hidden bg-subtle ${className}`
+  if (def.type === 'flag') {
+    // As near square a block of flags as fits the frame (up to 6 by 4), any short last row centred.
+    const cols = Math.min(6, Math.max(3, Math.ceil(Math.sqrt(Math.min(def.cards.length, 24) * 1.07))))
+    const shown = famous(def.cards).slice(0, Math.min(24, cols * Math.ceil(24 / cols)))
+    return (
+      <div className={`${box} flex items-center justify-center px-[8%] py-[6%]`} aria-hidden>
+        <div className="flex w-full flex-wrap justify-center gap-y-[5%]">
+          {shown.map((c) => (
+            <span key={c.id} className="flex aspect-[3/2] items-center justify-center px-[2.5%]" style={{ width: `${100 / cols}%` }}>
+              <img src={mediaUrl(c.note.flag!)} alt="" draggable={false} loading="lazy" className="max-h-full max-w-full rounded-[2px] shadow-[0_0_0_0.5px_var(--color-edge-strong)]" />
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (def.type === 'country')
+    return (
+      <div className={`${box} p-[6%]`} aria-hidden>
+        <p className="flex flex-wrap gap-x-[1em] text-[11.5px] leading-[1.65] text-ink-3 [mask-image:linear-gradient(#000_55%,transparent)]">
+          {famous(def.cards).map((c, i) => (
+            <span key={c.id} className={`whitespace-nowrap ${i % 7 === 2 ? 'text-ink-2' : ''}`}>
+              {c.note.capital.split(',')[0]}
+            </span>
+          ))}
+        </p>
+      </div>
+    )
+  const stroke = view[2] / 900
+  const pick = def.type === 'map' ? famous(def.cards)[0]?.note.id : null
   return (
-    <span className="tabular-nums">
-      <span className="font-medium text-ink">
-        {b.right}/{b.total}
-      </span>
-      <span className="text-ink-3"> · {clock(b.ms)}</span>
-    </span>
+    <div className={box} aria-hidden>
+      <svg viewBox={view.join(' ')} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full">
+        <path d={LAND} fill="var(--color-muted-2)" fillRule="evenodd" opacity={def.type === 'capital' ? 0.6 : 1} />
+        {def.type === 'map' && (
+          <>
+            <path d={ids.map(shapeOf).join('')} fill="var(--color-ink-3)" opacity={0.55} stroke="var(--color-subtle)" strokeWidth={stroke} />
+            {pick && <path d={shapeOf(pick)} fill="var(--color-ink)" />}
+          </>
+        )}
+        {def.type === 'capital' &&
+          ids.map((id) => {
+            const [x, y] = spot(id)
+            return <circle key={id} cx={x} cy={y} r={view[2] * 0.0075} fill="var(--color-ink-2)" />
+          })}
+      </svg>
+    </div>
   )
 }
 
-/** One test in a list: its kind, name and length, and your best at it (score over time, so it stays narrow). */
-const TestRowButton = ({ type, name, sub, rows, onClick }: { type: CardType; name: string; sub: string; rows: TestRow[]; onClick: () => void }) => {
+/** Every continent, its smaller regions under it once it's picked, and the seas; the world first. */
+const SCOPES = [{ id: 'world', label: 'World' }, ...NESTED.map((n) => ({ id: n.region, label: regionShort(n.region) })), { id: 'Oceans+Seas', label: 'Seas' }]
+const SCOPE_KEY = 'atlas.testScope'
+const savedScope = () => {
+  try {
+    const s = localStorage.getItem(SCOPE_KEY)
+    return s && (SCOPES.some((x) => x.id === s) || NESTED.some((n) => n.within.includes(s))) ? s : 'world'
+  } catch {
+    return 'world'
+  }
+}
+
+/** A test as a card: its picture, what it asks, and your best at it (or how long it takes). */
+const Tile = ({ def, rows, perCard, onClick }: { def: TestDef; rows: TestRow[]; perCard: number; onClick: () => void }) => {
   const b = bestOf(rows)
   return (
     <li>
-      <button onClick={onClick} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-subtle">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-ink-2">
-          <TypeIcon type={type} size={15} />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-balance text-[14px] leading-snug text-ink">{name}</span>
-          <span className="text-[12px] tabular-nums text-ink-3">{b ? sub : `Not taken yet · ${sub.toLowerCase()}`}</span>
-        </span>
-        {b && (
-          <span className="flex shrink-0 flex-col items-end tabular-nums leading-snug">
-            <span className="text-[13.5px] font-medium text-ink">
-              {b.right}/{b.total}
-            </span>
-            <span className="text-[12px] text-ink-3">{clock(b.ms)}</span>
+      <button
+        onClick={onClick}
+        className="group flex h-full w-full flex-col rounded-2xl border border-line p-2 text-left transition-colors hover:border-edge-strong hover:bg-subtle"
+      >
+        <Preview def={def} className="aspect-[16/10] w-full rounded-xl transition-colors group-hover:bg-muted" />
+        <span className="flex flex-1 flex-col px-1.5 pb-1 pt-2.5">
+          <span className="text-[14px] font-medium leading-snug text-ink">{KIND[def.type]}</span>
+          <span className="mt-0.5 text-balance text-[12.5px] leading-snug text-ink-3">{DESCRIBE[def.type]}</span>
+          <span className="mt-auto pt-2.5 text-[12.5px] tabular-nums">
+            {b ? (
+              <>
+                <span className="text-ink-3">Best </span>
+                <span className="font-medium text-ink">
+                  {b.right}/{b.total}
+                </span>
+                <span className="text-ink-3"> · {clock(b.ms)}</span>
+              </>
+            ) : (
+              <span className="text-ink-3">
+                {def.cards.length} cards · about {minutes(def.cards.length, perCard)} min
+              </span>
+            )}
           </span>
-        )}
-        <ChevronRight size={15} strokeWidth={1.75} className="shrink-0 text-ink-3" />
+        </span>
       </button>
     </li>
   )
 }
 
-/** The four tests over every country, then a region of any kind of card to practise. */
+const minutes = (n: number, perCard: number) => Math.max(1, Math.round((n * perCard) / 60_000))
+
+/** Where, then which of the four tests: the world's are the same for everyone; a region's are for practice. */
 function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; perCard: number; onPick: (key: string) => void }) {
-  const [type, setType] = useState<CardType>('flag')
-  const practice = useMemo(() => sets(new Map()), [])
-  const set = (region: string) => practice.get(`${region}:${type}`)
-  const row = (region: string, inner = false) => {
-    const s = set(region)
-    if (!s) return null
-    const rows = byTest.get(s.key) ?? []
-    return (
-      <li key={s.key}>
-        <button onClick={() => onPick(s.key)} className="flex min-h-10 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-subtle">
-          <span className={`min-w-0 flex-1 truncate ${inner ? 'pl-3.5 text-[13px] text-ink-2' : 'text-[13.5px] text-ink'}`}>{regionShort(s.region)}</span>
-          <span className="shrink-0 text-[12px] tabular-nums text-ink-3">{s.cards.length}</span>
-          <span className="w-[92px] shrink-0 text-right text-[12.5px]">{rows.length ? <Best rows={rows} /> : null}</span>
-        </button>
-      </li>
-    )
+  const [scope, setScope] = useState(savedScope)
+  const choose = (s: string) => {
+    setScope(s)
+    try {
+      localStorage.setItem(SCOPE_KEY, s)
+    } catch {
+      // Remembered for this visit only.
+    }
   }
+  const family = NESTED.find((n) => n.region === scope || n.within.includes(scope))
+  const defs = useMemo(
+    () => (scope === 'world' ? OFFICIAL : TEST_TYPES.flatMap((t) => testDef(`${scope}:${t}`) ?? []).filter((d) => d.cards.length >= 5)),
+    [scope],
+  )
+  const chip = (on: boolean) =>
+    `shrink-0 whitespace-nowrap rounded-full px-3.5 text-[13px] transition-colors ${on ? 'bg-ink font-medium text-on-ink' : 'text-ink-2 hover:bg-muted hover:text-ink'}`
   return (
     <div>
-      <p className="max-w-[46ch] text-[13.5px] leading-snug text-ink-2">Type each answer. Every test is timed and scored, keeps your best, and counts as a review.</p>
-
-      <div className="mt-6">
-        <Heading aside="205 countries each">The world</Heading>
-        <ul className="-mx-2">
-          {OFFICIAL.map((d) => (
-            <TestRowButton key={d.key} type={d.type} name={d.name} sub={`About ${Math.max(1, Math.round((d.cards.length * perCard) / 60_000))} min`} rows={byTest.get(d.key) ?? []} onClick={() => onPick(d.key)} />
-          ))}
-        </ul>
+      <div role="tablist" aria-label="Where" className="-mx-5 flex gap-1 overflow-x-auto px-5 [scrollbar-width:none] sm:-mx-8 sm:px-8 [&::-webkit-scrollbar]:hidden">
+        {SCOPES.map((s) => {
+          const on = s.id === scope || s.id === family?.region
+          return (
+            <button key={s.id} role="tab" aria-selected={on} onClick={() => choose(s.id)} className={`h-8 pointer-coarse:h-9 ${chip(on)}`}>
+              {s.label}
+            </button>
+          )
+        })}
       </div>
-
-      <div className="mt-7">
-        <Heading aside={TYPE_META[type].label}>Practise a region</Heading>
-        <div role="radiogroup" aria-label="Kind of card" className="mb-2 grid grid-cols-4 gap-1 rounded-full bg-muted p-1">
-          {TEST_TYPES.map((t) => (
+      {family && family.within.length > 0 && (
+        <div role="tablist" aria-label="Region" className="mt-2 flex flex-wrap gap-1">
+          {[family.region, ...family.within].map((r) => (
             <button
-              key={t}
-              role="radio"
-              aria-checked={type === t}
-              onClick={() => setType(t)}
-              className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-[12.5px] transition-colors pointer-coarse:h-10 ${type === t ? 'bg-surface font-medium text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)]' : 'text-ink-2 hover:text-ink'}`}
+              key={r}
+              role="tab"
+              aria-selected={r === scope}
+              onClick={() => choose(r)}
+              className={`h-7 rounded-full px-3 text-[12.5px] transition-colors pointer-coarse:h-8 ${r === scope ? 'bg-muted font-medium text-ink' : 'text-ink-3 hover:text-ink'}`}
             >
-              <TypeIcon type={t} size={13} />
-              <span className="max-[420px]:sr-only">{TYPE_META[t].short}</span>
+              {r === family.region ? `All of ${regionShort(r)}` : regionShort(r)}
             </button>
           ))}
         </div>
-        <ul className="-mx-2">
-          {row(WHOLE)}
-          {NESTED.map(({ region, within }) => [row(region), ...within.map((r) => row(r, true))])}
-          {BEYOND.map((r) => row(r))}
-        </ul>
-      </div>
+      )}
+      <p className="mt-3 text-[12.5px] text-ink-3">
+        {scope === 'world' ? 'The same 205 countries for everyone, so scores compare.' : scope === 'Oceans+Seas' ? 'For practice.' : 'For practice, with territories included.'}
+      </p>
+      <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
+        {defs.map((d) => (
+          <Tile key={d.key} def={d} rows={byTest.get(d.key) ?? []} perCard={perCard} onClick={() => onPick(d.key)} />
+        ))}
+      </ul>
     </div>
   )
 }
@@ -335,15 +458,13 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
   const n = def.cards.length
   return (
     <div className="flex min-h-full flex-col">
-      <div className="flex items-center gap-2 text-[12.5px] text-ink-3">
-        <TypeIcon type={def.type} size={13} />
-        {def.official ? 'Every country in the world' : 'Practice'}
-      </div>
-      <div className="mt-1">
+      <Preview def={def} className="aspect-[16/9] w-full rounded-2xl" />
+      <div className="mt-5">
         <Title>{def.name}</Title>
       </div>
-      <p className="mt-1.5 text-[13.5px] tabular-nums text-ink-2">
-        {n} cards · about {Math.max(1, Math.round((n * perCard) / 60_000))} min
+      <p className="mt-1.5 text-[14px] text-ink-2">{DESCRIBE[def.type]}</p>
+      <p className="mt-0.5 text-[13px] tabular-nums text-ink-3">
+        {n} cards · about {minutes(n, perCard)} min{def.official ? ' · the same for everyone' : ''}
       </p>
       {rows.length > 0 && (
         <div className="mt-6">
@@ -351,7 +472,7 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
         </div>
       )}
       <p className="mt-6 max-w-[48ch] text-[13px] leading-relaxed text-ink-3">
-        Type each answer and press Enter. Small spelling slips still count. Enter on an empty box skips. The clock starts when you do, and every answer counts as a review.
+        Type each answer and press Enter: small spelling slips still count, and Enter on its own skips. The clock starts with the first card, and every answer counts as a review.
       </p>
       <div className="mt-auto pt-8">
         <button
@@ -365,6 +486,7 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
     </div>
   )
 }
+
 
 const Label = ({ children }: { children: React.ReactNode }) => <div className="text-[12.5px] font-medium text-ink-3">{children}</div>
 const Big = ({ children }: { children: React.ReactNode }) => (
@@ -678,11 +800,8 @@ function Result({ def, row, prior, answers, onAgain, onDone }: { def: TestDef; r
   const copy = async () => setShared((await copyResult(input()).catch(() => false)) ? 'Image copied' : "Couldn't copy the image")
   return (
     <div>
-      <div className="flex items-center gap-2 text-[12.5px] text-ink-3">
-        <TypeIcon type={def.type} size={13} />
-        {def.name}
-      </div>
-      <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
+      <div className="text-[13.5px] text-ink-2">{def.name}</div>
+      <div className="mt-3 flex flex-wrap items-end gap-x-4 gap-y-1">
         <div className="text-[clamp(48px,11vw,64px)] font-semibold leading-none tracking-[-0.04em] text-ink tabular-nums">
           {row.right}
           <span className="text-ink-3">/{row.total}</span>

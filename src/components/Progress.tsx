@@ -1157,7 +1157,8 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
         <div
           ref={bodyRef}
           onScroll={(e) => scrolled.current.set(shown.current.view, e.currentTarget.scrollTop)}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-2 [scrollbar-width:none] sm:px-7 sm:pb-8 [&::-webkit-scrollbar]:hidden"
+          // Opaque, so it scrolls on the GPU with sharp text (see-through, it's redrawn every frame on a Windows screen).
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface px-5 pb-6 pt-2 [scrollbar-width:none] sm:px-7 sm:pb-8 [&::-webkit-scrollbar]:hidden"
         >
           <div className={view === 'page' || view === 'sets' ? 'dash:h-full' : 'dash:mx-auto dash:max-w-[600px]'}>{body}</div>
         </div>

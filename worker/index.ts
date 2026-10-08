@@ -146,7 +146,7 @@ const testOf = (t: TestIn, now: number) => {
   const { id, data } = t ?? {}
   if (typeof id !== 'string' || id.length > 64 || !/^[A-Za-z0-9-]+$/.test(id) || !data || typeof data !== 'object') return null
   const { test, finished, ms, total, right, missed } = data
-  if (typeof test !== 'string' || test.length > 64 || !/^[A-Za-z_+]+:(flag|map|capital|country|find)$/.test(test)) return null
+  if (typeof test !== 'string' || test.length > 64 || !/^[A-Za-z_+]+:(flag|map|capital|country|outline|find)$/.test(test)) return null
   if (!inRange(finished, MIN_TIME, now + MAX_AHEAD) || !inRange(ms, 0, MAX_TEST_MS) || !inRange(total, 1, 1000) || !inRange(right, 0, total)) return null
   const isMiss = (m: { id?: unknown; typed?: unknown } | null) => !!m && typeof m.id === 'string' && CARD_IDS.has(m.id) && typeof m.typed === 'string' && m.typed.length <= 80
   if (!Array.isArray(missed) || missed.length !== total - right || !missed.every(isMiss)) return null

@@ -14,6 +14,8 @@ import type { FindHandle, FindResult, View as MapView } from '../lib/find/engine
 import { Heading } from './Insights'
 import { FindSub } from './FindCard'
 import { FindMap, loadFindMap } from './FindMap'
+import { Outline } from './Outline'
+import { loadOutlines } from '../lib/outlines'
 
 type Answer = { card: DeckCard; verdict: Verdict; typed: string }
 type Run = { def: TestDef; order: DeckCard[]; started: number }
@@ -65,7 +67,7 @@ type Props = {
   onAnswer: (card: DeckCard, verdict: Verdict) => void
 }
 
-/** Typed, timed tests: the four over every country in the world, and any region for practice. Each answer is a review too. */
+/** Timed tests over every country in the world, and any region for practice: typed, or clicked on a map. Each answer is a review too. */
 export default function Test({ initial, onClose, onAnswer }: Props) {
   const [view, setView] = useState<View>(initial ? { at: 'intro', key: initial } : { at: 'home' })
   const [all, setAll] = useState<TestRow[] | null>(null)
@@ -221,8 +223,9 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
           </div>
         )}
         <input ref={primer} aria-hidden tabIndex={-1} className="pointer-events-none fixed left-0 top-0 h-px w-px text-[16px] opacity-0" />
+        {/* Opaque, so the browser can scroll it on the GPU and keep text sharp; see-through, it's redrawn on every frame of a scroll on a Windows screen. */}
         <div
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 [scrollbar-width:none] sm:px-8 sm:pb-8 [&::-webkit-scrollbar]:hidden ${view.at === 'run' ? 'pt-5 sm:pt-7' : 'pt-0'}`}
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface px-5 pb-6 [scrollbar-width:none] sm:px-8 sm:pb-8 [&::-webkit-scrollbar]:hidden ${view.at === 'run' ? 'pt-5 sm:pt-7' : 'pt-0'}`}
         >
           {body}
         </div>
@@ -295,9 +298,10 @@ const DESCRIBE: Record<TestType, string> = {
   map: 'Name the place shown on the map',
   capital: 'Name the capital of each country',
   country: 'Name the country from its capital',
+  outline: 'Name the place from its outline',
   find: 'Click each place on a blank map',
 }
-const KIND: Record<TestType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries', find: 'Find' }
+const KIND: Record<TestType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries', outline: 'Outlines', find: 'Find' }
 
 /**
  * A picture of what a test asks, from the test's own places: well-known flags; the region's map with one place
@@ -323,6 +327,19 @@ function Preview({ def, className = '' }: { def: TestDef; className?: string }) 
       </div>
     )
   }
+  if (def.type === 'outline')
+    // A grid of well-known shapes, in a quiet grey.
+    return (
+      <div className={`${box} flex items-center justify-center px-[9%] py-[7%]`} aria-hidden>
+        <div className="grid h-full w-full grid-cols-5 grid-rows-3 gap-x-[9%] gap-y-[14%]">
+          {famous(def.cards)
+            .slice(0, 15)
+            .map((c) => (
+              <Outline key={c.id} id={c.note.id} className="h-full w-full min-w-0 [&_path]:fill-ink-3" />
+            ))}
+        </div>
+      </div>
+    )
   if (def.type === 'country')
     return (
       <div className={`${box} p-[6%]`} aria-hidden>
@@ -460,7 +477,7 @@ function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; per
         </div>
       )}
       <p className="mt-3 text-[12.5px] text-ink-3">
-        {scope === 'world' ? 'The same 205 countries for everyone, so scores compare.' : scope === 'Oceans+Seas' ? 'For practice.' : 'For practice, with territories included.'}
+        {scope === 'world' ? 'The same countries for everyone, so scores compare.' : scope === 'Oceans+Seas' ? 'For practice.' : 'For practice, with territories included.'}
       </p>
       <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
         {defs.map((d, i) => (
@@ -476,6 +493,7 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
   const n = def.cards.length
   useEffect(() => {
     if (def.type === 'find') void loadFindMap().catch(() => {})
+    if (def.type === 'outline') void loadOutlines().catch(() => {})
   }, [def.type])
   return (
     <div className="flex min-h-full flex-col">
@@ -531,6 +549,8 @@ function Prompt({ card }: { card: DeckCard }) {
       )
     case 'map':
       return <img src={mediaUrl(n.map!)} alt="Map" draggable={false} className="img-shadow img-dim max-h-[min(300px,30dvh)] w-auto max-w-[min(420px,76vw)] rounded-xl sm:max-h-[min(300px,34dvh)]" />
+    case 'outline':
+      return <Outline id={n.id} label="Outline" className="h-[min(220px,26dvh)] w-[min(340px,74vw)]" />
     case 'capital':
       return (
         <>
@@ -924,6 +944,12 @@ function History({ rows, current }: { rows: TestRow[]; current?: string }) {
 
 /** A thumbnail of what a missed card asked: its flag or map, or the name it gave. */
 const MissThumb = ({ card }: { card: DeckCard }) => {
+  if (card.type === 'outline')
+    return (
+      <span className="flex h-7 w-10 shrink-0 items-center justify-center">
+        <Outline id={card.note.id} className="h-6 w-10 [&_path]:fill-ink-2" />
+      </span>
+    )
   const file = card.type === 'flag' ? card.note.flag : card.type === 'map' || card.type === 'find' ? card.note.map : null
   if (!file) return null
   return (

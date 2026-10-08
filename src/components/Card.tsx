@@ -1,5 +1,5 @@
 import { Check, ExternalLink, Map as MapIcon, Volume2 } from 'lucide-react'
-import { motion, useDragControls, useMotionValue, useTransform, type Variants } from 'motion/react'
+import { motion, useDragControls, useMotionValue, useMotionValueEvent, useSpring, useTransform, type Variants } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
 import type { Verdict } from '../lib/answer'
@@ -14,8 +14,14 @@ export type ExitTarget = { x: number; y: number; rotate: number }
 const EASE = [0.2, 0.8, 0.2, 1] as const
 // Debug/filming: ?slow=4 stretches the reveal and fly-away animations 4x.
 const SLOW = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('slow')) || 1 : 1
-/** How far a shown card has to be swiped (plus a bit for a flick) to grade it. */
+/** How far a finger has to swipe a card (plus a bit for a flick) for it to count. */
 const SWIPE = 90
+/** The card follows a swiping finger only this much of the way, so it has some weight to it. */
+const GIVE = 0.5
+const glow = 'pointer-events-none absolute top-[10%] h-[80%] w-24 rounded-full opacity-0 blur-2xl'
+const washed = 'pointer-events-none absolute inset-0 -z-10 rounded-3xl opacity-0'
+const wash = (to: 'left' | 'right', tone: string) =>
+  `linear-gradient(to ${to}, color-mix(in oklab, ${tone} 14%, transparent), transparent 42%)`
 /** Taps this soon after the answer comes in are a double tap on Show answer, not a wish to hide it again. */
 export const SETTLE_MS = 350
 
@@ -359,6 +365,10 @@ type Props = {
   onGrade: (g: Grade) => void
   onSpeak: (text?: string) => void
   onToggleMap: () => void
+  /** Swiped right before the answer was shown: already known. */
+  onSure: () => void
+  /** Where a swipe would land if let go now: a grade, or nothing yet. */
+  onLean?: (g: Grade | null) => void
   /** Type-answers mode: the text box on the front. */
   input?: Input
   /** Type-answers mode: how the submitted answer compared. */
@@ -399,7 +409,7 @@ const face = 'card-shadow absolute inset-0 flex flex-col items-center justify-ce
 const body = (up: boolean) =>
   `flex max-h-full w-full flex-col items-center overflow-y-auto scroll-fade px-8 pt-6 transition-[padding] ${GLIDE} short:pt-3 sm:short:px-24 ${up ? 'pb-10' : 'pb-6 short:pb-3'}`
 
-export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed }: Props) {
+export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, onSure, onLean, input, typed }: Props) {
   const tag = stateTag(row)
   const drag = useDragControls()
   const self = useRef<HTMLDivElement>(null)
@@ -413,12 +423,23 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
   useEffect(() => {
     if (answerUp) shownAt.current = Date.now()
   }, [answerUp])
-  // While swiped, the card leans the way it's going and names the pile it'll land on.
+  // A swiped card tips a little about its foot, easing after the finger rather than snapping to it, and glows on the
+  // side it's heading: green for Good, red for Again, or, before the answer's shown, plain for "show me".
   const swipe = useMotionValue(0)
-  const lean = useTransform(swipe, [-200, 0, 200], [-6, 0, 6])
-  const toGood = useTransform(swipe, [12, SWIPE], [0, 1])
-  const toAgain = useTransform(swipe, [-12, -SWIPE], [0, 1])
-  const [swiping, setSwiping] = useState(false)
+  const lean = useSpring(useTransform(swipe, [-280, 0, 280], [-3.5, 0, 3.5]), { stiffness: 220, damping: 28 })
+  const glowRight = useSpring(useTransform(swipe, [16, SWIPE * 1.15], [0, 1]), { stiffness: 260, damping: 32 })
+  const glowLeft = useSpring(useTransform(swipe, [-16, -SWIPE * 1.15], [0, 1]), { stiffness: 260, damping: 32 })
+  // Right on the question of a card never seen before means it was already known.
+  const sure = !flipped && row.state === State.New ? Rating.Easy : Rating.Good
+  const toRight = sure === Rating.Easy ? 'var(--color-easy)' : 'var(--color-good)'
+  const toLeft = flipped ? 'var(--color-again)' : 'var(--color-ink-3)'
+  const leaning = useRef<Grade | null>(null)
+  useMotionValueEvent(swipe, 'change', (x) => {
+    const g = x > SWIPE ? sure : x < -SWIPE && flipped ? Rating.Again : null
+    if (g === leaning.current) return
+    leaning.current = g
+    onLean?.(g)
+  })
   // Once the answer's shown, the answer box lets go of the keyboard so Enter and the number keys grade.
   useEffect(() => {
     if (flipped && document.activeElement instanceof HTMLInputElement && self.current?.contains(document.activeElement)) document.activeElement.blur()
@@ -428,50 +449,47 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
       ref={self}
       data-card={card.id}
       data-answer={answerUp || undefined}
-      className={`absolute inset-0 short:[container-type:size] ${flipped ? 'touch-pan-y' : ''}`}
+      className="absolute inset-0 touch-pan-y short:[container-type:size]"
       style={{ '--reveal': `${0.42 * SLOW}s` } as React.CSSProperties}
       variants={variants}
       initial="enter"
       animate="center"
       exit="exit"
-      // Swipe a shown card by touch: left for Again, right for Good. It flies to the pile from where it's let go.
-      drag={flipped ? 'x' : false}
+      // Swipe by touch. Right is Good, even before the answer's shown, for a card already known. Left is Again once the
+      // answer's up, and before that just shows it. A graded card flies to its pile from where it's let go.
+      drag="x"
       dragControls={drag}
       dragListener={false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={GIVE}
       dragSnapToOrigin
-      onPointerDown={(e) => flipped && e.pointerType !== 'mouse' && drag.start(e)}
+      onPointerDown={(e) => e.pointerType !== 'mouse' && !(e.target as Element).closest('input') && drag.start(e)}
       onDragStart={() => {
         dragged.current = true
-        setSwiping(true)
       }}
       onDrag={(_, { offset }) => swipe.set(offset.x)}
       onDragEnd={(_, { offset, velocity }) => {
         swipe.set(0)
-        setSwiping(false)
         const dx = offset.x + velocity.x * 0.15
-        if (dx > SWIPE) onGrade(Rating.Good)
-        else if (dx < -SWIPE) onGrade(Rating.Again)
+        if (dx > SWIPE) (flipped ? onGrade(Rating.Good) : onSure())
+        else if (dx < -SWIPE) (flipped ? onGrade(Rating.Again) : onFlip())
       }}
     >
+      {/* The glow behind each side, which shows past the card's edge. */}
+      <motion.div aria-hidden style={{ opacity: glowRight, background: toRight }} className={`${glow} -right-4`} />
+      <motion.div aria-hidden style={{ opacity: glowLeft, background: toLeft }} className={`${glow} -left-4`} />
       <motion.div
-        className={`${face} cursor-pointer select-none`}
-        style={{ rotate: lean }}
+        className={`${face} isolate cursor-pointer select-none`}
+        style={{ rotate: lean, originY: 1 }}
         onClick={() => {
           if (dragged.current) return void (dragged.current = false)
           if (!flipped) return onFlip()
           if (Date.now() - shownAt.current > SETTLE_MS) setTurns((t) => t + 1)
         }}
       >
-        {swiping && (
-          <>
-            <motion.span aria-hidden style={{ opacity: toGood }} className="pointer-events-none absolute left-5 top-3.5 z-10 rounded-full bg-good px-2.5 py-1 text-[12px] font-semibold text-white">
-              Good
-            </motion.span>
-            <motion.span aria-hidden style={{ opacity: toAgain }} className="pointer-events-none absolute right-5 top-3.5 z-10 rounded-full bg-again px-2.5 py-1 text-[12px] font-semibold text-white">
-              Again
-            </motion.span>
-          </>
-        )}
+        {/* And a wash of the same colour in from the leading edge. */}
+        <motion.div aria-hidden style={{ opacity: glowRight, background: wash('left', toRight) }} className={washed} />
+        <motion.div aria-hidden style={{ opacity: glowLeft, background: wash('right', toLeft) }} className={washed} />
         <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
         {typed && (
           <span className={`transition-opacity duration-300 ${answerUp ? 'opacity-100' : 'opacity-0'}`}>

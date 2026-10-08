@@ -15,6 +15,8 @@ type Props = {
   isNew?: boolean
   /** A typed answer that was right: Good goes by itself after this many ms, unless something else is chosen first. */
   auto?: number | null
+  /** The grade a swipe on the card would give if let go now. */
+  leaning?: Grade | null
 }
 
 /** Taps this soon after the grades appear are the end of a double tap on Show answer, not a grade. */
@@ -31,7 +33,7 @@ const SUGGESTED = [
   'text-easy! shadow-[0_0_0_1.5px_var(--color-easy)]!',
 ]
 
-export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew, auto }: Props) {
+export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew, auto, leaning }: Props) {
   const shownAt = useRef(0)
   useEffect(() => {
     if (flipped) shownAt.current = Date.now()
@@ -55,7 +57,7 @@ export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, sugges
                   key={g.key}
                   disabled={disabled}
                   onClick={() => Date.now() - shownAt.current > SETTLE_MS && onGrade(g.grade)}
-                  className={`${button} relative flex flex-col items-center justify-center gap-0.5 overflow-hidden ${suggested === g.grade ? SUGGESTED[i] : ''}`}
+                  className={`${button} relative flex flex-col items-center justify-center gap-0.5 overflow-hidden ${(leaning ?? suggested) === g.grade ? SUGGESTED[i] : ''}`}
                 >
                   <span className="text-[14px] font-medium">{knew ? 'Knew it' : g.label}</span>
                   <span className="text-[12px] tabular-nums text-ink-3">{knew ? '1–2mo' : intervals[i]}</span>
@@ -78,13 +80,22 @@ export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, sugges
             key="show"
             onClick={onFlip}
             disabled={disabled}
-            className={`${button} absolute inset-0 flex items-center justify-center gap-3 text-[14px] font-medium`}
+            className={`${button} absolute inset-0 flex items-center justify-center gap-3 text-[14px] font-medium ${leaning ? SUGGESTED[leaning - 1] : ''}`}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.12 }}
           >
-            Show answer <kbd className="hidden sm:inline">space</kbd>
+            {/* A swipe right on the question names the pile it's heading for. */}
+            {leaning === Rating.Easy ? (
+              'Knew it'
+            ) : leaning ? (
+              'Good'
+            ) : (
+              <>
+                Show answer <kbd className="hidden sm:inline">space</kbd>
+              </>
+            )}
           </motion.button>
         )}
       </AnimatePresence>

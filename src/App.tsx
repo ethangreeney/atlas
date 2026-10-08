@@ -50,6 +50,8 @@ export default function App() {
   const [typed, setTyped] = useState<Typed | null>(null)
   /** Right answer typed: Good goes by itself after this many ms, unless anything else happens first. */
   const [auto, setAuto] = useState<number | null>(null)
+  /** The grade a swipe in progress would give, lit up on its button. */
+  const [lean, setLean] = useState<Grade | null>(null)
 
   const stageRef = useRef<HTMLDivElement>(null)
   const pileRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -64,6 +66,7 @@ export default function App() {
     setAnswer('')
     setTyped(null)
     setAuto(null)
+    setLean(null)
     if (shown.seq === seq) {
       setFlipped(false)
       setShowMap(false)
@@ -170,6 +173,8 @@ export default function App() {
   // Easy on a card seen for the first time can only mean it was already known.
   const doGrade = useCallback((g: Grade) => flipped && send(g, isNew && g === Rating.Easy), [flipped, isNew, send])
   const know = useCallback(() => isNew && send(Rating.Easy, true), [isNew, send])
+  /** Graded from the question, without looking at the answer: for a new card, that it was already known. */
+  const sure = useCallback(() => !flipped && (isNew ? know() : send(Rating.Good)), [flipped, isNew, know, send])
 
   // A right typed answer moves on as Good by itself. Any tap or key first (another grade, a look at the map) stops that;
   // Space and Enter still grade Good straight away.
@@ -222,9 +227,14 @@ export default function App() {
         case '1':
         case '2':
         case '3':
-        case '4':
-          if (flipped) doGrade(Number(e.key) as Grade)
+        case '4': {
+          // On the question, Again just shows the answer, and the others grade it unseen.
+          const g = Number(e.key) as Grade
+          if (flipped) doGrade(g)
+          else if (g === Rating.Again) flip()
+          else send(g, isNew && g === Rating.Easy)
           break
+        }
         case 'z':
         case 'Z':
           doUndo()
@@ -277,7 +287,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, test, celebrate, suggested])
+  }, [flip, doGrade, send, isNew, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, test, celebrate, suggested])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -350,6 +360,8 @@ export default function App() {
                   onGrade={doGrade}
                   onSpeak={say}
                   onToggleMap={() => setShowMap((v) => !v)}
+                  onSure={sure}
+                  onLean={setLean}
                   input={settings.typeAnswers ? { value: answer, onChange: setAnswer, onSubmit: flip } : undefined}
                   typed={typed}
                 />
@@ -371,7 +383,7 @@ export default function App() {
           </div>
           <div className="w-[min(560px,100%)]">
             {card ? (
-              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} auto={auto} />
+              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} auto={auto} leaning={lean} />
             ) : (
               <div className="h-16 short:hidden" />
             )}

@@ -7,8 +7,8 @@ import { loadStreak } from '../lib/streak'
 import { KeepProgress } from './KeepProgress'
 
 const GRADE_CLS = ['text-again', 'text-hard', 'text-good', 'text-easy']
-/** How many new cards 'Learn more' adds to the day. */
-const MORE = 10
+/** How many new cards 'Learn more' adds to the day: a few, or a good batch. */
+const MORE = [10, 50]
 
 const Screen = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -102,10 +102,18 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
           See your progress
         </button>
       )}
-      {/* Ten more, and once the end is in sight every card left at once; with ten or fewer left they're the same thing. */}
+      {/* Ten or fifty more, and once the end is in sight every card left at once; a batch no smaller than what's left is the same thing. */}
       {queue.unstarted > 0 && (
         <div className="flex flex-wrap justify-center gap-x-2">
-          {queue.remainingNew > 0 && queue.unstarted > MORE && <Action onClick={() => onLearnMore(MORE)}>Learn {Math.min(MORE, queue.remainingNew)} more</Action>}
+          {MORE.map(
+            (n) =>
+              queue.remainingNew > 0 &&
+              queue.unstarted > n && (
+                <Action key={n} onClick={() => onLearnMore(n)}>
+                  Learn {Math.min(n, queue.remainingNew)} more
+                </Action>
+              ),
+          )}
           {queue.unstarted <= LEARN_ALL_MAX && <Action onClick={onLearnAll}>Learn all {queue.unstarted} left</Action>}
         </div>
       )}

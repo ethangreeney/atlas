@@ -177,8 +177,8 @@ export type Queue = {
 }
 
 const isLearning = (s: State) => s === State.Learning || s === State.Relearning
-/** 'Learn all' is offered from this many cards left down: about an hour's study, rather than the whole deck at the start. */
-export const LEARN_ALL_MAX = 200
+/** 'Learn all' is offered from this many cards left down: an hour or so, or the whole outline set in one go, rather than the whole deck at the start. */
+export const LEARN_ALL_MAX = 250
 /** The order a place's cards are added in by hand: the picture cards, then capital, then the reverse. */
 const TYPE_ORDER = ['flag', 'map', 'capital', 'country', 'outline']
 

@@ -318,9 +318,10 @@ function Preview({ def, className = '' }: { def: TestDef; className?: string }) 
     return (
       <div className={`${box} p-[6%]`} aria-hidden>
         <p className="flex flex-wrap gap-x-[1em] text-[11.5px] leading-[1.65] text-ink-3 [mask-image:linear-gradient(#000_55%,transparent)]">
-          {famous(def.cards).map((c, i) => (
-            <span key={c.id} className={`whitespace-nowrap ${i % 7 === 2 ? 'text-ink-2' : ''}`}>
-              {c.note.capital.split(',')[0]}
+          {/* England's capital is the UK's too: each name once. */}
+          {[...new Set(famous(def.cards).map((c) => c.note.capital.split(',')[0]))].map((name, i) => (
+            <span key={name} className={`whitespace-nowrap ${i % 7 === 2 ? 'text-ink-2' : ''}`}>
+              {name}
             </span>
           ))}
         </p>
@@ -384,7 +385,7 @@ const Tile = ({ def, rows, perCard, onClick }: { def: TestDef; rows: TestRow[]; 
               </>
             ) : (
               <span className="text-ink-3">
-                {def.cards.length} cards · about {minutes(def.cards.length, perCard)} min
+                {def.cards.length} cards · {minutes(def.cards.length, perCard)} min
               </span>
             )}
           </span>

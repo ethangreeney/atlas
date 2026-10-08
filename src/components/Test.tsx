@@ -19,8 +19,9 @@ type View =
   | { at: 'run'; run: Run }
   | { at: 'done'; def: TestDef; row: TestRow; prior: TestRow[]; answers: Answer[] }
 
-/** Before there's a test of your own to go by, about this long a card. */
+/** Before there's a test of your own to go by, about this long a card; and never less than MIN_PER_CARD, whatever a rushed test says. */
 const PER_CARD = 5000
+const MIN_PER_CARD = 2000
 /** Images of the next few cards load ahead, so each one shows the moment it's reached. */
 const AHEAD = 3
 const TOKEN = 'atlas-test'
@@ -62,6 +63,11 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
   const [all, setAll] = useState<TestRow[] | null>(null)
   const [quitting, setQuitting] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
+  /**
+   * A phone only opens its keyboard for a box focused during the tap itself, and the answer box doesn't exist until
+   * after it. So the tap focuses this one, which brings the keyboard up, and the answer box takes over from it.
+   */
+  const primer = useRef<HTMLInputElement>(null)
   const opener = useRef<Element | null>(null)
   const onCloseRef = useRef(onClose)
   useEffect(() => {
@@ -131,10 +137,11 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
   const perCard = useMemo(() => {
     const done = all ?? []
     const cards = done.reduce((n, r) => n + r.total, 0)
-    return cards >= 20 ? done.reduce((n, r) => n + r.ms, 0) / cards : PER_CARD
+    return cards >= 20 ? Math.max(MIN_PER_CARD, done.reduce((n, r) => n + r.ms, 0) / cards) : PER_CARD
   }, [all])
 
   const start = (def: TestDef) => {
+    primer.current?.focus({ preventScroll: true })
     setQuitting(false)
     setView({ at: 'run', run: { def, order: shuffle(def.cards), started: Date.now() } })
   }
@@ -153,7 +160,7 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
   if (view.at === 'home') body = <Home byTest={byTest} perCard={perCard} onPick={(key) => setView({ at: 'intro', key })} />
   else if (view.at === 'intro') {
     const def = testDef(view.key)
-    body = def ? <Intro def={def} rows={byTest.get(def.key) ?? []} perCard={perCard} onStart={() => start(def)} onBack={back} /> : null
+    body = def ? <Intro def={def} rows={byTest.get(def.key) ?? []} perCard={perCard} onStart={() => start(def)} /> : null
   } else if (view.at === 'run')
     body = (
       <Runner
@@ -189,17 +196,26 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
       >
+        {/* Back and close stay put above what scrolls. A test under way has its own bar, with the clock. */}
         {view.at !== 'run' && (
-          <button
-            onClick={close}
-            aria-label="Close (Esc)"
-            title="Close (Esc)"
-            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink sm:right-5 sm:top-5"
-          >
-            <X size={17} strokeWidth={1.75} />
-          </button>
+          <div className="flex h-14 shrink-0 items-center justify-between gap-2 px-5 sm:h-16 sm:px-8">
+            {view.at === 'intro' ? <Back onClick={back} /> : view.at === 'home' ? <Title>Tests</Title> : <span />}
+            <button
+              onClick={close}
+              aria-label="Close (Esc)"
+              title="Close (Esc)"
+              className="-mr-1.5 flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink"
+            >
+              <X size={17} strokeWidth={1.75} />
+            </button>
+          </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-5 [scrollbar-width:none] sm:px-8 sm:pb-8 sm:pt-7 [&::-webkit-scrollbar]:hidden">{body}</div>
+        <input ref={primer} aria-hidden tabIndex={-1} className="pointer-events-none fixed left-0 top-0 h-px w-px text-[16px] opacity-0" />
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 [scrollbar-width:none] sm:px-8 sm:pb-8 [&::-webkit-scrollbar]:hidden ${view.at === 'run' ? 'pt-5 sm:pt-7' : 'pt-0'}`}
+        >
+          {body}
+        </div>
       </motion.div>
     </motion.div>
   )
@@ -229,24 +245,32 @@ const Best = ({ rows }: { rows: TestRow[] }) => {
   )
 }
 
-/** One test in a list: its kind, name and size, and your best at it. */
-const TestRowButton = ({ type, name, sub, rows, onClick }: { type: CardType; name: string; sub: string; rows: TestRow[]; onClick: () => void }) => (
-  <li>
-    <button onClick={onClick} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-subtle">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-ink-2">
-        <TypeIcon type={type} size={15} />
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-balance text-[14px] leading-snug text-ink">{name}</span>
-        <span className="text-[12px] tabular-nums text-ink-3">{sub}</span>
-      </span>
-      <span className="shrink-0 text-right text-[13px]">
-        <Best rows={rows} />
-      </span>
-      <ChevronRight size={15} strokeWidth={1.75} className="shrink-0 text-ink-3" />
-    </button>
-  </li>
-)
+/** One test in a list: its kind, name and length, and your best at it (score over time, so it stays narrow). */
+const TestRowButton = ({ type, name, sub, rows, onClick }: { type: CardType; name: string; sub: string; rows: TestRow[]; onClick: () => void }) => {
+  const b = bestOf(rows)
+  return (
+    <li>
+      <button onClick={onClick} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-subtle">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-ink-2">
+          <TypeIcon type={type} size={15} />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-balance text-[14px] leading-snug text-ink">{name}</span>
+          <span className="text-[12px] tabular-nums text-ink-3">{b ? sub : `Not taken yet · ${sub.toLowerCase()}`}</span>
+        </span>
+        {b && (
+          <span className="flex shrink-0 flex-col items-end tabular-nums leading-snug">
+            <span className="text-[13.5px] font-medium text-ink">
+              {b.right}/{b.total}
+            </span>
+            <span className="text-[12px] text-ink-3">{clock(b.ms)}</span>
+          </span>
+        )}
+        <ChevronRight size={15} strokeWidth={1.75} className="shrink-0 text-ink-3" />
+      </button>
+    </li>
+  )
+}
 
 /** The four tests over every country, then a region of any kind of card to practise. */
 function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; perCard: number; onPick: (key: string) => void }) {
@@ -269,8 +293,7 @@ function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; per
   }
   return (
     <div>
-      <Title>Tests</Title>
-      <p className="mt-1.5 max-w-[46ch] text-[13.5px] leading-snug text-ink-2">Type each answer. Every test is timed and scored, keeps your best, and counts as a review.</p>
+      <p className="max-w-[46ch] text-[13.5px] leading-snug text-ink-2">Type each answer. Every test is timed and scored, keeps your best, and counts as a review.</p>
 
       <div className="mt-6">
         <Heading aside="205 countries each">The world</Heading>
@@ -290,7 +313,7 @@ function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; per
               role="radio"
               aria-checked={type === t}
               onClick={() => setType(t)}
-              className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-[12.5px] transition-colors ${type === t ? 'bg-surface font-medium text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)]' : 'text-ink-2 hover:text-ink'}`}
+              className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-[12.5px] transition-colors pointer-coarse:h-10 ${type === t ? 'bg-surface font-medium text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)]' : 'text-ink-2 hover:text-ink'}`}
             >
               <TypeIcon type={t} size={13} />
               <span className="max-[420px]:sr-only">{TYPE_META[t].short}</span>
@@ -308,12 +331,11 @@ function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; per
 }
 
 /** A test before it starts: what it covers, your history at it, and the rules. */
-function Intro({ def, rows, perCard, onStart, onBack }: { def: TestDef; rows: TestRow[]; perCard: number; onStart: () => void; onBack: () => void }) {
+function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[]; perCard: number; onStart: () => void }) {
   const n = def.cards.length
   return (
     <div className="flex min-h-full flex-col">
-      <Back onClick={onBack} />
-      <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink-3">
+      <div className="flex items-center gap-2 text-[12.5px] text-ink-3">
         <TypeIcon type={def.type} size={13} />
         {def.official ? 'Every country in the world' : 'Practice'}
       </div>
@@ -525,7 +547,7 @@ function Runner({
                 <span className="min-w-0 truncate" aria-live="polite">
                   {last && <Last a={last} />}
                 </span>
-                <button type="button" onClick={submit} className="shrink-0 text-ink-3 transition-colors hover:text-ink">
+                <button type="button" onClick={submit} className="relative shrink-0 text-ink-3 transition-colors after:absolute after:-inset-x-3 after:-inset-y-3 hover:text-ink">
                   {text.trim() ? 'Enter' : 'Skip'}
                 </button>
               </div>

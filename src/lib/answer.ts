@@ -105,6 +105,17 @@ const CAPITAL_ALIASES: Record<string, string[]> = {
 }
 
 /**
+ * A second city that's a capital in its own right, where sources genuinely split (the seat of government, a
+ * co-capital, or the capital until just now), so either one is right. Not a city that's merely the biggest.
+ */
+const ALSO_CAPITAL: Record<string, string[]> = {
+  Bolivia: ['La Paz'],
+  'Sri Lanka': ['Colombo'],
+  'Equatorial Guinea': ['Malabo'],
+  Eswatini: ['Lobamba'],
+}
+
+/**
  * Real places that are one slip away from a deck answer but aren't it (Prussia isn't Russia, Lagos isn't Laos),
  * and short forms that could mean more than one answer (Congo, Korea). Typing one is wrong, never a slip.
  */
@@ -153,7 +164,7 @@ function names(card: DeckCard) {
   const n = card.note
   const capital = card.type === 'capital'
   const answer = capital ? n.capital : n.country
-  const aliases = (capital ? CAPITAL_ALIASES : COUNTRY_ALIASES)[n.country] ?? []
+  const aliases = capital ? [...(CAPITAL_ALIASES[n.country] ?? []), ...(ALSO_CAPITAL[n.country] ?? [])] : (COUNTRY_ALIASES[n.country] ?? [])
   return [answer, ...items(answer), ...alternates(capital ? n.capitalInfo : n.countryInfo), ...aliases]
 }
 

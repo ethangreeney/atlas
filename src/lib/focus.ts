@@ -1,4 +1,4 @@
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /** For a modal's keydown listener: keeps Tab and Shift+Tab inside `box`, wrapping from the last control to the first and back. */
 export function trapTab(e: KeyboardEvent, box: HTMLElement | null) {

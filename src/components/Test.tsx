@@ -1,7 +1,6 @@
 import { Check, ChevronLeft, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CoreType } from '../lib/deck'
 import { check, settled, type Verdict } from '../lib/answer'
 import { db, type TestRow } from '../lib/db'
 import { answerOf, kindOf, mediaUrl, regionLabel, type DeckCard } from '../lib/deck'
@@ -10,8 +9,11 @@ import fame from '../data/fame.json'
 import world from '../data/world.json'
 import { NESTED, regionShort, WHOLE } from '../lib/insights'
 import { copyResult, shareResult } from '../lib/share'
-import { attempts, beats, bestOf, OFFICIAL, saveTest, testDef, TEST_TYPES, type TestDef } from '../lib/tests'
+import { attempts, beats, bestOf, OFFICIAL, saveTest, testDef, TEST_TYPES, type TestDef, type TestType } from '../lib/tests'
+import type { FindHandle, FindResult, View as MapView } from '../lib/find/engine'
 import { Heading } from './Insights'
+import { FindSub } from './FindCard'
+import { FindMap, loadFindMap } from './FindMap'
 
 type Answer = { card: DeckCard; verdict: Verdict; typed: string }
 type Run = { def: TestDef; order: DeckCard[]; started: number }
@@ -147,7 +149,7 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
   }, [all])
 
   const start = (def: TestDef) => {
-    primer.current?.focus({ preventScroll: true })
+    if (def.type !== 'find') primer.current?.focus({ preventScroll: true })
     setQuitting(false)
     setView({ at: 'run', run: { def, order: shuffle(def.cards), started: Date.now() } })
   }
@@ -167,9 +169,11 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
   else if (view.at === 'intro') {
     const def = testDef(view.key)
     body = def ? <Intro def={def} rows={byTest.get(def.key) ?? []} perCard={perCard} onStart={() => start(def)} /> : null
-  } else if (view.at === 'run')
+  } else if (view.at === 'run') {
+    // Finding places is clicking on a map, not typing: a runner of its own, with the same bar, clock and quitting.
+    const R = view.run.def.type === 'find' ? FindRunner : Runner
     body = (
-      <Runner
+      <R
         key={view.run.started}
         run={view.run}
         quitting={quitting}
@@ -179,7 +183,7 @@ export default function Test({ initial, onClose, onAnswer }: Props) {
         onFinish={finish}
       />
     )
-  else body = <Result {...view} onAgain={() => start(view.def)} onDone={() => (initial === view.def.key ? close() : setView({ at: 'home' }))} />
+  } else body = <Result {...view} onAgain={() => start(view.def)} onDone={() => (initial === view.def.key ? close() : setView({ at: 'home' }))} />
 
   return (
     <motion.div
@@ -286,13 +290,14 @@ function viewOf(def: TestDef, aspect: number): Box {
   return [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h]
 }
 
-const DESCRIBE: Record<CoreType, string> = {
+const DESCRIBE: Record<TestType, string> = {
   flag: 'Name the country from its flag',
   map: 'Name the place shown on the map',
   capital: 'Name the capital of each country',
   country: 'Name the country from its capital',
+  find: 'Click each place on a blank map',
 }
-const KIND: Record<CoreType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries' }
+const KIND: Record<TestType, string> = { flag: 'Flags', map: 'Map', capital: 'Capitals', country: 'Countries', find: 'Find' }
 
 /**
  * A picture of what a test asks, from the test's own places: well-known flags; the region's map with one place
@@ -332,7 +337,7 @@ function Preview({ def, className = '' }: { def: TestDef; className?: string }) 
       </div>
     )
   const stroke = view[2] / 900
-  const pick = def.type === 'map' ? famous(def.cards)[0]?.note.id : null
+  const pick = def.type === 'map' || def.type === 'find' ? famous(def.cards).find((c) => WORLD.places[c.note.id])?.note.id : null
   return (
     <div className={box} aria-hidden>
       <svg viewBox={view.join(' ')} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full">
@@ -341,6 +346,13 @@ function Preview({ def, className = '' }: { def: TestDef; className?: string }) 
           <>
             <path d={ids.map(shapeOf).join('')} fill="var(--color-ink-3)" opacity={0.55} stroke="var(--color-subtle)" strokeWidth={stroke} />
             {pick && <path d={shapeOf(pick)} fill="var(--color-ink)" />}
+          </>
+        )}
+        {/* A find test: the place picked out in green, as if just found, ringed if it's too small to see. */}
+        {def.type === 'find' && pick && (
+          <>
+            <path d={shapeOf(pick)} fill="var(--color-good)" />
+            {spot(pick)[2] < view[2] * 0.04 && <circle cx={spot(pick)[0]} cy={spot(pick)[1]} r={view[2] * 0.035} fill="none" stroke="var(--color-good)" strokeWidth={view[2] / 260} />}
           </>
         )}
         {def.type === 'capital' &&
@@ -366,16 +378,17 @@ const savedScope = () => {
 }
 
 /** A test as a card: its picture, what it asks, and your best at it (or how long it takes). */
-const Tile = ({ def, rows, perCard, onClick }: { def: TestDef; rows: TestRow[]; perCard: number; onClick: () => void }) => {
+/** A test's tile. An odd one out at the end spans the row, its picture lined up with the column above and the words beside it. */
+const Tile = ({ def, rows, perCard, wide, onClick }: { def: TestDef; rows: TestRow[]; perCard: number; wide?: boolean; onClick: () => void }) => {
   const b = bestOf(rows)
   return (
-    <li>
+    <li className={wide ? 'col-span-2' : ''}>
       <button
         onClick={onClick}
-        className="group flex h-full w-full flex-col rounded-2xl border border-line p-2 text-left transition-colors hover:border-edge-strong hover:bg-subtle"
+        className={`group flex h-full w-full rounded-2xl border border-line p-2 text-left transition-colors hover:border-edge-strong hover:bg-subtle ${wide ? 'flex-row' : 'flex-col'}`}
       >
-        <Preview def={def} className="aspect-[16/10] w-full rounded-xl transition-colors group-hover:bg-muted" />
-        <span className="flex flex-1 flex-col px-1.5 pb-1 pt-2.5">
+        <Preview def={def} className={`aspect-[16/10] shrink-0 rounded-xl transition-colors group-hover:bg-muted ${wide ? 'w-[calc(50%-13px)] sm:w-[calc(50%-14px)]' : 'w-full'}`} />
+        <span className={`flex flex-1 flex-col ${wide ? 'min-w-0 px-1.5 pb-1 pl-[22px] pt-1.5 sm:pl-6' : 'px-1.5 pb-1 pt-2.5'}`}>
           <span className="text-[14px] font-medium leading-snug text-ink">{KIND[def.type]}</span>
           <span className="mt-0.5 text-balance text-[12.5px] leading-snug text-ink-3">{DESCRIBE[def.type]}</span>
           <span className="mt-auto pt-2.5 text-[12.5px] tabular-nums">
@@ -401,7 +414,7 @@ const Tile = ({ def, rows, perCard, onClick }: { def: TestDef; rows: TestRow[]; 
 
 const minutes = (n: number, perCard: number) => Math.max(1, Math.round((n * perCard) / 60_000))
 
-/** Where, then which of the four tests: the world's are the same for everyone; a region's are for practice. */
+/** Where, then which test: the world's are the same for everyone; a region's are for practice. */
 function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; perCard: number; onPick: (key: string) => void }) {
   const [scope, setScope] = useState(savedScope)
   const choose = (s: string) => {
@@ -450,8 +463,8 @@ function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; per
         {scope === 'world' ? 'The same 205 countries for everyone, so scores compare.' : scope === 'Oceans+Seas' ? 'For practice.' : 'For practice, with territories included.'}
       </p>
       <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
-        {defs.map((d) => (
-          <Tile key={d.key} def={d} rows={byTest.get(d.key) ?? []} perCard={perCard} onClick={() => onPick(d.key)} />
+        {defs.map((d, i) => (
+          <Tile key={d.key} def={d} rows={byTest.get(d.key) ?? []} perCard={perCard} wide={i === defs.length - 1 && defs.length % 2 === 1} onClick={() => onPick(d.key)} />
         ))}
       </ul>
     </div>
@@ -461,6 +474,9 @@ function Home({ byTest, perCard, onPick }: { byTest: Map<string, TestRow[]>; per
 /** A test before it starts: what it covers, your history at it, and the rules. */
 function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[]; perCard: number; onStart: () => void }) {
   const n = def.cards.length
+  useEffect(() => {
+    if (def.type === 'find') void loadFindMap().catch(() => {})
+  }, [def.type])
   return (
     <div className="flex min-h-full flex-col">
       <Preview def={def} className="aspect-[16/9] w-full rounded-2xl" />
@@ -477,7 +493,9 @@ function Intro({ def, rows, perCard, onStart }: { def: TestDef; rows: TestRow[];
         </div>
       )}
       <p className="mt-6 max-w-[48ch] text-[13px] leading-relaxed text-ink-3">
-        A right answer moves on as soon as it's typed. Enter gives anything else, and small spelling slips still count; Enter on its own skips. The clock starts with the first card, and every answer counts as a review.
+        {def.type === 'find'
+          ? 'One click for each place, at any zoom: drag to move around the map, and scroll or pinch to zoom in. A right one moves on by itself; a wrong one shows where it really is, and Enter moves on. Enter on its own skips. The clock starts with the first place, and every answer counts as a review.'
+          : "A right answer moves on as soon as it's typed. Enter gives anything else, and small spelling slips still count; Enter on its own skips. The clock starts with the first card, and every answer counts as a review."}
       </p>
       <div className="mt-auto pt-8">
         <button
@@ -545,15 +563,7 @@ const Last = ({ a }: { a: Answer }) => {
   )
 }
 
-/** A test under way: one card at a time, typed, with the clock running. Answers count the moment they're given. */
-function Runner({
-  run,
-  quitting,
-  onAsk,
-  onQuit,
-  onAnswer,
-  onFinish,
-}: {
+type RunProps = {
   run: Run
   quitting: boolean
   /** Ask whether to quit. */
@@ -562,21 +572,67 @@ function Runner({
   onQuit: (quit: boolean) => void
   onAnswer: (card: DeckCard, verdict: Verdict) => void
   onFinish: (run: Run, answers: Answer[]) => void
-}) {
+}
+
+/** Quit, the test's name, how far through, the clock, and a bar filling up. */
+function RunBar({ run, i, onAsk }: { run: Run; i: number; onAsk: () => void }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(t)
+  }, [])
+  const total = run.order.length
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onAsk}
+          aria-label="Quit (Esc)"
+          title="Quit (Esc)"
+          className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink"
+        >
+          <X size={17} strokeWidth={1.75} />
+        </button>
+        <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{run.def.name}</span>
+        <span className="shrink-0 text-[13px] tabular-nums text-ink-3">
+          {Math.min(i + 1, total)} of {total}
+        </span>
+        <span className="w-14 shrink-0 text-right text-[15px] font-medium tabular-nums text-ink" aria-label="Time">
+          {clock(now - run.started)}
+        </span>
+      </div>
+      <div className="mt-3 h-1 shrink-0 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${(i / total) * 100}%` }} />
+      </div>
+    </>
+  )
+}
+
+const QuitAsk = ({ answered, onQuit, className = '' }: { answered: number; onQuit: (quit: boolean) => void; className?: string }) => (
+  <div className={`flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center ${className}`}>
+    <div className="text-[18px] font-semibold tracking-[-0.02em] text-ink">Quit this test?</div>
+    <p className="max-w-[36ch] text-balance text-[13.5px] text-ink-2">The {answered === 1 ? 'answer' : `${answered} answers`} so far still count as reviews, but no score is kept.</p>
+    <div className="mt-4 flex gap-2">
+      <button autoFocus onClick={() => onQuit(false)} className="rounded-full bg-ink px-5 py-2.5 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90">
+        Keep going
+      </button>
+      <button onClick={() => onQuit(true)} className="rounded-full border border-line px-5 py-2.5 text-[13.5px] font-medium text-ink transition-colors hover:bg-subtle">
+        Quit
+      </button>
+    </div>
+  </div>
+)
+
+/** A test under way: one card at a time, typed, with the clock running. Answers count the moment they're given. */
+function Runner({ run, quitting, onAsk, onQuit, onAnswer, onFinish }: RunProps) {
   const [answers, setAnswers] = useState<Answer[]>([])
   const [text, setText] = useState('')
-  const [now, setNow] = useState(Date.now())
   const input = useRef<HTMLInputElement>(null)
   const done = useRef(false)
   const moved = useRef(0)
   const i = answers.length
   const card = run.order[i]
   const total = run.order.length
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 250)
-    return () => clearInterval(t)
-  }, [])
   // The next few pictures load while this one's being answered.
   useEffect(() => {
     for (const c of run.order.slice(i + 1, i + 1 + AHEAD)) {
@@ -620,40 +676,10 @@ function Runner({
   const last = answers[answers.length - 1]
   return (
     <div className="flex min-h-full flex-col">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onAsk}
-          aria-label="Quit (Esc)"
-          title="Quit (Esc)"
-          className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-muted hover:text-ink"
-        >
-          <X size={17} strokeWidth={1.75} />
-        </button>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{run.def.name}</span>
-        <span className="shrink-0 text-[13px] tabular-nums text-ink-3">
-          {Math.min(i + 1, total)} of {total}
-        </span>
-        <span className="w-14 shrink-0 text-right text-[15px] font-medium tabular-nums text-ink" aria-label="Time">
-          {clock(now - run.started)}
-        </span>
-      </div>
-      <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${(i / total) * 100}%` }} />
-      </div>
+      <RunBar run={run} i={i} onAsk={onAsk} />
 
       {quitting ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
-          <div className="text-[18px] font-semibold tracking-[-0.02em] text-ink">Quit this test?</div>
-          <p className="max-w-[36ch] text-balance text-[13.5px] text-ink-2">The {i === 1 ? 'answer' : `${i} answers`} so far still count as reviews, but no score is kept.</p>
-          <div className="mt-4 flex gap-2">
-            <button autoFocus onClick={() => onQuit(false)} className="rounded-full bg-ink px-5 py-2.5 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90">
-              Keep going
-            </button>
-            <button onClick={() => onQuit(true)} className="rounded-full border border-line px-5 py-2.5 text-[13.5px] font-medium text-ink transition-colors hover:bg-subtle">
-              Quit
-            </button>
-          </div>
-        </div>
+        <QuitAsk answered={i} onQuit={onQuit} />
       ) : (
         card && (
           // On a phone the card and box sit high, clear of the keyboard; with room to spare they're centred.
@@ -701,6 +727,110 @@ function Runner({
             </form>
           </div>
         )
+      )}
+    </div>
+  )
+}
+
+/** How long a found place stays up, ticked, before the next: the same beat as in study. */
+const FOUND_MS = 420
+
+/**
+ * A find test under way: each place's name over the blank map, one click to answer. A right one moves on by itself; a
+ * wrong one (or a skip) shows where it was until Next. The map stays where it was left, from one place to the next.
+ */
+function FindRunner({ run, quitting, onAsk, onQuit, onAnswer, onFinish }: RunProps) {
+  const [answers, setAnswers] = useState<Answer[]>([])
+  const [result, setResult] = useState<FindResult | null>(null)
+  const map = useRef<FindHandle | null>(null)
+  const from = useRef<MapView | null>(null)
+  const done = useRef(false)
+  const i = answers.length
+  const card = run.order[i]
+  const total = run.order.length
+  // A continent's test turns the map to face it; the world's and the seas' start in the middle.
+  const face = useMemo(() => (run.def.key.startsWith('world:') || run.def.key.startsWith(WHOLE + ':') || run.def.key.startsWith('Oceans+Seas:') ? undefined : run.def.cards.map((c) => c.note.id)), [run.def])
+
+  const next = (verdict: Verdict) => {
+    if (!card || done.current) return
+    from.current = map.current?.view() ?? from.current
+    const typed = result?.kind === 'wrong' ? result.name : ''
+    const all = [...answers, { card, verdict, typed }]
+    onAnswer(card, verdict)
+    setAnswers(all)
+    setResult(null)
+    if (all.length === total) {
+      done.current = true
+      onFinish(run, all)
+    }
+  }
+  const nextRef = useRef(next)
+  nextRef.current = next
+
+  // Found: a beat to see the tick, then on.
+  useEffect(() => {
+    if (result?.kind !== 'right') return
+    const t = setTimeout(() => nextRef.current('right'), FOUND_MS)
+    return () => clearTimeout(t)
+  }, [result])
+
+  useEffect(() => {
+    if (quitting) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
+      if (e.target instanceof HTMLElement && e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        if (!result) map.current?.reveal()
+        else if (result.kind !== 'right') nextRef.current('wrong')
+      } else if (e.key === '+' || e.key === '=') map.current?.zoom(2)
+      else if (e.key === '-' || e.key === '_') map.current?.zoom(0.5)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [quitting, result])
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <RunBar run={run} i={i} onAsk={onAsk} />
+      {card && (
+        <div className="relative mt-5 flex min-h-[340px] flex-1 flex-col">
+          <div className={`flex flex-1 flex-col ${quitting ? 'invisible' : ''}`}>
+            <div className="flex shrink-0 flex-col items-center gap-1 pb-3 text-center" data-test-card={card.id}>
+              <div className="max-w-full text-balance text-[clamp(24px,4vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-ink">{card.note.country}</div>
+              <FindSub card={card} result={result} />
+            </div>
+            <FindMap
+              noteId={card.note.id}
+              control={map}
+              tries={1}
+              from={from.current}
+              face={face}
+              escFits={false}
+              onResult={setResult}
+              onNext={() => result?.kind !== 'right' && next('wrong')}
+              label={`World map. Click or tap ${card.note.country}.`}
+              className="min-h-[240px] flex-1 rounded-2xl border border-line"
+            />
+            <div className="flex h-14 shrink-0 items-end justify-center">
+              {!result ? (
+                <button onClick={() => map.current?.reveal()} className="flex h-9 items-center gap-2 rounded-full pl-3.5 pr-2.5 text-[13px] text-ink-3 transition-colors hover:bg-muted hover:text-ink pointer-coarse:pr-3.5">
+                  Skip <kbd className="pointer-coarse:hidden">↵</kbd>
+                </button>
+              ) : result.kind !== 'right' ? (
+                // As in study: a quiet pill, not a call to action.
+                <button
+                  autoFocus
+                  onClick={() => next('wrong')}
+                  className="flex h-11 items-center gap-3 rounded-full bg-surface pl-[22px] pr-3.5 text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-edge),0_1px_2px_var(--color-drop)] transition-[box-shadow,background-color,transform] duration-100 hover:bg-subtle hover:shadow-[0_0_0_1px_var(--color-edge-strong),0_1px_2px_var(--color-drop)] active:scale-[0.98] pointer-coarse:pr-[22px]"
+                >
+                  Next <kbd className="pointer-coarse:hidden">↵</kbd>
+                </button>
+              ) : null}
+            </div>
+          </div>
+          {quitting && <QuitAsk answered={i} onQuit={onQuit} className="absolute inset-0" />}
+        </div>
       )}
     </div>
   )
@@ -794,7 +924,7 @@ function History({ rows, current }: { rows: TestRow[]; current?: string }) {
 
 /** A thumbnail of what a missed card asked: its flag or map, or the name it gave. */
 const MissThumb = ({ card }: { card: DeckCard }) => {
-  const file = card.type === 'flag' ? card.note.flag : card.type === 'map' ? card.note.map : null
+  const file = card.type === 'flag' ? card.note.flag : card.type === 'map' || card.type === 'find' ? card.note.map : null
   if (!file) return null
   return (
     <span className="flex h-7 w-10 shrink-0 items-center justify-center">
@@ -803,7 +933,7 @@ const MissThumb = ({ card }: { card: DeckCard }) => {
         alt=""
         draggable={false}
         loading="lazy"
-        className={`max-h-7 max-w-10 ${card.type === 'map' ? 'img-dim rounded-[3px]' : file.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`}
+        className={`max-h-7 max-w-10 ${card.type === 'map' || card.type === 'find' ? 'img-dim rounded-[3px]' : file.includes('-nobox') ? '' : 'img-shadow rounded-[2px]'}`}
       />
     </span>
   )
@@ -886,7 +1016,7 @@ function Result({ def, row, prior, answers, onAgain, onDone }: { def: TestDef; r
                       answerOf(a.card)
                     )}
                   </span>
-                  <span className="truncate text-[12px] text-ink-3">{a.typed ? <s>{a.typed}</s> : 'Skipped'}</span>
+                  <span className="truncate text-[12px] text-ink-3">{a.typed ? a.card.type === 'find' ? <>Picked {a.typed}</> : <s>{a.typed}</s> : 'Skipped'}</span>
                 </span>
               </li>
             ))}

@@ -390,8 +390,8 @@ function Front({ card }: { card: DeckCard }) {
   if (card.type === 'outline') return <Outline id={n.id} className="h-[52px] w-[80px]" />
   return (
     <>
-      <span className="text-[10px] text-ink-3">{card.type === 'capital' ? 'Capital of' : 'Capital'}</span>
-      <span className="line-clamp-2 text-balance text-[12px] font-medium leading-tight text-ink">{card.type === 'capital' ? n.country : n.capital}</span>
+      <span className="text-[10px] text-ink-3">{card.type === 'capital' ? 'Capital of' : card.type === 'find' ? 'Find' : 'Capital'}</span>
+      <span className="line-clamp-2 text-balance text-[12px] font-medium leading-tight text-ink">{card.type === 'country' ? n.capital : n.country}</span>
     </>
   )
 }

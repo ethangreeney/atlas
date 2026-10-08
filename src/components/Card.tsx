@@ -26,7 +26,7 @@ const wash = (to: 'left' | 'right', tone: string) =>
 /** Taps this soon after the answer comes in are a double tap on Show answer, not a wish to hide it again. */
 export const SETTLE_MS = 350
 
-const variants: Variants = {
+export const variants: Variants = {
   enter: { opacity: 0, scale: 0.97, y: 12, x: 0, rotate: 0, zIndex: 10 },
   center: { opacity: 1, scale: 1, y: 0, x: 0, rotate: 0, zIndex: 10, transition: { duration: 0.24 * SLOW, ease: EASE } },
   exit: (t: ExitTarget | null) =>
@@ -43,7 +43,7 @@ const variants: Variants = {
       : { opacity: 0, scale: 0.97, transition: { duration: 0.16 } },
 }
 
-const stateTag = (row: CardRow) => {
+export const stateTag = (row: CardRow) => {
   if (row.leech) return { label: 'Leech', cls: 'text-again' }
   switch (row.state) {
     case State.New:

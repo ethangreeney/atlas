@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { OUTLINE_CARDS } from '../lib/deck'
+import { FIND_CARDS, OUTLINE_CARDS } from '../lib/deck'
 import { useEffect, useState } from 'react'
 import { dayEnd, formatInterval, GRADES, LEARN_ALL_MAX, type Queue } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
@@ -121,13 +121,22 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
           {more && all && <Link onClick={onLearnAll}>or all {queue.unstarted}</Link>}
         </div>
       )}
-      {/* Nothing left to learn: what's left is seeing how much has stuck, or the extra set. */}
+      {/* Nothing left to learn: what's left is seeing how much has stuck, or an extra set, one offered at a time. */}
       {queue.unstarted === 0 && learned > 0 && <Action onClick={onOpenTests}>Take a test</Action>}
-      {queue.unstarted === 0 && learned > 0 && !settings.decks.includes('outlines') && (
+      {queue.unstarted === 0 && learned > 0 && !settings.decks.includes('outlines') ? (
         <p className="mt-1 max-w-[40ch] text-balance text-[12.5px] text-ink-3">
           Or <Link onClick={() => setSettings({ decks: [...settings.decks, 'outlines'] })}>add the outline set</Link>: {OUTLINE_CARDS.length} more places, from their
           shape alone.
         </p>
+      ) : (
+        queue.unstarted === 0 &&
+        learned > 0 &&
+        !settings.decks.includes('find') && (
+          <p className="mt-1 max-w-[40ch] text-balance text-[12.5px] text-ink-3">
+            Or <Link onClick={() => setSettings({ decks: [...settings.decks, 'find'] })}>add finding them on the map</Link>: {FIND_CARDS.length} places, on a blank world
+            map.
+          </p>
+        )
       )}
       <KeepProgress learned={learned} />
     </Screen>

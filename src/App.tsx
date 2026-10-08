@@ -2,6 +2,8 @@ import { AnimatePresence, MotionConfig } from 'motion/react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Grade } from 'ts-fsrs'
 import { Card, mapsUrl, type ExitTarget, type Typed } from './components/Card'
+import { FindCard } from './components/FindCard'
+import { loadFindMap } from './components/FindMap'
 import { Welcome } from './components/Welcome'
 import { Celebrate } from './components/Celebrate'
 import { Done, Empty } from './components/Done'
@@ -21,6 +23,7 @@ import { useAuth } from './lib/auth'
 import { pushNow, syncNow } from './lib/sync'
 import { maybeOptimize } from './lib/optimize'
 import { zoom } from './lib/zoom'
+import type { FindHandle, FindResult } from './lib/find/engine'
 
 const PILE_ROTATE = [-10, -3, 3, 10]
 /** The grade a typed answer points to. */
@@ -28,6 +31,8 @@ const SUGGEST = { right: Rating.Good, close: Rating.Hard, wrong: Rating.Again } 
 /** A typed answer that's right goes to Good by itself after this long (longer while its name is read out). */
 const AUTO_MS = 1400
 const AUTO_SPOKEN_MS = 2400
+/** A place found on the map moves on as Good after this long: time to see the tick, not to wait on it. */
+const FOUND_MS = 420
 const Progress = lazy(() => import('./components/Progress'))
 const Test = lazy(() => import('./components/Test'))
 
@@ -41,6 +46,11 @@ export default function App() {
   useEffect(() => {
     if (outlinesOn) void loadOutlines()
   }, [outlinesOn])
+  // The same for the map the find-on-map set needs.
+  const findOn = settings.decks.includes('find')
+  useEffect(() => {
+    if (findOn) void loadFindMap().catch(() => {})
+  }, [findOn])
 
   const [flipped, setFlipped] = useState(false)
   const [showMap, setShowMap] = useState(false)
@@ -58,6 +68,10 @@ export default function App() {
   const [auto, setAuto] = useState<number | null>(null)
   /** The grade a swipe in progress would give, lit up on its button. */
   const [lean, setLean] = useState<Grade | null>(null)
+  /** How a find-on-map card was answered: found, the wrong place picked, or shown. */
+  const [found, setFound] = useState<FindResult | null>(null)
+  const findControl = useRef<FindHandle | null>(null)
+  const isFind = card?.type === 'find'
 
   const stageRef = useRef<HTMLDivElement>(null)
   const pileRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -73,6 +87,7 @@ export default function App() {
     setTyped(null)
     setAuto(null)
     setLean(null)
+    setFound(null)
     if (shown.seq === seq) {
       setFlipped(false)
       setShowMap(false)
@@ -133,6 +148,8 @@ export default function App() {
   /** Turns the card over, marking what was typed if anything. */
   const flip = useCallback(() => {
     if (!card || flipped || busy) return
+    // A find card shows the place on its map, which says so (see onFound).
+    if (card.type === 'find') return findControl.current?.reveal()
     const text = settings.typeAnswers ? answer.trim() : ''
     const kind = text ? check(text, card) : null
     if (kind) setTyped({ kind, text })
@@ -140,7 +157,11 @@ export default function App() {
     setFlipped(true)
     if (settings.autoplay) speak(answerOf(card))
   }, [card, flipped, busy, settings.autoplay, settings.typeAnswers, answer])
-  const suggested = typed ? SUGGEST[typed.kind] : null
+  const suggested = typed ? SUGGEST[typed.kind] : found ? (found.kind === 'right' ? Rating.Good : Rating.Again) : null
+  const onFound = useCallback((r: FindResult) => {
+    setFound(r)
+    setFlipped(true)
+  }, [])
 
   const say = useCallback((text?: string) => {
     if (!card || !flipped) return
@@ -197,6 +218,13 @@ export default function App() {
     }
   }, [auto, flipped, doGrade])
 
+  // Found on the map: Good, by itself, once the tick's had a moment. Space or a click on the map gets there sooner.
+  useEffect(() => {
+    if (found?.kind !== 'right' || !flipped) return
+    const t = setTimeout(() => doGrade(Rating.Good), FOUND_MS)
+    return () => clearTimeout(t)
+  }, [found, flipped, doGrade])
+
   const doUndo = useCallback(() => {
     if (!canUndo || busy) return
     setExitTarget(null)
@@ -215,7 +243,12 @@ export default function App() {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t.closest('input, textarea, select, [contenteditable="true"]')) return
-      if (e.key === 'Escape') return setFiltersOpen(false)
+      if (e.key === 'Escape') {
+        if (filtersOpen) return setFiltersOpen(false)
+        // Back out to the whole world, on a find card's map.
+        if (isFind && !progressOpen && !test && !celebrate) findControl.current?.fit()
+        return
+      }
       if (filtersOpen || progressOpen || test || celebrate || e.repeat) return
       switch (e.code === 'Space' ? ' ' : e.key) {
         case ' ':
@@ -281,6 +314,13 @@ export default function App() {
           setFiltersOpen(false)
           setTest({})
           break
+        case '+':
+        case '=':
+        case '-':
+        case '_':
+          if (!isFind) return
+          findControl.current?.zoom(e.key === '+' || e.key === '=' ? 2 : 0.5)
+          break
         default:
           return
       }
@@ -293,7 +333,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, send, isNew, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, test, celebrate, suggested])
+  }, [flip, doGrade, send, isNew, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, test, celebrate, suggested, isFind])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -357,9 +397,16 @@ export default function App() {
 
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-4 short:gap-2 short:pt-2.5">
           {/* On a short screen the card takes whatever height the bars leave it. */}
-          <div ref={stageRef} className="relative h-[min(420px,50dvh)] w-[min(560px,100%)] short:h-auto short:max-h-[420px] short:min-h-0 short:flex-1">
+          {/* A find card is a map, so it takes more room: nearly the whole world fits across it on a laptop. */}
+          <div
+            ref={stageRef}
+            className={`relative transition-[width,height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none short:h-auto short:min-h-0 short:flex-1 ${isFind ? 'h-[clamp(380px,calc(100dvh_-_290px),540px)] w-[min(720px,100%)] short:max-h-none' : 'h-[min(420px,50dvh)] w-[min(560px,100%)] short:max-h-[420px]'}`}
+          >
             <AnimatePresence custom={exitTarget} initial={false}>
-              {ready && card && currentRow && (
+              {ready && card && currentRow && card.type === 'find' && (
+                <FindCard key={`${card.id}:${seq}`} card={card} row={currentRow} result={found} control={findControl} onResult={onFound} onNext={() => doGrade(Rating.Good)} />
+              )}
+              {ready && card && currentRow && card.type !== 'find' && (
                 <Card key={`${card.id}:${seq}`} card={card} row={currentRow} flipped={flipped}
                   showMap={showMap}
                   onFlip={flip}
@@ -389,7 +436,7 @@ export default function App() {
           </div>
           <div className="w-[min(560px,100%)]">
             {card ? (
-              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} auto={auto} leaning={lean} />
+              <GradeBar flipped={flipped} intervals={intervals} isNew={isNew} onFlip={flip} onGrade={doGrade} disabled={busy} suggested={suggested} auto={auto} leaning={lean} find={isFind} />
             ) : (
               <div className="h-16 short:hidden" />
             )}
@@ -404,10 +451,19 @@ export default function App() {
           <div className="flex shrink-0 items-center gap-2">
             <Welcome />
             <span className="mx-1 hidden lg:inline">·</span>
-            <span className="hidden items-center gap-2 lg:flex">
-            <kbd>space</kbd> show <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span>{' '}
-            <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress <span className="mx-1">·</span> <kbd>t</kbd> tests
-            </span>
+            {isFind ? (
+              <span className="hidden items-center gap-2 lg:flex">
+                scroll zoom <span className="mx-1">·</span> drag pan <span className="mx-1">·</span> click to answer <span className="mx-1">·</span> <kbd>space</kbd> show or next{' '}
+                <span className="mx-1">·</span> <kbd>esc</kbd> whole world <span className="mx-1">·</span> <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>p</kbd> progress{' '}
+                <span className="mx-1">·</span> <kbd>t</kbd> tests
+              </span>
+            ) : (
+              <span className="hidden items-center gap-2 lg:flex">
+                <kbd>space</kbd> show <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span> <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know{' '}
+                <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress{' '}
+                <span className="mx-1">·</span> <kbd>t</kbd> tests
+              </span>
+            )}
           </div>
           {/* Padded to the footer's height (and pulled back) so the links' full-height tap targets aren't clipped. */}
           <div className="-my-3.5 truncate py-3.5">

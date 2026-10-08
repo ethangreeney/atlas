@@ -1,5 +1,5 @@
 import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type FSRS, type Grade, type ReviewLog } from 'ts-fsrs'
-import { deckOf, kindOf, STUDY_CARDS, type DeckCard } from './deck'
+import { deckOf, kindOf, STUDY_CARDS, type CoreType, type DeckCard } from './deck'
 import { flagPartners } from './lookalike'
 import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
@@ -180,12 +180,12 @@ const isLearning = (s: State) => s === State.Learning || s === State.Relearning
 /** 'Learn all' is offered from this many cards left down: an hour or so, or the whole outline set in one go, rather than the whole deck at the start. */
 export const LEARN_ALL_MAX = 250
 /** The order a place's cards are added in by hand: the picture cards, then capital, then the reverse. */
-const TYPE_ORDER = ['flag', 'map', 'capital', 'country', 'outline']
+const TYPE_ORDER = ['flag', 'map', 'capital', 'country', 'outline', 'find']
 
 /** Any of the chosen options within a group, and every group. */
 export function matchesFilters(c: DeckCard, s: Settings) {
   if (!s.decks.includes(deckOf(c))) return false
-  if (c.type !== 'outline' && s.types.length && !s.types.includes(c.type)) return false
+  if (deckOf(c) === 'ug' && s.types.length && !s.types.includes(c.type as CoreType)) return false
   if (s.kinds.length && !s.kinds.includes(kindOf(c.note))) return false
   if (s.regions.length && !c.note.tags.some((t) => s.regions.includes(t))) return false
   return true

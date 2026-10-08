@@ -62,6 +62,32 @@
   color-scheme: light dark;
 }
 
+/* The find-on-map card's map, which reads these itself (a canvas can't use classes): pale sea, grey land, darker
+ * under the pointer and darker again while pressed, and dots for places too small to click. Plain hues of 0, not
+ * none, as a canvas takes the colour as written. */
+:root {
+  --color-sea: oklch(98.5% 0 0);
+  --color-sea-hover: oklch(96.4% 0 0);
+  --color-sea-press: oklch(94.5% 0 0);
+  --color-land: oklch(92.2% 0 0);
+  --color-land-hover: oklch(87.6% 0 0);
+  --color-land-press: oklch(83.6% 0 0);
+  --color-map-dot: oklch(84% 0 0);
+  --color-map-dot-hover: oklch(72% 0 0);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-sea: #1e1e1c;
+    --color-sea-hover: #252523;
+    --color-sea-press: #2b2b29;
+    --color-land: #353532;
+    --color-land-hover: #403f3c;
+    --color-land-press: #4a4a46;
+    --color-map-dot: #4a4a46;
+    --color-map-dot-hover: #62625d;
+  }
+}
+
 /* Phones in landscape and short windows. */
 @custom-variant short (@media (max-height: 600px));
 /* Screens big enough for the progress page to show everything at once, without scrolling. */
@@ -285,5 +311,96 @@ kbd {
     box-shadow:
       0 0 0 1px var(--color-edge),
       0 10px 20px -10px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* Find on the map: a ring pulsing over an answer too small to see, a soft burst where you clicked, and a tick that
+ * draws itself in once the prompt has cleared. */
+.find-ring {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.find-ring[data-on='true'] {
+  opacity: 1;
+}
+.find-ring::before,
+.find-ring::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid var(--color-good);
+}
+.find-ring::after {
+  animation: find-pulse 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+@keyframes find-pulse {
+  from {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.find-burst {
+  position: absolute;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid;
+  pointer-events: none;
+  animation: find-burst 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.find-burst-ok {
+  border-color: var(--color-good);
+  background: color-mix(in srgb, var(--color-good) 16%, transparent);
+}
+.find-burst-no {
+  border-color: var(--color-again);
+  background: color-mix(in srgb, var(--color-again) 14%, transparent);
+}
+@keyframes find-burst {
+  from {
+    transform: scale(0.25);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+.find-tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: find-draw 0.22s 0.06s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes find-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .find-ring::after {
+    animation: none;
+  }
+  .find-tick path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }

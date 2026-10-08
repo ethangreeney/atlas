@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ALL_CARDS, CARD_TYPES, DECKS, KINDS, OUTLINE_CARDS, REGIONS, regionLabel, type CoreType, type DeckId, type Kind } from '../lib/deck'
+import { ALL_CARDS, CARD_TYPES, DECKS, FIND_CARDS, KINDS, OUTLINE_CARDS, REGIONS, regionLabel, type CoreType, type DeckId, type Kind } from '../lib/deck'
 import { countMatching } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
 
@@ -47,7 +47,7 @@ const Fold = ({ label, value, open, onToggle, children }: { label: string; value
 
 const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
-const SIZE: Record<DeckId, number> = { ug: ALL_CARDS.length, outlines: OUTLINE_CARDS.length }
+const SIZE: Record<DeckId, number> = { ug: ALL_CARDS.length, outlines: OUTLINE_CARDS.length, find: FIND_CARDS.length }
 const PER_DAY = [10, 20, 40]
 
 /** Which sets, then card types, kinds of place and regions: any chip within a group, and every group. */
@@ -112,7 +112,7 @@ export function Filters({ onClose }: { onClose: () => void }) {
       ))}
 
       <div className="my-2 border-t border-line" />
-      {/* Card types are Ultimate Geography's; the outlines have just the one. */}
+      {/* Card types are Ultimate Geography's; each extra set has just the one. */}
       {s.decks.includes('ug') && (
         <Fold label="Cards" value={CARD_TYPES.filter((t) => s.types.includes(t.id)).map((t) => t.label)} open={open === 'types'} onToggle={() => fold('types')}>
           <Chip on={!s.types.length} onClick={() => setSettings({ types: [] })}>

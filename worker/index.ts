@@ -7,6 +7,7 @@
 // reminders/ sends them.
 import deck from '../src/data/deck.json'
 import outlined from '../src/data/outline-ids.json'
+import findable from '../src/data/find-ids.json'
 
 export interface Env {
   DB: D1Database
@@ -22,14 +23,16 @@ type RevlogKey = { cardId: string; review: number }
 type ParamsIn = { data: { w?: unknown; at?: unknown; reviews?: unknown }; updated: number }
 type TestIn = { id: unknown; data: { test?: unknown; finished?: unknown; ms?: unknown; total?: unknown; right?: unknown; missed?: unknown } | null }
 
-/** Every card id in the deck, the outline set included (mirrors src/lib/deck.ts). */
+/** Every card id in the deck, the extra sets included (mirrors src/lib/deck.ts). */
 const OUTLINED = new Set<string>(outlined)
+const FINDABLE = new Set<string>(findable)
 const CARD_IDS = new Set(
   deck.notes.flatMap((n) => [
     ...(n.capital ? [`${n.id}:capital`, `${n.id}:country`] : []),
     ...(n.flag ? [`${n.id}:flag`] : []),
     ...(n.map ? [`${n.id}:map`] : []),
     ...(OUTLINED.has(n.id) ? [`${n.id}:outline`] : []),
+    ...(FINDABLE.has(n.id) ? [`${n.id}:find`] : []),
   ]),
 )
 const MAX_BODY = 1_000_000
@@ -143,7 +146,7 @@ const testOf = (t: TestIn, now: number) => {
   const { id, data } = t ?? {}
   if (typeof id !== 'string' || id.length > 64 || !/^[A-Za-z0-9-]+$/.test(id) || !data || typeof data !== 'object') return null
   const { test, finished, ms, total, right, missed } = data
-  if (typeof test !== 'string' || test.length > 64 || !/^[A-Za-z_+]+:(flag|map|capital|country)$/.test(test)) return null
+  if (typeof test !== 'string' || test.length > 64 || !/^[A-Za-z_+]+:(flag|map|capital|country|find)$/.test(test)) return null
   if (!inRange(finished, MIN_TIME, now + MAX_AHEAD) || !inRange(ms, 0, MAX_TEST_MS) || !inRange(total, 1, 1000) || !inRange(right, 0, total)) return null
   const isMiss = (m: { id?: unknown; typed?: unknown } | null) => !!m && typeof m.id === 'string' && CARD_IDS.has(m.id) && typeof m.typed === 'string' && m.typed.length <= 80
   if (!Array.isArray(missed) || missed.length !== total - right || !missed.every(isMiss)) return null

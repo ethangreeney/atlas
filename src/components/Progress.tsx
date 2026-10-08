@@ -3,7 +3,7 @@ import { animate, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
-import { ALL_CARDS, answerOf, CARD_BY_ID, CORE_IDS, kindOf, mediaUrl, NOTES, OUTLINE_CARDS, TYPE_INFO, type CardType, type DeckCard, type Note } from '../lib/deck'
+import { ALL_CARDS, answerOf, CARD_BY_ID, CORE_IDS, FIND_CARDS, kindOf, mediaUrl, NOTES, OUTLINE_CARDS, TYPE_INFO, type CardType, type DeckCard, type DeckId, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
 import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Goal, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
@@ -54,7 +54,19 @@ const LOWEST = 10
 /** Marks the history entry pushed on open, so Back closes the page and closing pops it again. */
 const TOKEN = Math.random().toString(36).slice(2)
 
-const TYPE_WORD: Record<CardType, string> = { capital: 'capital', country: 'from its capital', flag: 'flag', map: 'on the map', outline: 'outline' }
+const TYPE_WORD: Record<CardType, string> = { capital: 'capital', country: 'from its capital', flag: 'flag', map: 'on the map', outline: 'outline', find: 'find on the map' }
+/** The sets made for Atlas, beyond Ultimate Geography: each has a line of its own under the headline. */
+const EXTRAS = [
+  { deck: 'outlines', name: 'Outlines', cards: OUTLINE_CARDS },
+  { deck: 'find', name: 'Find on the map', cards: FIND_CARDS },
+] as const
+const setStanding = (cards: DeckCard[], rows: Map<string, CardRow>) => ({
+  learned: cards.filter((c) => {
+    const r = rows.get(c.id)
+    return !!r && r.state !== State.New
+  }).length,
+  mastered: cards.filter((c) => isMature(rows.get(c.id))).length,
+})
 
 /** "1h 34m", "12m". */
 const duration = (ms: number) => {
@@ -85,14 +97,15 @@ const Thumb = ({ note, small }: { note: Note; small?: boolean }) => {
 const Side = ({ card, back }: { card: DeckCard; back?: boolean }) => {
   const n = card.note
   if (!back && card.type === 'outline') return <Outline id={n.id} label="Outline" className="h-20 w-full" />
-  const pic = back ? null : card.type === 'flag' ? n.flag : card.type === 'map' ? n.map : null
+  // Finding a place: its name, then where it is.
+  const pic = back ? (card.type === 'find' ? n.map : null) : card.type === 'flag' ? n.flag : card.type === 'map' ? n.map : null
   if (pic)
     return (
       <img
         src={mediaUrl(pic)}
-        alt={card.type === 'flag' ? 'Flag' : 'Map'}
+        alt={card.type === 'flag' ? 'Flag' : card.type === 'find' ? `Map of ${n.country}` : 'Map'}
         draggable={false}
-        className={card.type === 'map' ? 'img-shadow img-dim w-full rounded-lg' : `max-h-20 max-w-full ${pic.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+        className={card.type === 'map' || card.type === 'find' ? 'img-shadow img-dim w-full rounded-lg' : `max-h-20 max-w-full ${pic.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
       />
     )
   return <div className="text-balance text-[15px] font-semibold leading-snug text-ink">{back ? answerOf(card) : card.type === 'country' ? n.capital : n.country}</div>
@@ -497,9 +510,12 @@ function MasteryMap({ levels, region, onRegion, onPick }: MapProps) {
 function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>; onBack: () => void }) {
   const now = new Date()
   const settings = useSettings()
-  // The outline card too, once it's in play: switched on, or answered before.
-  const outline = CARD_BY_ID.get(`${note.id}:outline`)
-  const cards = [...(CARDS_BY_NOTE.get(note.id) ?? []), ...(outline && (settings.decks.includes('outlines') || rows.has(outline.id)) ? [outline] : [])]
+  // The extra sets' cards too, once they're in play: switched on, or answered before.
+  const extra = (type: CardType, deck: DeckId) => {
+    const c = CARD_BY_ID.get(`${note.id}:${type}`)
+    return c && (settings.decks.includes(deck) || rows.has(c.id)) ? [c] : []
+  }
+  const cards = [...(CARDS_BY_NOTE.get(note.id) ?? []), ...extra('outline', 'outlines'), ...extra('find', 'find')]
   const flag = note.flagBack ?? note.flag
   const info = [note.countryInfo, note.capitalInfo].filter(Boolean).join(' ')
   return (
@@ -839,11 +855,9 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
         : 'Your days of study will fill in here',
       goal,
       mastered: ALL_CARDS.filter((c) => isMature(rows.get(c.id))).length,
-      // The extra set, on a line of its own.
-      outlines: {
-        learned: OUTLINE_CARDS.filter((c) => { const r = rows.get(c.id); return !!r && r.state !== State.New }).length,
-        mastered: OUTLINE_CARDS.filter((c) => isMature(rows.get(c.id))).length,
-      },
+      // The extra sets, each on a line of its own.
+      outlines: setStanding(OUTLINE_CARDS, rows),
+      find: setStanding(FIND_CARDS, rows),
       answers: logs.length,
       recall: recallNow(rows),
       started: placesStarted(rows),
@@ -999,14 +1013,17 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
                 `Every card${filtered ? ' in these filters' : ''} is under way`
               )}
             </p>
-            {(settings.decks.includes('outlines') || insight.outlines.learned > 0) && (
-              <p className="mt-1 text-[12.5px] tabular-nums text-ink-3">
-                Outlines, the extra set:{' '}
-                <span className="whitespace-nowrap">
-                  {insight.outlines.learned} of {OUTLINE_CARDS.length} learned
-                </span>
-                {insight.outlines.mastered > 0 && <span className="whitespace-nowrap">{` · ${insight.outlines.mastered} mastered`}</span>}
-              </p>
+            {EXTRAS.map(
+              ({ deck, name, cards }) =>
+                (settings.decks.includes(deck) || insight[deck].learned > 0) && (
+                  <p key={deck} className="mt-1 text-[12.5px] tabular-nums text-ink-3">
+                    {name}, an extra set:{' '}
+                    <span className="whitespace-nowrap">
+                      {insight[deck].learned} of {cards.length} learned
+                    </span>
+                    {insight[deck].mastered > 0 && <span className="whitespace-nowrap">{` · ${insight[deck].mastered} mastered`}</span>}
+                  </p>
+                ),
             )}
             {/* The cards most likely forgotten, only when there are some: the one thing here to act on. */}
             {n > 0 && (

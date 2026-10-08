@@ -17,6 +17,8 @@ type Props = {
   auto?: number | null
   /** The grade a swipe on the card would give if let go now. */
   leaning?: Grade | null
+  /** A find-on-map card, which the map grades: "Show me" until it's answered, then Next unless it was right. */
+  find?: boolean
 }
 
 /** Taps this soon after the grades appear are the end of a double tap on Show answer, not a grade. */
@@ -33,11 +35,42 @@ const SUGGESTED = [
   'text-easy! shadow-[0_0_0_1.5px_var(--color-easy)]!',
 ]
 
-export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew, auto, leaning }: Props) {
+const fade = { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 4 }, transition: { duration: 0.12 } }
+
+export function GradeBar({ flipped, intervals, onFlip, onGrade, disabled, suggested, isNew, auto, leaning, find }: Props) {
   const shownAt = useRef(0)
   useEffect(() => {
     if (flipped) shownAt.current = Date.now()
   }, [flipped])
+  // Found on the map: it moves on by itself, so there's nothing to press.
+  if (find)
+    return (
+      <div className="relative flex h-16 w-full items-center justify-center short:h-12">
+        <AnimatePresence mode="wait" initial={false}>
+          {!flipped ? (
+            <motion.button
+              key="show"
+              {...fade}
+              onClick={onFlip}
+              disabled={disabled}
+              className="flex h-9 items-center gap-2 rounded-full pl-3.5 pr-2.5 text-[13px] text-ink-3 transition-colors hover:bg-muted hover:text-ink"
+            >
+              Show me <kbd className="hidden sm:inline">space</kbd>
+            </motion.button>
+          ) : suggested === Rating.Again ? (
+            <motion.button
+              key="next"
+              {...fade}
+              onClick={() => Date.now() - shownAt.current > SETTLE_MS && onGrade(Rating.Again)}
+              disabled={disabled}
+              className={`${button} flex h-11 items-center gap-3 rounded-full! pl-[22px] pr-3.5 text-[14px] font-medium`}
+            >
+              Next <kbd className="hidden sm:inline">space</kbd>
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
+      </div>
+    )
   return (
     <div className="relative h-16 w-full short:h-12">
       <AnimatePresence mode="wait" initial={false}>

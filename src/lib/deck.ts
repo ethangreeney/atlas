@@ -1,5 +1,6 @@
 import raw from '../data/deck.json'
 import outlined from '../data/outline-ids.json'
+import findable from '../data/find-ids.json'
 
 export type Note = {
   id: string
@@ -17,21 +18,26 @@ export type Note = {
 
 /** Ultimate Geography's four kinds of card. */
 export type CoreType = 'capital' | 'country' | 'flag' | 'map'
-export type CardType = CoreType | 'outline'
+export type CardType = CoreType | 'outline' | 'find'
 export const CARD_TYPES: { id: CoreType; label: string; prompt: string }[] = [
   { id: 'capital', label: 'Country → Capital', prompt: 'Capital of' },
   { id: 'country', label: 'Capital → Country', prompt: 'Capital' },
   { id: 'flag', label: 'Flag → Country', prompt: 'Flag' },
   { id: 'map', label: 'Map → Country', prompt: 'Location' },
 ]
-/** Every kind of card, the extra set's included. */
-export const TYPE_INFO: { id: CardType; label: string; prompt: string }[] = [...CARD_TYPES, { id: 'outline', label: 'Outline → Country', prompt: 'Outline' }]
+/** Every kind of card, the extra sets' included. */
+export const TYPE_INFO: { id: CardType; label: string; prompt: string }[] = [
+  ...CARD_TYPES,
+  { id: 'outline', label: 'Outline → Country', prompt: 'Outline' },
+  { id: 'find', label: 'Country → Map', prompt: 'Find on the map' },
+]
 
-/** Ultimate Geography is the deck; the outlines are an extra set made for Atlas, studied only if switched on. */
-export type DeckId = 'ug' | 'outlines'
+/** Ultimate Geography is the deck; outlines and finding places on the map are extra sets made for Atlas, studied only if switched on. */
+export type DeckId = 'ug' | 'outlines' | 'find'
 export const DECKS: { id: DeckId; label: string; about?: string }[] = [
   { id: 'ug', label: 'Ultimate Geography' },
   { id: 'outlines', label: 'Outlines', about: 'an extra set' },
+  { id: 'find', label: 'Find on the map', about: 'an extra set' },
 ]
 
 export type DeckCard = { id: string; type: CardType; note: Note }
@@ -67,9 +73,14 @@ export const ALL_CARDS: DeckCard[] = NOTES.flatMap((note) => {
 const OUTLINED = new Set(outlined)
 export const OUTLINE_CARDS: DeckCard[] = NOTES.filter((n) => OUTLINED.has(n.id)).map((note) => ({ id: `${note.id}:outline`, type: 'outline', note }))
 
-/** Every card there is to study, in either set. */
-export const STUDY_CARDS = [...ALL_CARDS, ...OUTLINE_CARDS]
-export const deckOf = (c: DeckCard): DeckId => (c.type === 'outline' ? 'outlines' : 'ug')
+/** The other extra set: the place named, found on a blank world map. Every place with a map card but the continents
+ * (too easy to need it) and a few straits and gulfs (too narrow to click). */
+const FINDABLE = new Set(findable)
+export const FIND_CARDS: DeckCard[] = NOTES.filter((n) => FINDABLE.has(n.id)).map((note) => ({ id: `${note.id}:find`, type: 'find', note }))
+
+/** Every card there is to study, in any set. */
+export const STUDY_CARDS = [...ALL_CARDS, ...OUTLINE_CARDS, ...FIND_CARDS]
+export const deckOf = (c: DeckCard): DeckId => (c.type === 'outline' ? 'outlines' : c.type === 'find' ? 'find' : 'ug')
 
 export const CARD_BY_ID = new Map(STUDY_CARDS.map((c) => [c.id, c]))
 /** Ultimate Geography's cards, which the progress headline, sets and mastery count. */

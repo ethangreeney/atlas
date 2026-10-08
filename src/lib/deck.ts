@@ -31,7 +31,7 @@ export const TYPE_INFO: { id: CardType; label: string; prompt: string }[] = [...
 export type DeckId = 'ug' | 'outlines'
 export const DECKS: { id: DeckId; label: string; about?: string }[] = [
   { id: 'ug', label: 'Ultimate Geography' },
-  { id: 'outlines', label: 'Outlines', about: 'an extra set beyond Ultimate Geography' },
+  { id: 'outlines', label: 'Outlines', about: 'an extra set' },
 ]
 
 export type DeckCard = { id: string; type: CardType; note: Note }

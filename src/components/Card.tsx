@@ -12,7 +12,7 @@ import { Zoomable } from './Zoom'
 export type ExitTarget = { x: number; y: number; rotate: number }
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
-// Debug/filming: ?slow=4 stretches the flip and fly-away animations 4x.
+// Debug/filming: ?slow=4 stretches the reveal and fly-away animations 4x.
 const SLOW = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('slow')) || 1 : 1
 /** How far a flipped card has to be swiped (plus a bit for a flick) to grade it. */
 const SWIPE = 90
@@ -52,9 +52,6 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 )
 const Big = ({ children }: { children: React.ReactNode }) => (
   <div className="text-balance text-[clamp(28px,4.6vw,40px)] font-semibold short:text-[24px] leading-[1.1] tracking-[-0.02em] text-ink">{children}</div>
-)
-const Small = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-[15px] font-medium text-ink-2">{children}</div>
 )
 /** A name on the answer side: tap it to hear just that name. The speaker icon sits inline, balanced by an
  * equal spacer on the left so the name stays centred; an absolutely positioned icon makes Safari wrap the name
@@ -104,15 +101,18 @@ const Info = ({ children }: { children: React.ReactNode }) =>
 
 const ZOOM_LABEL = 'See it up close (F)'
 
+/** How things move when the answer comes in: the question settles smaller and higher, the answer rises in under it. */
+const GLIDE = '[transition-duration:var(--reveal)] ease-[cubic-bezier(0.3,0.7,0.2,1)] motion-reduce:transition-none'
+
 /** The question side says only what the picture is; the answer side can name it. Hold it, or press its corner button, to see it up close. */
-const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
+const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'md'; alt: string }) => (
   <Zoomable file={file} alt={alt} label={ZOOM_LABEL}>
     <img
       src={mediaUrl(file)}
       alt={alt}
       draggable={false}
       {...useHoldToZoom(file, alt)}
-      className={`${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)] short:max-h-[min(190px,100cqh_-_56px)]' : 'max-h-16 max-w-[110px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
+      className={`transition-[max-height,max-width] ${GLIDE} ${size === 'lg' ? 'max-h-[min(190px,26dvh)] max-w-[min(300px,70vw)] short:max-h-[min(190px,100cqh_-_56px)]' : 'max-h-[min(96px,14dvh)] max-w-[160px] short:max-h-12'} ${file.includes('-nobox') ? '' : 'img-shadow rounded-[3px]'}`}
     />
   </Zoomable>
 )
@@ -121,7 +121,12 @@ const Flag = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: strin
 const MiniFlag = ({ file, name }: { file: string; name: string }) => (
   <img src={mediaUrl(file)} alt="" draggable={false} {...useHoldToZoom(file, `Flag of ${name}`)} className="img-shadow max-h-full max-w-full rounded-[2px]" />
 )
-const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string }) => (
+const MAP_SIZE = {
+  lg: 'w-[min(400px,74vw,70dvh)] short:max-w-[min(400px,74vw,100%)] short:max-h-[min(300px,100cqh_-_56px)]',
+  md: 'w-[min(230px,48vw)] short:max-w-[min(230px,48vw)] short:max-h-[clamp(24px,100cqh_-_110px,120px)]',
+  sm: 'w-[min(190px,40vw)] short:max-w-[min(190px,40vw)] short:max-h-[clamp(24px,100cqh_-_110px,110px)]',
+}
+const Map = ({ file, size, alt }: { file: string; size: keyof typeof MAP_SIZE; alt: string }) => (
   <Zoomable file={file} alt={alt} label={ZOOM_LABEL}>
     <img
       src={mediaUrl(file)}
@@ -129,7 +134,7 @@ const Map = ({ file, size, alt }: { file: string; size: 'lg' | 'sm'; alt: string
       draggable={false}
       {...useHoldToZoom(file, alt)}
       // Short screens size maps by the card's height (cqh), so the answer beneath still fits.
-      className={`${size === 'lg' ? 'w-[min(400px,74vw,70dvh)] short:max-w-[min(400px,74vw,100%)] short:max-h-[min(300px,100cqh_-_56px)]' : 'w-[min(190px,40vw)] short:max-w-[min(190px,40vw)] short:max-h-[clamp(24px,100cqh_-_110px,110px)]'} rounded-xl img-shadow img-dim short:w-auto`}
+      className={`transition-[width,max-width,max-height] ${GLIDE} ${MAP_SIZE[size]} rounded-xl img-shadow img-dim short:w-auto`}
     />
   </Zoomable>
 )
@@ -215,90 +220,128 @@ const AnswerInput = ({ card, input }: { card: DeckCard; input: Input }) => {
   )
 }
 
-function Front({ card }: { card: DeckCard }) {
+/** Folds to nothing, or opens to its content's height, so everything around it glides instead of jumping. */
+const Fold = ({ open, rise, children }: { open: boolean; rise?: boolean; children: React.ReactNode }) => (
+  <div
+    className={`grid w-full transition-[grid-template-rows,opacity] ${GLIDE} ${open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+    inert={!open}
+  >
+    {/* Padded inside the fold, so a closed one leaves no gap, and shadows aren't clipped at its edges. */}
+    <div className="-mx-3 flex min-h-0 flex-col items-center gap-3 overflow-hidden px-3 short:gap-2">
+      <div
+        className={`flex w-full flex-col items-center gap-3 short:gap-2 ${rise ? `origin-top pt-4 transition-transform ${GLIDE} short:pt-2 ${open ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[0.96]'}` : ''}`}
+      >
+        {children}
+      </div>
+    </div>
+  </div>
+)
+
+/** A name asked about: big on its own, then small and quieter over the answer, which can say it. */
+const Asked = ({ text, small, onSay }: { text: string; small: boolean; onSay: (t: string) => void }) => (
+  <div
+    className={`text-balance transition-[font-size,color,letter-spacing] ${GLIDE} ${small ? 'text-[15px] font-medium leading-snug tracking-normal text-ink-2' : 'text-[clamp(28px,4.6vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-ink short:text-[24px]'}`}
+  >
+    {small ? <Say text={text} onSay={onSay} /> : text}
+  </div>
+)
+
+/** The question, which stays put when the answer comes in: its label folds away and it settles smaller. */
+function Question({ card, up, onSay }: { card: DeckCard; up: boolean; onSay: (t: string) => void }) {
   const n = card.note
+  const label = (text: string) => (
+    <Fold open={!up}>
+      <div className="pb-3 short:pb-2">
+        <Label>{text}</Label>
+      </div>
+    </Fold>
+  )
   switch (card.type) {
     case 'capital':
       return (
         <>
-          <Label>Capital of</Label>
-          <Big>{n.country}</Big>
-          <Info>{n.countryInfo}</Info>
+          {label('Capital of')}
+          <Asked text={n.country} small={up} onSay={onSay} />
+          {n.countryInfo && (
+            <Fold open={!up}>
+              <div className="pt-3 short:pt-2">
+                <Info>{n.countryInfo}</Info>
+              </div>
+            </Fold>
+          )}
         </>
       )
     case 'country':
       return (
         <>
-          <Label>Capital</Label>
-          <Big>{n.capital}</Big>
-          <Info>{n.capitalHint ? `Hint: ${n.capitalHint}` : ''}</Info>
+          {label('Capital')}
+          <Asked text={n.capital} small={up} onSay={onSay} />
+          {n.capitalHint && (
+            <Fold open={!up}>
+              <div className="pt-3 short:pt-2">
+                <Info>Hint: {n.capitalHint}</Info>
+              </div>
+            </Fold>
+          )}
         </>
       )
     case 'flag':
       return (
         <>
-          <Label>Flag</Label>
-          <Flag file={n.flag!} size="lg" alt="Flag" />
+          {label('Flag')}
+          {/* Some flags are blurred where they'd spell out the answer; the answer shows them clear. */}
+          <Flag file={up ? (n.flagBack ?? n.flag!) : n.flag!} size={up ? 'md' : 'lg'} alt={up ? `Flag of ${n.country}` : 'Flag'} />
         </>
       )
     case 'map':
       return (
         <>
-          <Label>Location</Label>
-          <Map file={n.map!} size="lg" alt="Map" />
+          {label('Location')}
+          <Map file={n.map!} size={up ? 'md' : 'lg'} alt={up ? `Map of ${n.country}` : 'Map'} />
         </>
       )
   }
 }
 
-function Back({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSay: (t: string) => void }) {
+/** What rises in under the question. */
+function Answer({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; onSay: (t: string) => void }) {
   const n = card.note
   const map = showMap && n.map && card.type !== 'map' ? <Map file={n.map} size="sm" alt={`Map of ${n.country}`} /> : null
+  const big = (text: string) => (
+    <Big>
+      <Say text={text} onSay={onSay} big />
+    </Big>
+  )
   switch (card.type) {
     case 'capital':
       return (
         <>
-          {map}
-          <Small>
-            <Say text={n.country!} onSay={onSay} />
-          </Small>
-          <Big>
-            <Say text={n.capital!} onSay={onSay} big />
-          </Big>
+          {big(n.capital)}
           <Info>{n.capitalInfo}</Info>
+          {map}
         </>
       )
     case 'country':
       return (
         <>
-          {map}
-          <Small>
-            <Say text={n.capital!} onSay={onSay} />
-          </Small>
-          <Big>
-            <Say text={n.country!} onSay={onSay} big />
-          </Big>
+          {big(n.country)}
           <Info>{n.countryInfo}</Info>
+          {map}
         </>
       )
     case 'flag':
       return (
         <>
-          {map ?? <Flag file={n.flagBack ?? n.flag!} size="sm" alt={`Flag of ${n.country}`} />}
-          <Big>
-            <Say text={n.country!} onSay={onSay} big />
-          </Big>
+          {big(n.country)}
           <Info>{n.countryInfo}</Info>
+          {map}
           <LookAlikes card={card} />
         </>
       )
     case 'map':
       return (
         <>
-          <Map file={n.map!} size="sm" alt={`Map of ${n.country}`} />
-          <Big>
-            <Say text={n.country!} onSay={onSay} big />
-          </Big>
+          {big(n.country)}
           <Info>{n.countryInfo}</Info>
         </>
       )
@@ -348,36 +391,37 @@ const Action = ({ label, onClick, href, children }: { label: string; onClick?: (
   )
 }
 
-/** Both faces stay mounted for the 3D flip; the one facing away is inert, so it's neither read out nor tabbable. */
-const face = 'backface-hidden card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-surface text-center'
+const face = 'card-shadow absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-surface text-center'
 /** Scrolls only when the content can't fit, e.g. a long answer with the map on a short screen, and then fades at the
  * edge with more to see. On a wide short screen it keeps clear of the corner tag and buttons. */
-const body = (shown: boolean) =>
-  `flex max-h-full w-full flex-col items-center gap-3 px-8 py-6 short:gap-2 short:py-3 sm:short:px-24 ${shown ? 'overflow-y-auto scroll-fade' : ''}`
+const body = 'flex max-h-full w-full flex-col items-center overflow-y-auto scroll-fade px-8 py-6 short:py-3 sm:short:px-24'
 
 export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, onToggleMap, input, typed }: Props) {
   const tag = stateTag(row)
   const drag = useDragControls()
-  const front = useRef<HTMLDivElement>(null)
-  // Once the answer is shown, tapping the card turns it over again, to look at the question (a flag, say) full size.
-  // Each tap is another half turn the same way round; an even number of them shows the answer.
+  const self = useRef<HTMLDivElement>(null)
+  // Once the answer is shown, tapping the card hides it again, to look at the question (a flag, say) full size.
+  // Each tap toggles; an even number of them shows the answer.
   const [turns, setTurns] = useState(0)
   const answerUp = flipped && turns % 2 === 0
   // A swipe that doesn't go far enough to grade springs back; its pointer-up mustn't also count as a tap.
   const dragged = useRef(false)
-  // Once turned over, the answer box lets go of the keyboard so Enter and the number keys grade.
+  // Once the answer's shown, the answer box lets go of the keyboard so Enter and the number keys grade.
   useEffect(() => {
-    if (flipped && front.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur()
+    if (flipped && document.activeElement instanceof HTMLInputElement && self.current?.contains(document.activeElement)) document.activeElement.blur()
   }, [flipped])
   return (
     <motion.div
+      ref={self}
       data-card={card.id}
-      className={`absolute inset-0 [perspective:1400px] short:[container-type:size] ${flipped ? 'touch-pan-y' : ''}`}
+      data-answer={answerUp || undefined}
+      className={`absolute inset-0 short:[container-type:size] ${flipped ? 'touch-pan-y' : ''}`}
+      style={{ '--reveal': `${0.42 * SLOW}s` } as React.CSSProperties}
       variants={variants}
       initial="enter"
       animate="center"
       exit="exit"
-      // Swipe a flipped card by touch: left for Again, right for Good. It flies to the pile from where it's let go.
+      // Swipe a shown card by touch: left for Again, right for Good. It flies to the pile from where it's let go.
       drag={flipped ? 'x' : false}
       dragControls={drag}
       dragListener={false}
@@ -392,42 +436,45 @@ export function Card({ card, row, flipped, showMap, onFlip, onGrade, onSpeak, on
         else if (dx < -SWIPE) onGrade(Rating.Again)
       }}
     >
-      <motion.div
-        className="relative h-full w-full cursor-pointer select-none [transform-style:preserve-3d]"
-        animate={{ rotateY: (flipped ? 180 : 0) + turns * 180 }}
-        transition={{ duration: 0.38 * SLOW, ease: [0.3, 0.7, 0.2, 1] }}
+      <div
+        className={`${face} cursor-pointer select-none`}
         onClick={() => {
           if (dragged.current) return void (dragged.current = false)
           if (flipped) setTurns((t) => t + 1)
           else onFlip()
         }}
       >
-        <div ref={front} className={face} inert={answerUp}>
-          <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          <div className={body(!answerUp)}>
-            <Front card={card} />
-            {input && <AnswerInput card={card} input={input} />}
-          </div>
+        <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
+        {typed && (
+          <span className={`transition-opacity duration-300 ${answerUp ? 'opacity-100' : 'opacity-0'}`}>
+            <Result typed={typed} />
+          </span>
+        )}
+        {/* A scroller sets its own touch-action, so it needs pan-y too or a swipe starting on the answer is lost. */}
+        <div className={`${body} touch-pan-y`}>
+          <Question card={card} up={answerUp} onSay={onSpeak} />
+          {input && (
+            <Fold open={!flipped}>
+              <div className="flex w-full justify-center pt-3 short:pt-2">
+                <AnswerInput card={card} input={input} />
+              </div>
+            </Fold>
+          )}
+          <Fold open={answerUp} rise>
+            <Answer card={card} showMap={showMap} onSay={onSpeak} />
+          </Fold>
         </div>
-        <div className={`${face} [transform:rotateY(180deg)]`} inert={!answerUp}>
-          <span className={`absolute left-5 top-4 text-[11px] font-medium ${tag.cls}`}>{tag.label}</span>
-          {typed && <Result typed={typed} />}
-          {/* A scroller sets its own touch-action, so it needs pan-y too or a swipe starting on the answer is lost. */}
-          <div className={`${body(answerUp)} touch-pan-y`}>
-            <Back card={card} showMap={showMap} onSay={onSpeak} />
-          </div>
-          <div className="absolute bottom-3 right-3 flex items-center gap-3">
-            {card.type !== 'map' && card.note.map && (
-              <Action label={showMap ? 'Hide map (M)' : 'Show map (M)'} onClick={onToggleMap}>
-                <MapIcon size={16} strokeWidth={1.75} className={showMap ? 'text-ink' : ''} />
-              </Action>
-            )}
-            <Action label="Open in Google Maps (G)" href={mapsUrl(card)}>
-              <ExternalLink size={16} strokeWidth={1.75} />
+        <div className={`absolute bottom-3 right-3 flex items-center gap-3 transition-opacity duration-300 ${answerUp ? 'opacity-100' : 'pointer-events-none opacity-0'}`} inert={!answerUp}>
+          {card.type !== 'map' && card.note.map && (
+            <Action label={showMap ? 'Hide map (M)' : 'Show map (M)'} onClick={onToggleMap}>
+              <MapIcon size={16} strokeWidth={1.75} className={showMap ? 'text-ink' : ''} />
             </Action>
-          </div>
+          )}
+          <Action label="Open in Google Maps (G)" href={mapsUrl(card)}>
+            <ExternalLink size={16} strokeWidth={1.75} />
+          </Action>
         </div>
-      </motion.div>
+      </div>
       <div aria-live="polite" className="sr-only">
         {flipped ? `Answer: ${answerOf(card)}` : ''}
       </div>

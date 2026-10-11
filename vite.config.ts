@@ -32,6 +32,8 @@ export default defineConfig({
       workbox: {
         // Cache the whole deck's media so the app works offline after first load.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The link-preview image is only for crawlers; keep it out of every visitor's offline cache.
+        globIgnores: ['**/node_modules/**/*', 'og.png'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Daily reminder notifications (public/push-sw.js).
         importScripts: ['push-sw.js'],

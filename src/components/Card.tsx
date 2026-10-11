@@ -59,12 +59,23 @@ export const stateTag = (row: CardRow) => {
 const Label = ({ children }: { children: React.ReactNode }) => (
   <div className="text-[12.5px] font-medium text-ink-3">{children}</div>
 )
-const Big = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-balance text-[clamp(28px,4.6vw,40px)] font-semibold short:text-[24px] leading-[1.1] tracking-[-0.02em] text-ink">{children}</div>
+/**
+ * A big name's size: the usual, or for a long name just small enough to fit on one line (at about 0.56em a letter),
+ * down to 24px (20px on a short screen); a name longer still wraps, in even lines. Measured against the container
+ * round it, with its length in --len.
+ */
+const FIT = '[font-size:max(24px,min(clamp(28px,4.6vw,40px),calc(100cqw/(var(--len)*0.56))))] short:[font-size:max(20px,min(24px,calc(100cqw/(var(--len)*0.56))))]'
+const fits = (text: string) => ({ '--len': text.length }) as React.CSSProperties
+const Big = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <div className="w-full [container-type:inline-size]">
+    <div style={fits(text)} className={`text-balance font-semibold leading-[1.1] tracking-[-0.02em] text-ink ${FIT}`}>
+      {children}
+    </div>
+  </div>
 )
-/** A name on the answer side: tap it to hear just that name. The speaker icon sits inline, balanced by an
- * equal spacer on the left so the name stays centred; an absolutely positioned icon makes Safari wrap the name
- * at every space ("St. / John's") when it's set in Inter. */
+/** A name on the answer side: tap it to hear just that name. The speaker icon hangs off the end of the last line in a
+ * box with no width, so every line of the name is centred on its words alone, wrapped or not. (It stays in the flow:
+ * an absolutely positioned icon makes Safari wrap the name at every space, "St. / John's", when it's set in Inter.) */
 export const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => void; big?: boolean }) => {
   const size = big ? 18 : 13
   const gap = big ? 'ml-2' : 'ml-1.5'
@@ -89,17 +100,18 @@ export const Say = ({ text, onSay, big }: { text: string; onSay: (t: string) => 
         onSay(text)
       }}
     >
-      <span aria-hidden className={`inline-block ${gap}`} style={{ width: size }} />
       {head}
       {/* The icon stays glued to the last word, so a long name never leaves it alone on its own line. */}
       <span className="whitespace-nowrap">
         {last}
-        <Volume2
-          size={size}
-          strokeWidth={2}
-          aria-hidden
-          className={`inline-block align-middle -translate-y-[0.08em] text-ink-3 opacity-60 transition-opacity group-hover:opacity-100 ${gap}`}
-        />
+        <span className="inline-block w-0">
+          <Volume2
+            size={size}
+            strokeWidth={2}
+            aria-hidden
+            className={`inline-block align-middle -translate-y-[0.08em] text-ink-3 opacity-60 transition-opacity group-hover:opacity-100 ${gap}`}
+          />
+        </span>
       </span>
     </span>
   )
@@ -258,10 +270,13 @@ const Fold = ({ open, rise, children }: { open: boolean; rise?: boolean; childre
 
 /** A name asked about: big on its own, then small and quieter over the answer, which can say it. */
 const Asked = ({ text, small, onSay }: { text: string; small: boolean; onSay: (t: string) => void }) => (
-  <div
-    className={`text-balance transition-[font-size,color,letter-spacing] ${GLIDE} ${small ? 'text-[15px] font-medium leading-snug tracking-normal text-ink-2' : 'text-[clamp(28px,4.6vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-ink short:text-[24px]'}`}
-  >
-    {small ? <Say text={text} onSay={onSay} /> : text}
+  <div className="w-full [container-type:inline-size]">
+    <div
+      style={fits(text)}
+      className={`text-balance transition-[font-size,color,letter-spacing] ${GLIDE} ${small ? 'text-[15px] font-medium leading-snug tracking-normal text-ink-2' : `font-semibold leading-[1.1] tracking-[-0.02em] text-ink ${FIT}`}`}
+    >
+      {small ? <Say text={text} onSay={onSay} /> : text}
+    </div>
   </div>
 )
 
@@ -334,7 +349,7 @@ function Answer({ card, showMap, onSay }: { card: DeckCard; showMap: boolean; on
   const n = card.note
   const map = showMap && n.map && card.type !== 'map' ? <Map file={n.map} size="sm" alt={`Map of ${n.country}`} /> : null
   const big = (text: string) => (
-    <Big>
+    <Big text={text}>
       <Say text={text} onSay={onSay} big />
     </Big>
   )

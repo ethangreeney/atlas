@@ -15,6 +15,7 @@ import { Zoom } from './components/Zoom'
 import { check } from './lib/answer'
 import { answerOf, DECK_VERSION, studied } from './lib/deck'
 import { countMatching, previewIntervals, Rating, State } from './lib/scheduler'
+import { usePreloaded } from './lib/preload'
 import { useSession } from './lib/session'
 import { loadOutlines } from './lib/outlines'
 import { setSettings, useSettings } from './lib/settings'
@@ -33,7 +34,8 @@ const AUTO_MS = 1400
 const AUTO_SPOKEN_MS = 2400
 /** A place found on the map moves on as Good after this long: time to see the tick, not to wait on it. */
 const FOUND_MS = 420
-const Progress = lazy(() => import('./components/Progress'))
+const loadProgress = () => import('./components/Progress')
+const LazyProgress = lazy(loadProgress)
 const loadBrowse = () => import('./components/Browse')
 const LazyBrowse = lazy(loadBrowse)
 
@@ -53,17 +55,6 @@ export default function App() {
     if (findOn) void loadFindMap().catch(() => {})
   }, [findOn])
 
-  // Browsing is a key away: its code comes once the app has settled, and is then used directly. Through lazy() it would
-  // suspend on first opening, and React holds back what a suspense reveals by 300ms. Opened before then, lazy() it stays,
-  // so an open one is never swapped out and reset.
-  const [LoadedBrowse, setLoadedBrowse] = useState<Awaited<ReturnType<typeof loadBrowse>>['default'] | null>(null)
-  const browseOpened = useRef(false)
-  useEffect(() => {
-    const t = setTimeout(() => void loadBrowse().then((m) => browseOpened.current || setLoadedBrowse(() => m.default)), 2000)
-    return () => clearTimeout(t)
-  }, [])
-  const Browse = LoadedBrowse ?? LazyBrowse
-
   const [flipped, setFlipped] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [seq, setSeq] = useState(0)
@@ -73,9 +64,9 @@ export default function App() {
   const [progressOpen, setProgressOpen] = useState(false)
   /** Browsing the cards: where it was left, or at one set (`Africa:flag`). */
   const [browse, setBrowse] = useState<{ key?: string } | null>(null)
-  useEffect(() => {
-    if (browse) browseOpened.current = true
-  }, [browse])
+  // Both a key away, so both open at once.
+  const Progress = usePreloaded(loadProgress, LazyProgress, progressOpen)
+  const Browse = usePreloaded(loadBrowse, LazyBrowse, !!browse)
   const [pileCounts, setPileCounts] = useState<[number, number, number, number]>([0, 0, 0, 0])
   const [answer, setAnswer] = useState('')
   const [typed, setTyped] = useState<Typed | null>(null)

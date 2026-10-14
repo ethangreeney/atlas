@@ -11,8 +11,10 @@ export type DayRow = {
   newCount: number
   reviewCount: number
   extraNew: number
-  /** Cards added to the day by hand ('learn now'): past the daily limit, and not held to one per place. */
+  /** Cards added to the day by hand: new ones ('learn now') past the daily limit, and reviews brought forward. Neither is held to one per place. */
   pulled?: string[]
+  /** How many of today's new cards were added by hand, so they don't use up the daily limit. Counted from the log, never synced. */
+  pulledNew?: number
   seenNotes: string[]
   /** Answers given today per grade: [again, hard, good, easy]. */
   grades: [number, number, number, number]

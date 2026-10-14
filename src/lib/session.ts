@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Rating, State, type Grade } from 'ts-fsrs'
 import { db, type CardRow, type DayRow } from './db'
 import type { Verdict } from './answer'
-import { ALL_CARDS, CARD_BY_ID, STUDY_CARDS, type DeckCard } from './deck'
-import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, type Queue } from './scheduler'
+import { ALL_CARDS, CARD_BY_ID, isShown, STUDY_CARDS, type DeckCard } from './deck'
+import { becomesLeech, buildQueue, dayEnd, dayKey, emptyDay, freshRow, LEARN_AHEAD_MS, matchesFilters, next as nextState, waitsForTomorrow, type Queue } from './scheduler'
 import { useSettings } from './settings'
 import { recordUndo, restartOutlines, schedulePush } from './sync'
 import { reloadIfUpdated } from './update'
@@ -79,7 +79,10 @@ export function useSession() {
     const seen = new Set<string>()
     for (const l of logs) {
       if (dayKey(new Date(l.review)) !== key) continue
-      if (l.state === State.New && !l.known) d.newCount++
+      if (l.state === State.New && !l.known) {
+        d.newCount++
+        if (d.pulled.includes(l.cardId)) d.pulledNew!++
+      }
       else if (l.state === State.Review) d.reviewCount++
       if (l.rating >= 1 && l.rating <= 4) d.grades[l.rating - 1]++
       const note = CARD_BY_ID.get(l.cardId)?.note.id
@@ -124,8 +127,8 @@ export function useSession() {
     return () => document.removeEventListener('visibilitychange', check)
   }, [day, loadDay])
 
-  /** In today's study: within the filters, or added to the day by hand. */
-  const inToday = (c: DeckCard, d = day) => matchesFilters(c, settings) || !!d?.pulled?.includes(c.id)
+  /** In today's study: within the filters, or added to the day by hand (unless its set has been put away). */
+  const inToday = (c: DeckCard, d = day) => matchesFilters(c, settings) || (!!d?.pulled?.includes(c.id) && isShown(c))
 
   const queue: Queue | null = useMemo(() => {
     if (!day) return null
@@ -168,10 +171,13 @@ export function useSession() {
     [queue],
   )
 
-  /** Cards answered at least once, ever, among those still in the deck (as Progress counts them). */
+  /** Cards answered at least once, ever, among those still in the deck and not put away. */
   const learned = useMemo(() => {
     let n = 0
-    for (const r of rows.current.values()) if (r.state !== State.New && CARD_BY_ID.has(r.id)) n++
+    for (const r of rows.current.values()) {
+      const c = CARD_BY_ID.get(r.id)
+      if (r.state !== State.New && c && isShown(c)) n++
+    }
     return n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue])
@@ -211,6 +217,7 @@ export function useSession() {
       const nd: DayRow = {
         ...d,
         newCount: d.newCount + (prev.state === State.New && !known ? 1 : 0),
+        pulledNew: (d.pulledNew ?? 0) + (prev.state === State.New && !known && d.pulled?.includes(card.id) ? 1 : 0),
         reviewCount: d.reviewCount + (prev.state === State.Review ? 1 : 0),
         seenNotes: d.seenNotes.includes(card.note.id) ? d.seenNotes : [...d.seenNotes, card.note.id],
         grades: d.grades.map((n, i) => n + (i === g - 1 ? 1 : 0)) as DayRow['grades'],
@@ -348,6 +355,51 @@ export function useSession() {
     },
     [day],
   )
+  /**
+   * Brings a card into today's study from browsing: a new one is learnt today, and a review due another day is due now.
+   * Only its due date moves (its memory is still counted from its last review), the way Anki sets a due date.
+   */
+  const studySooner = useCallback(
+    async (card: DeckCard) => {
+      if (!day) return
+      const r = rows.current.get(card.id)
+      if (!r || r.state === State.New) return learnNow([card.id])
+      if (r.state !== State.Review) return
+      const now = new Date()
+      const have = day.pulled ?? []
+      const nd: DayRow = { ...day, pulled: have.includes(card.id) ? have : [...have, card.id], updated: +now, dirty: 1 }
+      const row: CardRow = r.due > now ? { ...r, due: now, updated: +now, dirty: 1 } : r
+      rows.current.set(card.id, row)
+      setDay(nd)
+      try {
+        await db.transaction('rw', db.cards, db.days, async () => {
+          if (row !== r) await db.cards.put(row)
+          await db.days.put(nd)
+        })
+      } catch {
+        setSaveError(true)
+        return
+      }
+      schedulePush()
+    },
+    [day, learnNow],
+  )
+  /** Whether a card is in today's study already, or what would bring it in: learning it, or reviewing it. */
+  const standing = useCallback(
+    (card: DeckCard): 'today' | 'learn' | 'review' => {
+      const r = rows.current.get(card.id)
+      const pulled = !!day?.pulled?.includes(card.id)
+      if (!r || r.state === State.New) return pulled ? 'today' : 'learn'
+      if (r.state !== State.Review) return 'today'
+      const now = new Date()
+      if (r.due >= dayEnd(now)) return 'review'
+      return pulled || (matchesFilters(card, settings) && !waitsForTomorrow(r, !!day?.seenNotes.includes(card.note.id), now)) ? 'today' : 'review'
+    },
+    // Rows change in place; the day and the tick change with them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [day, settings, tick],
+  )
+
   /** Every unstarted card in the filters, today. */
   const learnAll = useCallback(() => learnNow(STUDY_CARDS.filter((c) => matchesFilters(c, settings)).map((c) => c.id)), [learnNow, settings])
 
@@ -397,5 +449,5 @@ export function useSession() {
     setTick((t) => t + 1)
   }, [loadDay, loadUnpassed])
 
-  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill, celebrate, endCelebrate, answerTest }
+  return { ready: !!day, queue, day, currentRow, learned, grade, undo: undoLast, canUndo: !!undo, learnMore, learnNow, learnAll, studySooner, standing, refresh, reload, saveError, drilling: drill?.ids.length ?? 0, startDrill, exitDrill, celebrate, endCelebrate, answerTest }
 }

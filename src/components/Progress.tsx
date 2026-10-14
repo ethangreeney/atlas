@@ -3,7 +3,7 @@ import { animate, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import world from '../data/world.json'
 import { db, type CardRow, type RevlogRow } from '../lib/db'
-import { ALL_CARDS, answerOf, CARD_BY_ID, CORE_IDS, FIND_CARDS, kindOf, mediaUrl, NOTES, OUTLINE_CARDS, TYPE_INFO, type CardType, type DeckCard, type DeckId, type Note } from '../lib/deck'
+import { ALL_CARDS, answerOf, CARD_BY_ID, CORE_IDS, FIND_CARDS, HIDDEN_DECKS, isShown, kindOf, mediaUrl, NOTES, OUTLINE_CARDS, studied, TYPE_INFO, type CardType, type DeckCard, type DeckId, type Note } from '../lib/deck'
 import { restoreFocus, trapTab } from '../lib/focus'
 import { SET_WORD, byType, closest, days, forgetting, forgotten, placesStarted, regionShort, recallNow, sets, strength, studyTime, type DeckSet, type Goal, type Slipping } from '../lib/insights'
 import { CARDS_BY_NOTE, forecast, isMature, mastery, NOTE_BY_ID, search, type Mastery } from '../lib/progress'
@@ -513,7 +513,7 @@ function Detail({ note, rows, onBack }: { note: Note; rows: Map<string, CardRow>
   // The extra sets' cards too, once they're in play: switched on, or answered before.
   const extra = (type: CardType, deck: DeckId) => {
     const c = CARD_BY_ID.get(`${note.id}:${type}`)
-    return c && (settings.decks.includes(deck) || rows.has(c.id)) ? [c] : []
+    return c && isShown(c) && (settings.decks.includes(deck) || rows.has(c.id)) ? [c] : []
   }
   const cards = [...(CARDS_BY_NOTE.get(note.id) ?? []), ...extra('outline', 'outlines'), ...extra('find', 'find')]
   const flag = note.flagBack ?? note.flag
@@ -579,14 +579,14 @@ function SetPane({
   rows,
   onPick,
   onLearn,
-  onTest,
+  onBrowse,
   goal,
 }: {
   set: DeckSet
   rows: Map<string, CardRow>
   onPick: (n: Note) => void
   onLearn: () => void
-  onTest: () => void
+  onBrowse: () => void
   goal: Goal
 }) {
   const master = goal === 'master'
@@ -628,8 +628,8 @@ function SetPane({
               {set.left.length === 1 ? 'Learn the one left' : `Learn the ${set.left.length} left`}
             </button>
           )}
-          <button onClick={onTest} className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3">
-            Test this set
+          <button onClick={onBrowse} className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-subtle pointer-coarse:py-3">
+            Browse this set
           </button>
         </div>
       </div>
@@ -681,10 +681,10 @@ function useDash() {
   return dash
 }
 
-type Props = { onClose: () => void; onDrill: (ids: string[]) => void; onLearn: (ids: string[]) => void; onTest: (key: string) => void }
+type Props = { onClose: () => void; onDrill: (ids: string[]) => void; onLearn: (ids: string[]) => void; onBrowse: (key: string) => void }
 
 /** Search any place, see mastery on a world map, the streak, what's ahead, and the cards that keep slipping. */
-export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
+export default function Progress({ onClose, onDrill, onLearn, onBrowse }: Props) {
   const settings = useSettings()
   const [rows, setRows] = useState<Map<string, CardRow> | null>(null)
   const [logs, setLogs] = useState<RevlogRow[] | null>(null)
@@ -839,7 +839,7 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
     return forecast(rows, settings, seenToday)
   }, [rows, logs, settings])
   const learned = useMemo(() => (rows ? [...rows.values()].filter((r) => r.state !== State.New && CORE_IDS.has(r.id)).length : 0), [rows])
-  const filtered = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0 || settings.decks.join() !== 'ug'
+  const filtered = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0 || studied(settings.decks).join() !== 'ug'
   const insight = useMemo(() => {
     if (!rows || !logs) return null
     const perDay = days(logs)
@@ -901,7 +901,7 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
       <div>
         <Back onClick={() => setOpenSet(null)} />
         <div className="mt-2">
-          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} onTest={() => onTest(shownSet.key)} goal={insight!.goal} />
+          <SetPane set={shownSet} rows={rows} onPick={open} onLearn={() => learnSet(shownSet)} onBrowse={() => onBrowse(shownSet.key)} goal={insight!.goal} />
         </div>
       </div>
     )
@@ -927,7 +927,7 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
           <SetsGrid sets={insight.sets} onOpen={setPick} selected={picked.key} lead={<Back onClick={() => setAllSets(false)} />} goal={insight.goal} />
         </div>
         <div className={`min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${TILE}`}>
-          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} onTest={() => onTest(picked.key)} goal={insight.goal} />
+          <SetPane key={picked.key} set={picked} rows={rows} onPick={open} onLearn={() => learnSet(picked)} onBrowse={() => onBrowse(picked.key)} goal={insight.goal} />
         </div>
       </div>
     )
@@ -1015,6 +1015,7 @@ export default function Progress({ onClose, onDrill, onLearn, onTest }: Props) {
             </p>
             {EXTRAS.map(
               ({ deck, name, cards }) =>
+                !HIDDEN_DECKS.has(deck) &&
                 (settings.decks.includes(deck) || insight[deck].learned > 0) && (
                   <p key={deck} className="mt-1 text-[12.5px] tabular-nums text-ink-3">
                     {name}, an extra set:{' '}

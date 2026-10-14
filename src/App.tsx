@@ -13,7 +13,7 @@ import { Piles } from './components/Piles'
 import { TopBar } from './components/TopBar'
 import { Zoom } from './components/Zoom'
 import { check } from './lib/answer'
-import { answerOf, DECK_VERSION } from './lib/deck'
+import { answerOf, DECK_VERSION, studied } from './lib/deck'
 import { countMatching, previewIntervals, Rating, State } from './lib/scheduler'
 import { useSession } from './lib/session'
 import { loadOutlines } from './lib/outlines'
@@ -34,23 +34,35 @@ const AUTO_SPOKEN_MS = 2400
 /** A place found on the map moves on as Good after this long: time to see the tick, not to wait on it. */
 const FOUND_MS = 420
 const Progress = lazy(() => import('./components/Progress'))
-const Test = lazy(() => import('./components/Test'))
+const loadBrowse = () => import('./components/Browse')
+const LazyBrowse = lazy(loadBrowse)
 
 export default function App() {
   const settings = useSettings()
-  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, reload, saveError, drilling, startDrill, exitDrill, celebrate, endCelebrate, answerTest } = useSession()
+  const { ready, queue, day, currentRow, learned, grade, undo, canUndo, learnMore, learnNow, learnAll, studySooner, standing, reload, saveError, drilling, startDrill, exitDrill, celebrate, endCelebrate } = useSession()
   const auth = useAuth()
   const card = queue?.current ?? null
   // The outline set's shapes come in their own file: fetched as soon as the set is on, so its first card isn't blank.
-  const outlinesOn = settings.decks.includes('outlines')
+  const outlinesOn = studied(settings.decks).includes('outlines')
   useEffect(() => {
     if (outlinesOn) void loadOutlines()
   }, [outlinesOn])
   // The same for the map the find-on-map set needs.
-  const findOn = settings.decks.includes('find')
+  const findOn = studied(settings.decks).includes('find')
   useEffect(() => {
     if (findOn) void loadFindMap().catch(() => {})
   }, [findOn])
+
+  // Browsing is a key away: its code comes once the app has settled, and is then used directly. Through lazy() it would
+  // suspend on first opening, and React holds back what a suspense reveals by 300ms. Opened before then, lazy() it stays,
+  // so an open one is never swapped out and reset.
+  const [LoadedBrowse, setLoadedBrowse] = useState<Awaited<ReturnType<typeof loadBrowse>>['default'] | null>(null)
+  const browseOpened = useRef(false)
+  useEffect(() => {
+    const t = setTimeout(() => void loadBrowse().then((m) => browseOpened.current || setLoadedBrowse(() => m.default)), 2000)
+    return () => clearTimeout(t)
+  }, [])
+  const Browse = LoadedBrowse ?? LazyBrowse
 
   const [flipped, setFlipped] = useState(false)
   const [showMap, setShowMap] = useState(false)
@@ -59,8 +71,11 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [progressOpen, setProgressOpen] = useState(false)
-  /** Tests open: at the list, or at one test's start. */
-  const [test, setTest] = useState<{ key?: string } | null>(null)
+  /** Browsing the cards: where it was left, or at one set (`Africa:flag`). */
+  const [browse, setBrowse] = useState<{ key?: string } | null>(null)
+  useEffect(() => {
+    if (browse) browseOpened.current = true
+  }, [browse])
   const [pileCounts, setPileCounts] = useState<[number, number, number, number]>([0, 0, 0, 0])
   const [answer, setAnswer] = useState('')
   const [typed, setTyped] = useState<Typed | null>(null)
@@ -246,10 +261,10 @@ export default function App() {
       if (e.key === 'Escape') {
         if (filtersOpen) return setFiltersOpen(false)
         // Back out to the whole world, on a find card's map.
-        if (isFind && !progressOpen && !test && !celebrate) findControl.current?.fit()
+        if (isFind && !progressOpen && !browse && !celebrate) findControl.current?.fit()
         return
       }
-      if (filtersOpen || progressOpen || test || celebrate || e.repeat) return
+      if (filtersOpen || progressOpen || browse || celebrate || e.repeat) return
       switch (e.code === 'Space' ? ' ' : e.key) {
         case ' ':
         case 'Spacebar':
@@ -309,10 +324,10 @@ export default function App() {
           setFiltersOpen(false)
           setProgressOpen(true)
           break
-        case 't':
-        case 'T':
+        case 'b':
+        case 'B':
           setFiltersOpen(false)
-          setTest({})
+          setBrowse({})
           break
         case '+':
         case '=':
@@ -333,7 +348,7 @@ export default function App() {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('pointerdown', onPointer, true)
     }
-  }, [flip, doGrade, send, isNew, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, test, celebrate, suggested, isFind])
+  }, [flip, doGrade, send, isNew, doUndo, know, say, card, flipped, showMap, filtersOpen, progressOpen, browse, celebrate, suggested, isFind])
 
   const filtersActive = settings.regions.length > 0 || settings.kinds.length > 0 || settings.types.length > 0
   const empty = useMemo(() => countMatching(settings) === 0, [settings])
@@ -353,9 +368,9 @@ export default function App() {
           onToggleFilters={() => setFiltersOpen((o) => !o)}
           onSynced={reload}
           onOpenProgress={() => setProgressOpen(true)}
-          onOpenTests={() => {
+          onOpenBrowse={() => {
             setFiltersOpen(false)
-            setTest({})
+            setBrowse({})
           }}
           drilling={drilling}
           onExitDrill={exitDrill}
@@ -378,18 +393,18 @@ export default function App() {
                 onClose={() => setProgressOpen(false)}
                 onDrill={startDrill}
                 onLearn={learnNow}
-                onTest={(key) => {
+                onBrowse={(key) => {
                   setProgressOpen(false)
-                  setTest({ key })
+                  setBrowse({ key })
                 }}
               />
             </Suspense>
           )}
         </AnimatePresence>
         <AnimatePresence>
-          {test && (
-            <Suspense key="test" fallback={null}>
-              <Test initial={test.key} onClose={() => setTest(null)} onAnswer={(c, v) => void answerTest(c, v)} />
+          {browse && (
+            <Suspense key="browse" fallback={null}>
+              <Browse initial={browse.key} standing={standing} onSooner={(c) => void studySooner(c)} onClose={() => setBrowse(null)} />
             </Suspense>
           )}
         </AnimatePresence>
@@ -429,7 +444,7 @@ export default function App() {
                   onLearnMore={learnMore}
                   onLearnAll={learnAll}
                   onOpenProgress={() => setProgressOpen(true)}
-                  onOpenTests={() => setTest({})}
+                  onOpenBrowse={() => setBrowse({})}
                 />
               )}
             </AnimatePresence>
@@ -455,13 +470,13 @@ export default function App() {
               <span className="hidden items-center gap-2 lg:flex">
                 scroll zoom <span className="mx-1">·</span> drag pan <span className="mx-1">·</span> click to answer <span className="mx-1">·</span> <kbd>space</kbd> show or next{' '}
                 <span className="mx-1">·</span> <kbd>esc</kbd> whole world <span className="mx-1">·</span> <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>p</kbd> progress{' '}
-                <span className="mx-1">·</span> <kbd>t</kbd> tests
+                <span className="mx-1">·</span> <kbd>b</kbd> browse
               </span>
             ) : (
               <span className="hidden items-center gap-2 lg:flex">
                 <kbd>space</kbd> show <span className="mx-1">·</span> <kbd>1</kbd>–<kbd>4</kbd> grade <span className="mx-1">·</span> <kbd>z</kbd> undo <span className="mx-1">·</span> <kbd>k</kbd> know{' '}
                 <span className="mx-1">·</span> <kbd>s</kbd> say <span className="mx-1">·</span> <kbd>m</kbd> map <span className="mx-1">·</span> <kbd>f</kbd> zoom <span className="mx-1">·</span> <kbd>p</kbd> progress{' '}
-                <span className="mx-1">·</span> <kbd>t</kbd> tests
+                <span className="mx-1">·</span> <kbd>b</kbd> browse
               </span>
             )}
           </div>

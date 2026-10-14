@@ -1,5 +1,5 @@
 import { clipParameters, createEmptyCard, default_w, fsrs, generatorParameters, Rating, State, type Card, type FSRS, type Grade, type ReviewLog } from 'ts-fsrs'
-import { deckOf, kindOf, STUDY_CARDS, type CoreType, type DeckCard } from './deck'
+import { CARD_BY_ID, deckOf, isShown, kindOf, studied, STUDY_CARDS, type CoreType, type DeckCard } from './deck'
 import { flagPartners } from './lookalike'
 import fame from '../data/fame.json'
 import type { CardRow, DayRow } from './db'
@@ -121,7 +121,7 @@ export const waitsForTomorrow = (r: Card, placeSeen: boolean, now: Date) => {
   return +new Date(r.due) >= +start
 }
 
-export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, pulled: [], seenNotes: [], grades: [0, 0, 0, 0], updated: 0 })
+export const emptyDay = (day: string): DayRow => ({ day, newCount: 0, reviewCount: 0, extraNew: 0, pulled: [], pulledNew: 0, seenNotes: [], grades: [0, 0, 0, 0], updated: 0 })
 
 export const freshRow = (c: DeckCard, now: Date): CardRow => ({ ...createEmptyCard(now), id: c.id, noteId: c.note.id, updated: 0 })
 
@@ -184,7 +184,7 @@ const TYPE_ORDER = ['flag', 'map', 'capital', 'country', 'outline', 'find']
 
 /** Any of the chosen options within a group, and every group. */
 export function matchesFilters(c: DeckCard, s: Settings) {
-  if (!s.decks.includes(deckOf(c))) return false
+  if (!studied(s.decks).includes(deckOf(c))) return false
   if (deckOf(c) === 'ug' && s.types.length && !s.types.includes(c.type as CoreType)) return false
   if (s.kinds.length && !s.kinds.includes(kindOf(c.note))) return false
   if (s.regions.length && !c.note.tags.some((t) => s.regions.includes(t))) return false
@@ -196,15 +196,16 @@ export const countMatching = (s: Settings) => STUDY_CARDS.filter((c) => matchesF
 export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Settings, day: DayRow): Queue {
   const end = dayEnd(now)
   const seen = new Set(day.seenNotes)
-  const cards = STUDY_CARDS.filter((c) => matchesFilters(c, settings))
+  // Cards added by hand count whatever the filters, unless their set has been put away.
+  const pulledIds = new Set((day.pulled ?? []).filter((id) => CARD_BY_ID.has(id) && isShown(CARD_BY_ID.get(id)!)))
+  const cards = STUDY_CARDS.filter((c) => matchesFilters(c, settings) || pulledIds.has(c.id))
   const row = (c: DeckCard) => rows.get(c.id) ?? freshRow(c, now)
   const rank = (c: DeckCard) => hash(c.id + day.day + SEED)
   const placeRank = (noteId: string) => (FAME.get(noteId) ?? FAME.size) + (hash(noteId + day.day + SEED) / 2 ** 32) * FAME_SPREAD
 
-  // Cards added by hand come first, whatever the filters and the daily limit. They go out in rounds, one per place and
+  // New cards added by hand come first, whatever the filters and the daily limit. They go out in rounds, one per place and
   // then a second per place, with the places in the same order each round, so a place's cards come well apart.
   // Rounds count every card added, answered or not, so a place's next card waits for the rest of its round.
-  const pulledIds = new Set(day.pulled ?? [])
   const round = new Map<string, number>()
   const nth = new Map<string, number>()
   for (const c of STUDY_CARDS.filter((c) => pulledIds.has(c.id)).sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type))) {
@@ -215,29 +216,32 @@ export function buildQueue(now: Date, rows: Map<string, CardRow>, settings: Sett
   const pulled = STUDY_CARDS.filter((c) => pulledIds.has(c.id) && row(c).state === State.New).sort(
     (a, b) => round.get(a.id)! - round.get(b.id)! || placeRank(a.note.id) - placeRank(b.note.id),
   )
-  // They come on top of the day's limit, so the ones already answered don't use it up.
-  let pulledStarted = 0
-  for (const id of pulledIds) if ((rows.get(id)?.state ?? State.New) !== State.New) pulledStarted++
 
   const learning = cards
     .filter((c) => isLearning(row(c).state))
     .sort((a, b) => +row(a).due - +row(b).due)
 
   const reviewBudget = Math.max(0, settings.reviewsPerDay - day.reviewCount)
-  let reviews = cards.filter((c) => row(c).state === State.Review && row(c).due < end && !waitsForTomorrow(row(c), seen.has(c.note.id), now))
+  const due = cards.filter((c) => row(c).state === State.Review && row(c).due < end)
+  // Reviews asked for by hand come whatever the limit, and even when their place has come up today.
+  const asked = due.filter((c) => pulledIds.has(c.id))
+  let reviews = due.filter((c) => !pulledIds.has(c.id) && !waitsForTomorrow(row(c), seen.has(c.note.id), now))
   // More due than the day's limit: keep the ones most likely still remembered. They're the cheapest to save, and the
   // rest need relearning either way (FSRS sort-order simulations).
-  if (reviews.length > reviewBudget) {
+  const room = Math.max(0, reviewBudget - asked.length)
+  if (reviews.length > room) {
     const chance = new Map(reviews.map((c) => [c.id, recall(row(c), now)]))
-    reviews = reviews.sort((a, b) => chance.get(b.id)! - chance.get(a.id)!).slice(0, reviewBudget)
+    reviews = reviews.sort((a, b) => chance.get(b.id)! - chance.get(a.id)!).slice(0, room)
   }
+  reviews.push(...asked)
   // Order doesn't matter for memory when everything gets done, so shuffle (the same way all day): a fixed order
   // would let one answer cue the next.
   reviews.sort((a, b) => rank(a) - rank(b))
 
   // New cards count against the review limit too, as in Anki, so a heavy review day leaves room for fewer. 'Learn more'
-  // raises both limits, so it's honoured even once the reviews have used up the day.
-  const newLeft = Math.min(settings.newPerDay, reviewBudget - reviews.length) + day.extraNew - Math.max(0, day.newCount - pulledStarted)
+  // raises both limits, so it's honoured even once the reviews have used up the day. Ones added by hand come on top of
+  // the limit, so those already answered don't use it up.
+  const newLeft = Math.min(settings.newPerDay, reviewBudget - reviews.length) + day.extraNew - Math.max(0, day.newCount - (day.pulledNew ?? 0))
   const newBudget = Math.max(0, newLeft)
   const newOver = Math.max(0, -newLeft)
   const seenNew = new Set<string>()

@@ -1,5 +1,5 @@
 import type { CardRow, RevlogRow } from './db'
-import { ALL_CARDS, CARD_BY_ID, CORE_IDS, KINDS, NOTES, REGIONS, regionLabel, type CoreType, type DeckCard } from './deck'
+import { ALL_CARDS, CARD_BY_ID, CORE_IDS, isShown, KINDS, NOTES, REGIONS, regionLabel, type CoreType, type DeckCard } from './deck'
 import { isMature } from './progress'
 import { dayKey, recall, State } from './scheduler'
 
@@ -196,9 +196,10 @@ export type Slipping = { row: CardRow; card: DeckCard; recall: number }
 export function forgotten(rows: Map<string, CardRow>, now = new Date()): Slipping[] {
   const out: Slipping[] = []
   for (const r of rows.values()) {
-    if (!learned(r)) continue
+    const card = CARD_BY_ID.get(r.id)
+    if (!learned(r) || !card || !isShown(card)) continue
     const chance = recall(r, now)
-    if (chance < SLIPPING) out.push({ row: r, card: CARD_BY_ID.get(r.id)!, recall: chance })
+    if (chance < SLIPPING) out.push({ row: r, card, recall: chance })
   }
   return out.sort((a, b) => a.recall - b.recall || +new Date(a.row.due) - +new Date(b.row.due))
 }

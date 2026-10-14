@@ -39,6 +39,14 @@ export const DECKS: { id: DeckId; label: string; about?: string }[] = [
   { id: 'outlines', label: 'Outlines', about: 'an extra set' },
   { id: 'find', label: 'Find on the map', about: 'an extra set' },
 ]
+/** Sets kept but put away for now: never offered or studied, whatever the settings say. Answers already given stay. */
+export const HIDDEN_DECKS = new Set<DeckId>(['outlines', 'find'])
+export const SHOWN_DECKS = DECKS.filter((d) => !HIDDEN_DECKS.has(d.id))
+/** The sets studied: those switched on and not put away, or Ultimate Geography when that leaves none. */
+export const studied = (decks: DeckId[]): DeckId[] => {
+  const on = decks.filter((d) => !HIDDEN_DECKS.has(d))
+  return on.length || SHOWN_DECKS.length > 1 ? on : ['ug']
+}
 
 export type DeckCard = { id: string; type: CardType; note: Note }
 
@@ -81,6 +89,7 @@ export const FIND_CARDS: DeckCard[] = NOTES.filter((n) => FINDABLE.has(n.id)).ma
 /** Every card there is to study, in any set. */
 export const STUDY_CARDS = [...ALL_CARDS, ...OUTLINE_CARDS, ...FIND_CARDS]
 export const deckOf = (c: DeckCard): DeckId => (c.type === 'outline' ? 'outlines' : c.type === 'find' ? 'find' : 'ug')
+export const isShown = (c: DeckCard) => !HIDDEN_DECKS.has(deckOf(c))
 
 export const CARD_BY_ID = new Map(STUDY_CARDS.map((c) => [c.id, c]))
 /** Ultimate Geography's cards, which the progress headline, sets and mastery count. */

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { FIND_CARDS, OUTLINE_CARDS } from '../lib/deck'
+import { FIND_CARDS, HIDDEN_DECKS, OUTLINE_CARDS } from '../lib/deck'
 import { useEffect, useState } from 'react'
 import { dayEnd, formatInterval, GRADES, LEARN_ALL_MAX, type Queue } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
@@ -49,10 +49,10 @@ type Props = {
   onLearnMore: (n: number) => void
   onLearnAll: () => void
   onOpenProgress: () => void
-  onOpenTests: () => void
+  onOpenBrowse: () => void
 }
 
-export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenProgress, onOpenTests }: Props) {
+export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenProgress, onOpenBrowse }: Props) {
   // Every answer today, the same ones the grade row and piles count (learning steps and Knew it included).
   const answered = grades.reduce((a, b) => a + b, 0)
   const settings = useSettings()
@@ -122,8 +122,8 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
         </div>
       )}
       {/* Nothing left to learn: what's left is seeing how much has stuck, or an extra set, one offered at a time. */}
-      {queue.unstarted === 0 && learned > 0 && <Action onClick={onOpenTests}>Take a test</Action>}
-      {queue.unstarted === 0 && learned > 0 && !settings.decks.includes('outlines') ? (
+      {queue.unstarted === 0 && learned > 0 && <Action onClick={onOpenBrowse}>Browse your cards</Action>}
+      {queue.unstarted === 0 && learned > 0 && !HIDDEN_DECKS.has('outlines') && !settings.decks.includes('outlines') ? (
         <p className="mt-1 max-w-[40ch] text-balance text-[12.5px] text-ink-3">
           Or <Link onClick={() => setSettings({ decks: [...settings.decks, 'outlines'] })}>add the outline set</Link>: {OUTLINE_CARDS.length} more places, from their
           shape alone.
@@ -131,6 +131,7 @@ export function Done({ queue, learned, grades, onLearnMore, onLearnAll, onOpenPr
       ) : (
         queue.unstarted === 0 &&
         learned > 0 &&
+        !HIDDEN_DECKS.has('find') &&
         !settings.decks.includes('find') && (
           <p className="mt-1 max-w-[40ch] text-balance text-[12.5px] text-ink-3">
             Or <Link onClick={() => setSettings({ decks: [...settings.decks, 'find'] })}>add finding them on the map</Link>: {FIND_CARDS.length} places, on a blank world

@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ALL_CARDS, CARD_TYPES, DECKS, FIND_CARDS, KINDS, OUTLINE_CARDS, REGIONS, regionLabel, type CoreType, type DeckId, type Kind } from '../lib/deck'
+import { ALL_CARDS, CARD_TYPES, FIND_CARDS, KINDS, OUTLINE_CARDS, REGIONS, regionLabel, SHOWN_DECKS, studied, type CoreType, type DeckId, type Kind } from '../lib/deck'
 import { countMatching } from '../lib/scheduler'
 import { setSettings, useSettings } from '../lib/settings'
 
@@ -100,20 +100,24 @@ export function Filters({ onClose }: { onClose: () => void }) {
           {count ? `${count.toLocaleString()} card${count === 1 ? '' : 's'}` : 'No cards match'}
         </span>
       </div>
-      {DECKS.map((d) => (
-        <Switch key={d.id} on={s.decks.includes(d.id)} onClick={() => setSettings({ decks: toggle<DeckId>(s.decks, d.id) })}>
-          <span className="flex flex-col py-1.5">
-            <span>{d.label}</span>
-            <span className="text-[12px] text-ink-3">
-              {SIZE[d.id].toLocaleString()} cards{d.about && ` · ${d.about}`}
-            </span>
-          </span>
-        </Switch>
-      ))}
-
-      <div className="my-2 border-t border-line" />
+      {/* A choice of sets only while there's more than one on offer. */}
+      {SHOWN_DECKS.length > 1 && (
+        <>
+          {SHOWN_DECKS.map((d) => (
+            <Switch key={d.id} on={s.decks.includes(d.id)} onClick={() => setSettings({ decks: toggle<DeckId>(s.decks, d.id) })}>
+              <span className="flex flex-col py-1.5">
+                <span>{d.label}</span>
+                <span className="text-[12px] text-ink-3">
+                  {SIZE[d.id].toLocaleString()} cards{d.about && ` · ${d.about}`}
+                </span>
+              </span>
+            </Switch>
+          ))}
+          <div className="my-2 border-t border-line" />
+        </>
+      )}
       {/* Card types are Ultimate Geography's; each extra set has just the one. */}
-      {s.decks.includes('ug') && (
+      {studied(s.decks).includes('ug') && (
         <Fold label="Cards" value={CARD_TYPES.filter((t) => s.types.includes(t.id)).map((t) => t.label)} open={open === 'types'} onToggle={() => fold('types')}>
           <Chip on={!s.types.length} onClick={() => setSettings({ types: [] })}>
             All

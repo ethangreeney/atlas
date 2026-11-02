@@ -1,7 +1,14 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getGoogleClientId, signInWithGoogle, useAuth } from '../lib/auth'
-import { iosBrowserTab } from '../lib/push'
+
+/** iPhone or iPad Safari in a normal tab, where Safari may clear the progress of a site left idle for a week. */
+const iosBrowserTab = () => {
+  const ua = navigator.userAgent
+  const ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) // iPadOS reports as a Mac
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true || matchMedia('(display-mode: standalone)').matches
+  return ios && !standalone
+}
 
 const KEY = 'atlas.keepNudge.dismissed'
 const MIN_LEARNED = 20

@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "build:map": "tsx scripts/build-map.ts",
     "build:fame": "tsx scripts/build-fame.ts",
-    "test:reminders": "node reminders/test.mjs",
     "sync:deck": "tsx scripts/sync-deck.ts"
   },
   "dependencies": {

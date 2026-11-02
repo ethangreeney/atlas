@@ -5,9 +5,10 @@ import { schedulePush } from './sync'
 
 /** Below this the optimizer mostly hands back the defaults it started from. */
 const MIN_REVIEWS = 400
-/** Refit once the log has grown by a quarter, or a month has passed with anything new. */
+/** Refit once the log has grown by a quarter, or two weeks have passed with anything new: a learner's memory can
+ * outrun the last fit within a month (one was getting 97% of reviews right where it expected 90). */
 const GROWTH = 1.25
-const REFIT_MS = 30 * 86_400_000
+const REFIT_MS = 14 * 86_400_000
 
 /**
  * Every card's history as FSRS training items: each prefix of two or more reviews, starting from the first answer

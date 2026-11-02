@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App'
-import { refreshReminder } from './lib/push'
 import { updateWaiting } from './lib/update'
 
 // New versions install in the background and the page reloads once they take over, so nobody keeps running a stale
@@ -31,7 +30,12 @@ const update = registerSW({
   },
 })
 void update
-void refreshReminder().catch(() => {})
+// Daily reminders are gone: drop the push subscription a browser kept from them.
+void navigator.serviceWorker
+  ?.getRegistration()
+  .then((r) => r?.pushManager?.getSubscription())
+  .then((s) => s?.unsubscribe())
+  .catch(() => {})
 
 // Clip caches from older builds: bump the name in vite.config.ts whenever the clips are re-rendered.
 if ('caches' in window) for (const old of ['audio', 'voice']) void caches.delete(old).catch(() => {})

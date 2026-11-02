@@ -35,8 +35,6 @@ export default defineConfig({
         // The link-preview image is only for crawlers; keep it out of every visitor's offline cache.
         globIgnores: ['**/node_modules/**/*', 'og.png'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        // Daily reminder notifications (public/push-sw.js).
-        importScripts: ['push-sw.js'],
         // Pronunciation clips are fetched on demand and kept once heard.
         runtimeCaching: [
           {
